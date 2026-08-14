@@ -637,6 +637,36 @@ module Bass
               false
             end
 
+    # iOS: BASS keeps the AVAudioSession in playAndRecord for as long as the
+    # record device stays initialised, which locks Bluetooth headsets into the
+    # low-quality hands-free profile. Track who is using the microphone and
+    # free the record device once the last user is gone; BASS then reverts the
+    # session to the playback category. Other platforms keep the device open
+    # (freeing and re-initialising is needless churn there).
+    @@record_users = {}
+    def self.record_use(token)
+      @@record_users[token] = true
+      true
+    end
+
+    def self.record_unuse(token)
+      @@record_users.delete(token)
+      release_record_device_if_unused
+      true
+    rescue Exception
+      false
+    end
+
+    def self.release_record_device_if_unused
+      return false unless defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios)
+      return false if !@@record_users.empty? || @@recordinit != true
+      BASS_RecordFree.call
+      @@recordinit = false
+      true
+    rescue Exception
+      false
+    end
+
     def self.record_resetdevice
       BASS_RecordSetDevice.call(@@recorddevice)
     end

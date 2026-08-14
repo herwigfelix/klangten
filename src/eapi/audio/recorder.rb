@@ -112,6 +112,7 @@ module EltenRecorderRuntime
         @pending_pcm = "".b
         @read_buffer_bytes = [read_buffer_bytes.to_i, 4096].max
         Bass.record_prepare
+        Bass.record_use(self)
         @channel = Bass::BASS_RecordStart.call(48000, 2, record_flags.to_i, 0, 0)
         raise RuntimeError, "Cannot start recording: BASS error #{Bass::BASS_ErrorGetCode.call}" if @channel == 0
         notify_recording(true)
@@ -129,6 +130,7 @@ module EltenRecorderRuntime
         session.close if session != nil
         @session.close if @session != nil
         notify_recording(false)
+        Bass.record_unuse(self)
         raise
       end
     end
@@ -144,6 +146,7 @@ module EltenRecorderRuntime
         @session.finish if @session != nil
       end
       @session = nil
+      Bass.record_unuse(self)
     end
 
     def pause
