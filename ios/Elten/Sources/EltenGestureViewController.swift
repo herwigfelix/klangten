@@ -48,20 +48,51 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
     var systemKeyboardVisible: Bool { textEntryField.isFirstResponder }
 
     func showSystemKeyboard() {
+        // Hand the screen over to the system keyboard: the self-voicing surface
+        // must stop swallowing touches (direct interaction) and VoiceOver focus
+        // must land on the text field, otherwise blind users cannot type.
+        view.accessibilityTraits = []
+        view.isAccessibilityElement = false
+        gestureRecognizersEnabled(false)
+        textEntryField.frame = CGRect(x: 16, y: view.safeAreaInsets.top + 8,
+                                      width: view.bounds.width - 32, height: 44)
+        textEntryField.isHidden = false
+        textEntryField.isAccessibilityElement = true
         textEntryField.text = ""
         textEntryField.becomeFirstResponder()
+        UIAccessibility.post(notification: .screenChanged, argument: textEntryField)
     }
 
     func hideSystemKeyboard() {
         textEntryField.resignFirstResponder()
     }
 
+    private func restoreDirectInteraction() {
+        textEntryField.isHidden = true
+        textEntryField.isAccessibilityElement = false
+        view.isAccessibilityElement = true
+        view.accessibilityTraits = [.allowsDirectInteraction]
+        gestureRecognizersEnabled(true)
+        UIAccessibility.post(notification: .screenChanged, argument: view)
+    }
+
+    private func gestureRecognizersEnabled(_ enabled: Bool) {
+        view.gestureRecognizers?.forEach { $0.isEnabled = enabled }
+    }
+
     private func installTextEntryField() {
-        // Zero-sized but in the hierarchy, so it can become first responder and
-        // raise the system keyboard without showing any UI of its own.
+        // Hidden until the keyboard gesture fires; then shown as a visible,
+        // VoiceOver-focusable field at the top of the screen.
         textEntryField.delegate = self
         textEntryField.autocorrectionType = .default
         textEntryField.returnKeyType = .done
+        textEntryField.borderStyle = .roundedRect
+        textEntryField.backgroundColor = .white
+        textEntryField.textColor = .black
+        textEntryField.font = UIFont.preferredFont(forTextStyle: .title2)
+        textEntryField.accessibilityLabel = Locale.preferredLanguages.first?.hasPrefix("de") == true
+            ? "Texteingabe" : "Text input"
+        textEntryField.isHidden = true
         textEntryField.isAccessibilityElement = false
         view.addSubview(textEntryField)
     }
@@ -82,6 +113,7 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
 
     func textFieldDidEndEditing(_ textField: UITextField) {
         EltenSystemKeyboardState.shared.set(false)
+        restoreDirectInteraction()
         EltenInputQueue.shared.pushSystemKeyboardState(false)
     }
 
