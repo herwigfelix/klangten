@@ -38,5 +38,9 @@ final class RubyRuntime {
         let entry = (appRoot as NSString).appendingPathComponent("ios_boot.rb")
         elten_ruby_boot(appRoot, entry)   // blocks: runs the Elten event loop
         NSLog("[Elten] Ruby thread exited")
+        // The Ruby event loop only returns when Elten shut down (e.g. the Exit
+        // menu option). Without terminating here the app would linger as a
+        // black, silent, unresponsive screen.
+        exit(0)
     }
 }
