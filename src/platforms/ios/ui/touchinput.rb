@@ -125,9 +125,26 @@ module IOSTouchInput
     end
 
     def toggle_keyboard
+      # Prefer the native iOS on-screen keyboard when the host provides it; the
+      # legacy Elten key grid (OnScreenKeyboard) remains only as a fallback for
+      # hosts without the system keyboard bridge.
+      if system_keyboard?
+        if IOSHostBridge.system_keyboard_visible?
+          IOSHostBridge.system_keyboard_hide
+        else
+          IOSHostBridge.system_keyboard_show
+        end
+        return true
+      end
       return false unless defined?(OnScreenKeyboard)
       keyboard_active? ? OnScreenKeyboard.hide : OnScreenKeyboard.show
       true
+    end
+
+    def system_keyboard?
+      defined?(IOSHostBridge) && IOSHostBridge.respond_to?(:system_keyboard_available?) && IOSHostBridge.system_keyboard_available?
+    rescue Exception
+      false
     end
 
     # Explore-by-touch: host reports the normalised (0..1) finger position; the
@@ -176,6 +193,8 @@ module IOSTouchInput
     #   "kpoint:<x>,<y>"      -> keyboard explore
     #   "kcommit"             -> type the explored key
     #   "kcancel"             -> close the keyboard
+    #   "ktext:<text>"        -> text typed on the system keyboard (Return pressed)
+    #   "ksys:0" / "ksys:1"   -> system keyboard hidden / shown
     #   "active:0" / "active:1" -> host foreground state
     def dispatch_token(token)
       token = token.to_s
@@ -190,6 +209,15 @@ module IOSTouchInput
         keyboard_commit
       when "kcancel"
         keyboard_cancel
+      when "ktext"
+        # The system keyboard was dismissed with Return; hand the collected
+        # text to the focused control as typed characters.
+        IOSWindowNative.type_character(rest) if rest.to_s != ""
+        true
+      when "ksys"
+        # System keyboard visibility changed; state lives in the host, nothing
+        # to track here.
+        true
       when "active"
         IOSWindowNative.set_active(rest.to_s != "0")
         true

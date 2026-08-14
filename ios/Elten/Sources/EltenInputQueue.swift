@@ -26,6 +26,8 @@ final class EltenInputQueue {
     func pushKeyboardPoint(_ x: CGFloat, _ y: CGFloat) { push("kpoint:\(x),\(y)") }
     func pushKeyboardCommit() { push("kcommit") }
     func pushKeyboardCancel() { push("kcancel") }
+    func pushKeyboardText(_ text: String) { push("ktext:\(text)") }
+    func pushSystemKeyboardState(_ visible: Bool) { push("ksys:\(visible ? 1 : 0)") }
     func pushActive(_ active: Bool) { push("active:\(active ? 1 : 0)") }
 
     func next() -> String {

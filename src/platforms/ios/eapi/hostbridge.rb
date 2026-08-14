@@ -101,6 +101,30 @@ module IOSHostBridge
       call_two_strings_int(:message_box, caption.to_s, text.to_s) == 1
     end
 
+    # --- system on-screen keyboard ----------------------------------------
+    # The host owns a hidden text field; showing it raises the native iOS
+    # on-screen keyboard. Typed text comes back through the input queue as a
+    # "ktext:<text>" token when the user presses Return (which also dismisses
+    # the keyboard).
+
+    def system_keyboard_available?
+      func(:system_keyboard_show, [], Fiddle::TYPE_VOID) != nil
+    rescue Exception
+      false
+    end
+
+    def system_keyboard_show
+      call_void(:system_keyboard_show)
+    end
+
+    def system_keyboard_hide
+      call_void(:system_keyboard_hide)
+    end
+
+    def system_keyboard_visible?
+      call_int(:system_keyboard_visible) == 1
+    end
+
     # --- host -> Ruby input queue -----------------------------------------
     # The host pushes recognised gestures / keyboard-explore events into a
     # native queue; Ruby drains one token at a time from its own thread (so the

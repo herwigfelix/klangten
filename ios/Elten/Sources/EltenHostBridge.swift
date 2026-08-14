@@ -129,6 +129,39 @@ public func elten_host_frameworks_path() -> UnsafePointer<CChar> {
     return CStringHolder.shared.store("frameworks", path)
 }
 
+// MARK: - system on-screen keyboard
+
+// Visibility flag mirrored from the main thread so the Ruby pump thread can
+// poll it without touching UIKit off-main.
+final class EltenSystemKeyboardState {
+    static let shared = EltenSystemKeyboardState()
+    private var visible = false
+    private let lock = NSLock()
+    var isVisible: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return visible
+    }
+    func set(_ value: Bool) {
+        lock.lock(); defer { lock.unlock() }
+        visible = value
+    }
+}
+
+@_cdecl("elten_host_system_keyboard_show")
+public func elten_host_system_keyboard_show() {
+    DispatchQueue.main.async { EltenGestureViewController.current?.showSystemKeyboard() }
+}
+
+@_cdecl("elten_host_system_keyboard_hide")
+public func elten_host_system_keyboard_hide() {
+    DispatchQueue.main.async { EltenGestureViewController.current?.hideSystemKeyboard() }
+}
+
+@_cdecl("elten_host_system_keyboard_visible")
+public func elten_host_system_keyboard_visible() -> Int32 {
+    return EltenSystemKeyboardState.shared.isVisible ? 1 : 0
+}
+
 // Force-keep the @_cdecl entry points. Only the embedded Ruby calls them (via
 // dlsym), so without a Swift-side reference the linker dead-strips them and the
 // app becomes silent + unresponsive. `@_used`-style retention via a referenced
@@ -141,6 +174,8 @@ public func eltenHostBridgeKeepAlive() {
         elten_host_speech_resume, elten_host_clipboard_get, elten_host_clipboard_set,
         elten_host_open_url, elten_host_microphone_request, elten_host_locale,
         elten_host_os_version, elten_host_frameworks_path, elten_host_next_input,
+        elten_host_system_keyboard_show, elten_host_system_keyboard_hide,
+        elten_host_system_keyboard_visible,
     ]
     if keep.count == 0 { fatalError() } // never true; prevents the array being optimised away
 }

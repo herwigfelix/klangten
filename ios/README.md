@@ -3,7 +3,7 @@
 A port of the Elten desktop client to iOS that **reuses the existing Ruby code
 base** (the same ~200 `.rb` source files, the same sound themes and audio
 engine). It adds a touch-gesture layer for everything the desktop version does
-with the keyboard, an accessible on-screen keyboard for typing, and **omits the
+with the keyboard, the native iOS on-screen keyboard for typing, and **omits the
 program system** (third-party downloadable "Elten apps"), which iOS/App Store
 policy does not allow.
 
@@ -85,7 +85,12 @@ Touch gestures and the on-screen keyboard synthesise the exact virtual key codes
 | 3-finger double tap | Toggle on-screen keyboard |
 | 4-finger swipe ↑/↓ | Page up / Page down |
 
-While the on-screen keyboard is open, 1-finger gestures drive the keyboard
+The keyboard toggle raises the **native iOS on-screen keyboard** (a hidden text
+field becomes first responder). Return dismisses it and hands the typed text to
+Elten as a `ktext:` input token, which the touch layer injects via
+`IOSWindowNative.type_character`. The legacy Elten key grid
+(`src/ui/controls/onscreen_keyboard.rb`) remains only as a fallback for hosts
+without the system-keyboard bridge; while it is open, 1-finger gestures drive it
 (explore-by-touch speaks keys, lift/double-tap types, 2-finger tap = backspace,
 2-finger swipe closes it).
 
