@@ -153,13 +153,20 @@ module EltenBoot
       text = line.to_s.strip
       return nil if text == "" || text.start_with?("#")
       file = text
-      tags = []
-      if text =~ /\A(.+?)(?:\s*):([A-Za-z][A-Za-z0-9_-]*)\s*\z/
+      tag = nil
+      negated = false
+      # A trailing ":tag" restricts a file to a platform; ":!tag" excludes it
+      # from that platform (used to drop the program system on iOS).
+      if text =~ /\A(.+?)(?:\s*):(!)?([A-Za-z][A-Za-z0-9_-]*)\s*\z/
         file = $1.to_s.strip
-        tags = [$2.to_s.downcase.to_sym]
+        negated = ($2 == "!")
+        tag = $3.to_s.downcase.to_sym
       end
       return nil if file == ""
-      return nil if tags.size > 0 && (tags & platform_tags).empty?
+      if tag != nil
+        present = platform_tags.include?(tag)
+        return nil if negated ? present : !present
+      end
       file
     end
 
@@ -386,6 +393,9 @@ module EltenBoot
     # Platform application data root; Klangten::Config.data_dir appends sixdotsIT/klangten.
     def appdata
       return File.join(Dir.home, "Library", "Application Support") if EltenBoot.platform?(:osx)
+      # iOS sandboxes the container root; only Documents/Library/tmp are writable.
+      # Klangten::Config.data_dir appends sixdotsIT/klangten below this root.
+      return File.join(Dir.home, "Library", "Application Support") if EltenBoot.platform?(:ios)
       return xdg_data_home if EltenBoot.platform?(:linux)
       ENV["APPDATA"].to_s != "" ? ENV["APPDATA"] : File.join(Dir.home, "AppData", "Roaming")
     rescue Exception

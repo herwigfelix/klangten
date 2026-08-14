@@ -1,0 +1,77 @@
+name: EltenEmbedTest
+options:
+  bundleIdPrefix: link.elten
+  deploymentTarget: { iOS: "16.0" }
+targets:
+  EltenEmbedTest:
+    type: application
+    platform: iOS
+    dependencies:
+      - framework: Frameworks/bass.framework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassenc.framework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassenc_mp3.framework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassflac.framework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/basshls.framework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassmidi.framework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassmix.framework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassopus.framework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/basswebm.framework
+        embed: true
+        codeSign: true
+    sources:
+      - Sources
+      - path: ruby
+        buildPhase: resources
+      - path: stdlib
+        type: folder
+        buildPhase: resources
+      - path: gemlibs
+        type: folder
+        buildPhase: resources
+      - path: elten-app
+        type: folder
+        buildPhase: resources
+    info:
+      path: Sources/Info.plist
+      properties:
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: link.elten.embedtest
+        SWIFT_VERSION: "5.0"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Embed-Bridging-Header.h
+        HEADER_SEARCH_PATHS: [$(SRCROOT)/vendor/include]
+        CODE_SIGNING_ALLOWED: "NO"
+        OTHER_LDFLAGS:
+          - $(SRCROOT)/vendor/libruby-static.a
+          - $(SRCROOT)/vendor/libfiddle.a
+          - $(SRCROOT)/vendor/libffi.a
+          - $(SRCROOT)/vendor/libbigdecimal.a
+          - $(SRCROOT)/vendor/libzstdruby.a
+          - $(SRCROOT)/vendor/libnokogiri.a
+          - -Wl,-force_load,$(SRCROOT)/vendor/libopus.a
+          - -Wl,-force_load,$(SRCROOT)/vendor/libogg.a
+          - -Wl,-force_load,$(SRCROOT)/vendor/libvorbis.a
+          - -Wl,-force_load,$(SRCROOT)/vendor/libspeexdsp.a
+          - -lxml2
+          - -lxslt
+          - -lexslt
+          - -lz
+          - -lresolv
+          - -lc++

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elten für iOS – Touch-Gesten</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff; --fg: #14181f; --muted: #5b6472;
+    --line: #d7dce3; --accent: #1a5fd6; --card: #f5f7fa; --key: #eef1f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f141b; --fg:#e9edf3; --muted:#9aa5b4; --line:#2a333f; --accent:#5c9bff; --card:#151c25; --key:#1d2732; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 2rem 1.1rem 4rem; }
+  header p { color: var(--muted); }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 .4rem; }
+  h2 {
+    font-size: 1.25rem; margin: 2.4rem 0 .3rem; padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+  }
+  h2 .count { color: var(--accent); }
+  section > p { color: var(--muted); margin-top: .2rem; }
+  a { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; margin: .8rem 0 0; }
+  caption { text-align: left; color: var(--muted); font-size: .95rem; padding: .2rem 0 .5rem; }
+  th, td { text-align: left; padding: .6rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.action { width: 42%; }
+  kbd {
+    display: inline-block; font: inherit; font-size: .82em; background: var(--key);
+    border: 1px solid var(--line); border-radius: 6px; padding: .05em .45em; white-space: nowrap;
+  }
+  .note {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1rem 1.1rem; margin: 1rem 0;
+  }
+  .note h2 { border: 0; padding: 0; margin: 0 0 .4rem; font-size: 1.1rem; }
+  footer { margin-top: 3rem; color: var(--muted); font-size: .9rem; }
+  ul { padding-left: 1.2rem; }
+  li { margin: .25rem 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Elten für iOS – Touch-Gesten</h1>
+  <p>Elten spricht sich selbst. Statt einer Tastatur steuerst du alles mit einem
+  festen, lernbaren Satz von Gesten. Jede Geste löst genau die Aktion aus, die
+  am Desktop eine Taste auslöst. Die Fingeranzahl gruppiert die Bedeutung:
+  <strong>1&nbsp;Finger&nbsp;=&nbsp;bewegen/auswählen</strong>,
+  <strong>2&nbsp;Finger&nbsp;=&nbsp;abbrechen/Menü</strong>,
+  <strong>3&nbsp;Finger&nbsp;=&nbsp;Steuerelemente/Tastatur</strong>.</p>
+</header>
+
+<section aria-labelledby="one">
+  <h2 id="one"><span class="count">1 Finger</span> – Bewegen und Aktivieren</h2>
+  <table>
+    <caption>Gesten mit einem Finger</caption>
+    <thead><tr><th scope="col">Geste</th><th scope="col">Aktion</th><th scope="col">Taste</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Nach rechts wischen</th><td class="action">Nächstes Element</td><td><kbd>Pfeil rechts</kbd></td></tr>
+      <tr><th scope="row">Nach links wischen</th><td class="action">Vorheriges Element</td><td><kbd>Pfeil links</kbd></td></tr>
+      <tr><th scope="row">Nach oben wischen</th><td class="action">Nach oben</td><td><kbd>Pfeil auf</kbd></td></tr>
+      <tr><th scope="row">Nach unten wischen</th><td class="action">Nach unten</td><td><kbd>Pfeil ab</kbd></td></tr>
+      <tr><th scope="row">Doppeltippen</th><td class="action">Aktivieren / Öffnen</td><td><kbd>Enter</kbd></td></tr>
+      <tr><th scope="row">Lang drücken</th><td class="action">Kontextmenü</td><td><kbd>Kontextmenü</kbd></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="two">
+  <h2 id="two"><span class="count">2 Finger</span> – Abbrechen, Stoppen, Menü</h2>
+  <table>
+    <caption>Gesten mit zwei Fingern</caption>
+    <thead><tr><th scope="col">Geste</th><th scope="col">Aktion</th><th scope="col">Taste</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Tippen</th><td class="action">Sprachausgabe stoppen</td><td><kbd>Strg</kbd></td></tr>
+      <tr><th scope="row">Nach links wischen</th><td class="action">Zurück</td><td><kbd>Escape</kbd></td></tr>
+      <tr><th scope="row">Nach unten wischen</th><td class="action">Zurück</td><td><kbd>Escape</kbd></td></tr>
+      <tr><th scope="row">Nach oben wischen</th><td class="action">Kontextmenü</td><td><kbd>Kontextmenü</kbd></td></tr>
+      <tr><th scope="row">Doppeltippen</th><td class="action">Hauptmenü</td><td><kbd>Alt</kbd></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="three">
+  <h2 id="three"><span class="count">3 Finger</span> – Steuerelemente und Tastatur</h2>
+  <table>
+    <caption>Gesten mit drei Fingern</caption>
+    <thead><tr><th scope="col">Geste</th><th scope="col">Aktion</th><th scope="col">Taste</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Nach rechts wischen</th><td class="action">Nächstes Steuerelement</td><td><kbd>Tab</kbd></td></tr>
+      <tr><th scope="row">Nach links wischen</th><td class="action">Vorheriges Steuerelement</td><td><kbd>Umschalt</kbd> + <kbd>Tab</kbd></td></tr>
+      <tr><th scope="row">Nach oben wischen</th><td class="action">Zum Anfang</td><td><kbd>Pos1</kbd></td></tr>
+      <tr><th scope="row">Nach unten wischen</th><td class="action">Zum Ende</td><td><kbd>Ende</kbd></td></tr>
+      <tr><th scope="row">Doppeltippen</th><td class="action">Bildschirmtastatur ein/aus</td><td>—</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="four">
+  <h2 id="four"><span class="count">4 Finger</span> – Seitenweise blättern</h2>
+  <table>
+    <caption>Gesten mit vier Fingern</caption>
+    <thead><tr><th scope="col">Geste</th><th scope="col">Aktion</th><th scope="col">Taste</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Nach oben wischen</th><td class="action">Seite nach oben</td><td><kbd>Bild auf</kbd></td></tr>
+      <tr><th scope="row">Nach unten wischen</th><td class="action">Seite nach unten</td><td><kbd>Bild ab</kbd></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="note" aria-labelledby="kbd">
+  <h2 id="kbd">Bildschirmtastatur (zum Tippen)</h2>
+  <p>Öffne sie mit <strong>drei Finger, Doppeltippen</strong>. Solange sie offen
+  ist, steuern die Ein-Finger-Gesten die Tastatur:</p>
+  <ul>
+    <li><strong>Finger über die Tasten ziehen</strong> – jede Taste wird angesagt.</li>
+    <li><strong>Finger heben</strong> oder <strong>Doppeltippen</strong> – aktuelle Taste tippen.</li>
+    <li><strong>Zwei Finger, Tippen</strong> – Zeichen löschen (Rücktaste).</li>
+    <li><strong>Zwei Finger wischen</strong> – Tastatur schließen.</li>
+  </ul>
+  <p>Umschalt, „123" und „Symbole" wechseln zwischen Klein-/Großbuchstaben,
+  Zahlen und Sonderzeichen; „Enter" schließt die Eingabe ab.</p>
+</section>
+
+<footer>
+  <p>Elten spricht bei jeder Geste das Ergebnis – du kannst dich also frei
+  durchprobieren. Diese Gesten spiegeln
+  <code>src/platforms/ios/ui/touchinput.rb</code> im Projekt wider.</p>
+</footer>
+</div>
+</body>
+</html>

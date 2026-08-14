@@ -2443,6 +2443,10 @@ module Programs
     end
 
     def load_all
+      # The program system (installing and running third-party Elten apps) is
+      # omitted on iOS: the App Store forbids downloading and executing code, and
+      # the feature is intentionally left out of the iOS build.
+      return if ios_platform?
       Log.info("Loading programs")
       # Klangten: former Elten programs are built in (src/eapi/program_builtins.rb).
       BuiltIns.load_all if defined?(BuiltIns)
@@ -2469,9 +2473,16 @@ module Programs
     end
 
     def local_entries
+      return [] if ios_platform?
       Dir.children(Dirs.apps).reject { |entry| ignored_program_entry?(entry) }.map { |entry| local_entry(entry) }.compact
     rescue Exception
       []
+    end
+
+    def ios_platform?
+      defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios)
+    rescue Exception
+      false
     end
 
     def registry_entry_for_record(storage_id, record)
@@ -2938,6 +2949,7 @@ module Programs
     end
 
     def list
+      return [] if ios_platform?
       @@programs
     end
 

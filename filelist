@@ -17,6 +17,8 @@ src/ri/nativestructs.rb
 src/platforms/windows/ri/win32structs.rb :windows
 src/platforms/windows/ri/systemhelpers.rb :windows
 src/platforms/osx/ri/systemhelpers.rb :osx
+src/platforms/ios/eapi/hostbridge.rb :ios
+src/platforms/ios/ri/systemhelpers.rb :ios
 src/platforms/linux/ri/systemhelpers.rb :linux
 src/ri/runtimepaths.rb
 src/eapi/core/base.rb
@@ -32,6 +34,7 @@ src/eapi/log.rb
 src/eapi/tls.rb
 src/platforms/windows/ri/desktopruntime.rb :windows
 src/platforms/osx/ri/desktopruntime.rb :osx
+src/platforms/ios/ri/desktopruntime.rb :ios
 src/platforms/linux/eapi/sdl2.rb :linux
 src/platforms/linux/ri/desktopruntime.rb :linux
 src/eltenlink/__eltenlink.rb
@@ -91,6 +94,7 @@ src/scenes/log.rb
 src/eapi/speechoutput.rb
 src/platforms/windows/eapi/nvda.rb :windows
 src/platforms/osx/eapi/speech.rb :osx
+src/platforms/ios/eapi/speech.rb :ios
 src/platforms/osx/eapi/voiceover.rb :osx
 src/platforms/linux/eapi/speechd.rb :linux
 src/platforms/linux/eapi/speech.rb :linux
@@ -106,6 +110,7 @@ src/scenes/version.rb
 src/scenes/speedtest.rb
 src/platforms/windows/eapi/clipboard.rb :windows
 src/platforms/osx/eapi/clipboard.rb :osx
+src/platforms/ios/eapi/clipboard.rb :ios
 src/platforms/linux/eapi/clipboard.rb :linux
 src/scenes/authentication.rb
 src/eapi/audio/bass.rb
@@ -155,6 +160,8 @@ src/platforms/osx/eapi/spellcheck.rb :osx
 src/platforms/linux/eapi/spellcheck.rb :linux
 src/eapi/spellcheckdictionary.rb
 src/platforms/osx/eapi/childprocess.rb :osx
+src/platforms/ios/eapi/spellcheck.rb :ios
+src/platforms/ios/eapi/childprocess.rb :ios
 src/platforms/linux/eapi/childprocess.rb :linux
 src/eapi/external.rb
 src/eapi/http.rb
@@ -202,6 +209,7 @@ src/eapi/speech.rb
 src/ui/form.rb
 src/ui/controls/form_field.rb
 src/ui/controls/edit_box.rb
+src/ui/controls/onscreen_keyboard.rb :ios
 src/ui/controls/list_box.rb
 src/ui/controls/choice_list_box.rb
 src/ui/controls/button.rb
@@ -227,6 +235,7 @@ src/platforms/windows/invisibleinterface/nativedialogs.rb :windows
 src/platforms/windows/invisibleinterface/hotkeys.rb :windows
 src/platforms/windows/invisibleinterface/service.rb :windows
 src/platforms/osx/invisibleinterface/service.rb :osx
+src/platforms/ios/invisibleinterface/service.rb :ios
 src/platforms/linux/invisibleinterface/service.rb :linux
 src/eapi/audio/format.rb
 src/eapi/audio/encoders/media.rb
@@ -247,4 +256,5 @@ src/eapi/scheduler.rb
 src/eapi/extensions.rb
 src/eapi/program_settings.rb
 src/eapi/quickactions.rb
+src/platforms/ios/ui/touchinput.rb :ios
 src/main.rb

@@ -100,6 +100,9 @@ module GlobalMenu
     klangten_builtin_entry(m, :filemanager, p_("Klangten", "File &manager"))
     klangten_builtin_entry(m, :ffmpeg, p_("Klangten", "FFmpeg &encoders"))
     }
+    # The program system is omitted on iOS (App Store policy forbids downloading
+    # and running third-party code), so its menu is hidden there entirely.
+    unless defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios)
     @menu.submenu(p_("MainMenu", "&Programs")) {|m|
     list=Programs.list.reject{|program|program.hidden?}.sort_by {|program| EltenSystemHelpers.locale_sort_key((program.menu_label||program.name||program.to_s).to_s.delete("&"))}
     for prg in list
@@ -107,6 +110,7 @@ module GlobalMenu
       end
     m.scene(p_("MainMenu", "Programs management"), Scene_Programs)
     }
+    end
     @menu.submenu(p_("MainMenu", "&Tools")) {|m|
     m.scene(p_("MainMenu", "Program &settings"), Scene_Settings)
     m.scene(p_("MainMenu", "Sound &themes"), Scene_SoundThemes)

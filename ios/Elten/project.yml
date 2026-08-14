@@ -1,0 +1,97 @@
+name: Elten
+options:
+  bundleIdPrefix: link.elten
+  deploymentTarget: { iOS: "18.0" }
+  createIntermediateGroups: true
+targets:
+  Elten:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+      - path: Resources/eltencore
+        type: folder
+        buildPhase: resources
+      - path: Resources/stdlib
+        type: folder
+        buildPhase: resources
+      - path: Resources/gemlibs
+        type: folder
+        buildPhase: resources
+      - path: Resources/ios_boot.rb
+        buildPhase: resources
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Elten
+        UILaunchScreen: {}
+        UIBackgroundModes: [audio]
+        NSMicrophoneUsageDescription: Elten uses the microphone for voice messages and conferences.
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.herwigfelix.elten
+        DEVELOPMENT_TEAM: XJ3N4HV6L6
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1,2"
+        MARKETING_VERSION: "3.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        ENABLE_DEBUG_DYLIB: "NO"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Elten-Bridging-Header.h
+        HEADER_SEARCH_PATHS: [$(inherited), $(SRCROOT)/vendor/cruby/include]
+        LIBRARY_SEARCH_PATHS: [$(inherited), $(SRCROOT)/vendor/fiddle/$(PLATFORM_NAME)-$(CURRENT_ARCH), $(SRCROOT)/vendor/gems/$(PLATFORM_NAME)-$(CURRENT_ARCH), $(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)]
+        OTHER_LDFLAGS:
+          - $(inherited)
+          - -lz
+          - -lresolv
+          - -lc++
+          - -lxml2
+          - -lxslt
+          - -lexslt
+          - -lfiddle
+          - -lffi
+          - -lbigdecimal
+          - -lzstdruby
+          - -lnokogiri
+          - -Wl,-force_load,$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)/libopus.a
+          - -Wl,-force_load,$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)/libogg.a
+          - -Wl,-force_load,$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)/libvorbis.a
+          - -Wl,-force_load,$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)/libspeexdsp.a
+          # Export the app's own symbols into the dynamic table so the embedded
+          # Ruby can resolve the host bridge (elten_host_*) via dlopen(nil)/dlsym.
+          # Without this the @_cdecl entry points are not visible and the app is
+          # silent + unresponsive to gestures.
+          - -Wl,-export_dynamic
+    dependencies:
+      - framework: vendor/cruby/CRuby.xcframework
+        embed: false
+      - framework: Frameworks/bass.xcframework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassenc_mp3.xcframework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassenc.xcframework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassflac.xcframework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/basshls.xcframework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassmidi.xcframework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassmix.xcframework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/bassopus.xcframework
+        embed: true
+        codeSign: true
+      - framework: Frameworks/basswebm.xcframework
+        embed: true
+        codeSign: true
+      - sdk: AVFoundation.framework
+      - sdk: UIKit.framework
