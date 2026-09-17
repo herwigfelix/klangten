@@ -14,7 +14,7 @@
 set -euo pipefail
 
 SDK="${SDK:-iphonesimulator}"; ARCH="${ARCH:-arm64}"; MIN_IOS="${MIN_IOS:-16.0}"
-OUT="$(cd "$(dirname "$0")/.." && pwd)/Elten/vendor/codecs/$SDK-$ARCH"
+OUT="$(cd "$(dirname "$0")/.." && pwd)/Klangten/vendor/codecs/$SDK-$ARCH"
 WORK="${WORK:-$(mktemp -d)}"
 SDKROOT="$(xcrun --sdk "$SDK" --show-sdk-path)"; CLANG="$(xcrun --sdk "$SDK" -f clang)"
 [ "$SDK" = iphonesimulator ] && TARGET="${ARCH}-apple-ios${MIN_IOS}-simulator" || TARGET="${ARCH}-apple-ios${MIN_IOS}"

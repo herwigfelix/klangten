@@ -21,17 +21,17 @@ RES="$HERE/Resources"
 CRUBY="$HERE/vendor/cruby"
 [ -d "$CRUBY/CRuby.xcframework" ] || { echo "!! run ios/scripts/fetch-cruby-runtime.sh first"; exit 1; }
 
-# Signing persists across regeneration: put your details in ios/Elten/signing.env
+# Signing persists across regeneration: put your details in ios/Klangten/signing.env
 #   DEVELOPMENT_TEAM=ABCDE12345      # your 10-char Team ID (Xcode Signing tab)
-#   BUNDLE_ID=com.you.elten          # optional, a unique bundle id
+#   BUNDLE_ID=it.sixdots.klangten          # optional, a unique bundle id
 [ -f "$HERE/signing.env" ] && . "$HERE/signing.env"
-BUNDLE_ID="${BUNDLE_ID:-link.elten.client}"
+BUNDLE_ID="${BUNDLE_ID:-it.sixdots.klangten}"
 SIGN=""
 if [ -n "${DEVELOPMENT_TEAM:-}" ]; then
   SIGN=$(printf '        DEVELOPMENT_TEAM: %s\n        CODE_SIGN_STYLE: Automatic' "$DEVELOPMENT_TEAM")
 fi
 
-echo "==> Staging Elten core"
+echo "==> Staging Klangten core"
 rm -rf "$RES"; mkdir -p "$RES/eltencore"
 for item in elten.rb filelist src resources locale patchs audio; do
   [ -e "$REPO/$item" ] && rsync -a --exclude '.git' --exclude bin "$REPO/$item" "$RES/eltencore/"
@@ -62,13 +62,13 @@ GP='$(SRCROOT)/vendor/gems/$(PLATFORM_NAME)-$(CURRENT_ARCH)'
 CP='$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)'
 {
 cat <<YAML
-name: Elten
+name: Klangten
 options:
-  bundleIdPrefix: link.elten
+  bundleIdPrefix: it.sixdots
   deploymentTarget: { iOS: "18.0" }
   createIntermediateGroups: true
 targets:
-  Elten:
+  Klangten:
     type: application
     platform: iOS
     sources:
@@ -87,17 +87,17 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Elten
+        CFBundleDisplayName: Klangten
         UILaunchScreen: {}
         UIBackgroundModes: [audio]
-        NSMicrophoneUsageDescription: Elten uses the microphone for voice messages and conferences.
+        NSMicrophoneUsageDescription: Klangten uses the microphone for voice messages and conferences.
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $BUNDLE_ID
 $SIGN
         TARGETED_DEVICE_FAMILY: "1,2"
-        MARKETING_VERSION: "3.0"
+        MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"
         ENABLE_DEBUG_DYLIB: "NO"
@@ -143,4 +143,4 @@ echo "      - sdk: UIKit.framework"
 cd "$HERE"
 xcodegen generate
 echo
-echo "==> Done. Open Elten.xcodeproj, set your signing Team + a unique bundle id, pick your iPhone, Run."
+echo "==> Done. Open Klangten.xcodeproj, set your signing Team + a unique bundle id, pick your iPhone, Run."

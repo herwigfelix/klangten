@@ -1,10 +1,10 @@
-name: Elten
+name: Klangten
 options:
-  bundleIdPrefix: link.elten
+  bundleIdPrefix: it.sixdots
   deploymentTarget: { iOS: "18.0" }
   createIntermediateGroups: true
 targets:
-  Elten:
+  Klangten:
     type: application
     platform: iOS
     sources:
@@ -23,18 +23,18 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Elten
+        CFBundleDisplayName: Klangten
         UILaunchScreen: {}
         UIBackgroundModes: [audio]
-        NSMicrophoneUsageDescription: Elten uses the microphone for voice messages and conferences.
+        NSMicrophoneUsageDescription: Klangten uses the microphone for voice messages and conferences.
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.herwigfelix.elten
+        PRODUCT_BUNDLE_IDENTIFIER: it.sixdots.klangten
         DEVELOPMENT_TEAM: XJ3N4HV6L6
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1,2"
-        MARKETING_VERSION: "3.0"
+        MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"
         ENABLE_DEBUG_DYLIB: "NO"

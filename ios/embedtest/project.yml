@@ -1,6 +1,6 @@
 name: EltenEmbedTest
 options:
-  bundleIdPrefix: link.elten
+  bundleIdPrefix: it.sixdots
   deploymentTarget: { iOS: "16.0" }
 targets:
   EltenEmbedTest:
@@ -53,7 +53,7 @@ targets:
         UILaunchScreen: {}
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: link.elten.embedtest
+        PRODUCT_BUNDLE_IDENTIFIER: it.sixdots.klangten.embedtest
         SWIFT_VERSION: "5.0"
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Embed-Bridging-Header.h
         HEADER_SEARCH_PATHS: [$(SRCROOT)/vendor/include]

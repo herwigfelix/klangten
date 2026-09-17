@@ -1,6 +1,6 @@
 name: EltenInteractionDemo
 options:
-  bundleIdPrefix: link.elten
+  bundleIdPrefix: it.sixdots
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
@@ -13,7 +13,7 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Elten
+        CFBundleDisplayName: Klangten
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
         UIRequiredDeviceCapabilities: [arm64]
@@ -21,7 +21,7 @@ targets:
           - UIInterfaceOrientationPortrait
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: link.elten.interactiondemo
+        PRODUCT_BUNDLE_IDENTIFIER: it.sixdots.klangten.interactiondemo
         TARGETED_DEVICE_FAMILY: "1,2"
         MARKETING_VERSION: "3.0"
         CURRENT_PROJECT_VERSION: "1"

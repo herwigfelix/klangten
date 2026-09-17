@@ -176,8 +176,8 @@ else
             end
       Bass::BASS_SetConfigPtr.call(0x10403,EltenPath.join(Dirs.extras, "soundfont.sf2")) if FileTest.exists?(EltenPath.join(Dirs.extras, "soundfont.sf2"))
                                     startmessage = Elten.version.to_s
-                                    # The iOS build announces itself as "Elten on touch" followed by the version.
-                                    startmessage = "Elten on touch. " + startmessage.sub(/\AELTEN\s*/i, "") if defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios)
+                                    # The iOS build announces itself as "Klangten on touch" followed by the version.
+                                    startmessage = "Klangten on touch. " + startmessage.sub(/\AELTEN\s*/i, "") if defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios)
 $start = Time.now.to_i
 $thr1=Thread.new{thr1} if $thr1==nil
 $thr2=Thread.new{thr2} if $thr2==nil

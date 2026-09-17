@@ -4,7 +4,7 @@
 # Elten is free software: GNU General Public License v3.
 #
 # Fetch the un4seen BASS audio libraries for iOS (core + the add-ons Elten uses)
-# and stage their frameworks into ios/Elten/Frameworks. BASS is a third-party
+# and stage their frameworks into ios/Klangten/Frameworks. BASS is a third-party
 # library: free for non-commercial use, a license is required for commercial use
 # (see un4seen.com). VERIFIED: with these embedded + linked, Elten's bass.rb and
 # the whole audio subsystem load on the iOS simulator.
@@ -14,7 +14,7 @@
 # separately from Valve's open-source repo.
 set -euo pipefail
 
-DEST="$(cd "$(dirname "$0")/.." && pwd)/Elten/Frameworks"
+DEST="$(cd "$(dirname "$0")/.." && pwd)/Klangten/Frameworks"
 SLICE="${SLICE:-simulator}"   # 'simulator' or 'ios' (device)
 WORK="${WORK:-$(mktemp -d)}"
 mkdir -p "$DEST"; cd "$WORK"
@@ -36,4 +36,4 @@ done
 echo
 echo "==> Frameworks in $DEST:"
 ls "$DEST" 2>/dev/null | sed 's/^/    /'
-echo "Add each as an embedded, code-signed framework dependency (see ios/Elten/project.yml)."
+echo "Add each as an embedded, code-signed framework dependency (see ios/Klangten/project.yml)."

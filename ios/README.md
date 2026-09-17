@@ -1,4 +1,4 @@
-# Elten for iOS
+# Klangten for iOS
 
 A port of the Elten desktop client to iOS that **reuses the existing Ruby code
 base** (the same ~200 `.rb` source files, the same sound themes and audio
@@ -26,28 +26,28 @@ done
 ios/scripts/fetch-native-libs.sh          # BASS xcframeworks (device+sim)
 
 # 2. Assemble the app + generate the Xcode project
-ios/Elten/assemble.sh
+ios/Klangten/assemble.sh
 
 # 3. Open it
-open ios/Elten/Elten.xcodeproj
+open ios/Klangten/Klangten.xcodeproj
 ```
 
 Then in Xcode:
 1. Select the **Elten** target → **Signing & Capabilities** → pick your **Team**
    (a free Apple ID works for 7-day development provisioning).
-2. Change **Bundle Identifier** to something unique (e.g. `com.you.elten`).
+2. Change **Bundle Identifier** to something unique (e.g. `it.sixdots.klangten`).
 3. Plug in your iPhone, select it as the run destination, press **▶ Run**.
 4. First launch on the phone: **Settings → General → VPN & Device Management →**
    trust your developer certificate.
 
 Verified: the project **builds for the simulator and for a physical device
-(`arm64`, produces `Elten.app`)** — only your signing is missing. Signing and the
+(`arm64`, produces `Klangten.app`)** — only your signing is missing. Signing and the
 on-device run happen on your Mac/iPhone (I can't do those for you).
 
 ## Architecture
 
 ```
-  ┌─────────────────────────── iOS app (Swift, ios/Elten) ──────────────────────────┐
+  ┌─────────────────────────── iOS app (Swift, ios/Klangten) ──────────────────────────┐
   │  EltenGestureViewController   gestures ─► EltenInputQueue ─► elten_host_next_input│
   │  EltenHostBridge (@_cdecl)    speech / clipboard / open URL / mic / locale        │
   │  RubyRuntime + ruby_shim.c    embeds CRuby, loads elten.rb on its own thread      │
@@ -122,7 +122,7 @@ Native side, runnable now:
     xcodebuild -scheme EltenInteractionDemo -sdk iphonesimulator \
     -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
   ```
-- `ios/Elten` — the real host that embeds the Ruby core (bridge, input queue,
+- `ios/Klangten` — the real host that embeds the Ruby core (bridge, input queue,
   Ruby runtime, gesture view). Compiles once the Ruby runtime is vendored (below).
 
 ## The Ruby runtime (embedding CRuby on iOS)
@@ -138,7 +138,7 @@ Two ways to get the runtime, in order of preference:
 
 **Option 2 — maintained prebuilt (recommended, verified):**
 ```
-ios/scripts/fetch-cruby-runtime.sh        # -> ios/Elten/vendor/cruby (xord/cruby)
+ios/scripts/fetch-cruby-runtime.sh        # -> ios/Klangten/vendor/cruby (xord/cruby)
 ```
 Ships a CRuby (MRI) `xcframework` (device + simulator) with OpenSSL, libyaml and
 a large stdlib (socket, openssl, zlib, psych, json, digest, date, …) statically
@@ -196,7 +196,7 @@ speech` chain running on iOS (`ios/embedtest/ruby/boot.rb`).
 ### Remaining for a shippable app
 
 1. **Continuous run under the native host** — the loop is proven; a shipping app
-   lets `ios/Elten`'s host drive it continuously (drop `ELTEN_BOOT_STOP_BEFORE_MAIN`,
+   lets `ios/Klangten`'s host drive it continuously (drop `ELTEN_BOOT_STOP_BEFORE_MAIN`,
    run `main.rb`, pump `IOSTouchInput` from the gesture queue, speak via the
    bridge) and completes the network login flow — needs on-device runtime testing.
 2. **Optional native libs** — `bass_fx` / `bass_vst` (Elten loads them

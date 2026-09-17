@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Dawid Pieper
 # Elten is free software: GNU General Public License v3.
 #
-# Cross-compile a static CRuby for iOS into ios/Elten/vendor/ruby.
+# Cross-compile a static CRuby for iOS into ios/Klangten/vendor/ruby.
 #
 # STATUS (verified in this repo):
 #   * The cross-configure below WORKS: it produces a correct iOS build config
@@ -22,7 +22,7 @@ RUBY_VERSION="${RUBY_VERSION:-3.4.9}"
 SDK="${SDK:-iphonesimulator}"          # iphoneos | iphonesimulator
 ARCH="${ARCH:-arm64}"
 MIN_IOS="${MIN_IOS:-16.0}"
-OUT="$(cd "$(dirname "$0")/.." && pwd)/Elten/vendor/ruby"
+OUT="$(cd "$(dirname "$0")/.." && pwd)/Klangten/vendor/ruby"
 WORK="${WORK:-$(mktemp -d)}"
 
 SDKROOT="$(xcrun --sdk "$SDK" --show-sdk-path)"

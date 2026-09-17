@@ -3,9 +3,9 @@
 build/
 DerivedData/
 # Vendored, license-bound native prerequisites (see README.md).
-Elten/vendor/
-Elten/Frameworks/
-Elten/Resources/elten/
+Klangten/vendor/
+Klangten/Frameworks/
+Klangten/Resources/elten/
 embedtest/vendor/
 embedtest/ruby/desktopruntime.rb
 embedtest/ruby/onscreen_keyboard.rb
@@ -14,12 +14,12 @@ embedtest/stdlib/
 embedtest/Frameworks/
 embedtest/elten-app/
 embedtest/gemlibs/
-Elten/vendor/gems/
-Elten/vendor/codecs/
-Elten/Resources/
+Klangten/vendor/gems/
+Klangten/vendor/codecs/
+Klangten/Resources/
 build-device/
-Elten/build-device/
-Elten/build/
-Elten/build2/
-Elten/build-rel/
-Elten/signing.env
+Klangten/build-device/
+Klangten/build/
+Klangten/build2/
+Klangten/build-rel/
+Klangten/signing.env

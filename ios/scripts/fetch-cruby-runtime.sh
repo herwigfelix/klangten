@@ -16,7 +16,7 @@
 set -euo pipefail
 
 CRUBY_VERSION="${CRUBY_VERSION:-4.0.401}"
-DEST="$(cd "$(dirname "$0")/.." && pwd)/Elten/vendor/cruby"
+DEST="$(cd "$(dirname "$0")/.." && pwd)/Klangten/vendor/cruby"
 URL="https://github.com/xord/cruby/releases/download/v${CRUBY_VERSION}/CRuby_prebuilt-${CRUBY_VERSION}.tar.gz"
 TMP="$(mktemp -d)"
 
@@ -34,7 +34,7 @@ echo "    headers:     $DEST/include"
 echo "    stdlib:      $DEST/lib/ruby"
 echo
 echo "Link CRuby.xcframework into the app and boot Ruby with CRuby_init(Init_prelude, false)"
-echo "(see ios/Elten/Sources/ruby_shim.c). The stdlib in lib/ruby is bundled by build-app.sh."
+echo "(see ios/Klangten/Sources/ruby_shim.c). The stdlib in lib/ruby is bundled by build-app.sh."
 echo
 echo "NOTE — extensions NOT in this prebuilt that the FULL Elten app still needs:"
 echo "  * fiddle (+libffi)  -- REQUIRED: Elten's platform layer and BASS audio are Fiddle-based"

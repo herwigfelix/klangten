@@ -19,8 +19,8 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 DEV="${1:-iPhone 17 Pro}"
-CRUBY_DIR="$REPO/ios/Elten/vendor/cruby"
-FIDDLE_DIR="$REPO/ios/Elten/vendor/fiddle/iphonesimulator-arm64"
+CRUBY_DIR="$REPO/ios/Klangten/vendor/cruby"
+FIDDLE_DIR="$REPO/ios/Klangten/vendor/fiddle/iphonesimulator-arm64"
 
 # 1. Runtime (Option 2)
 [ -d "$CRUBY_DIR/CRuby.xcframework" ] || "$REPO/ios/scripts/fetch-cruby-runtime.sh"
@@ -51,12 +51,12 @@ xcodebuild -project EltenEmbedTest.xcodeproj -scheme EltenEmbedTest -sdk iphones
   -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
   CODE_SIGNING_ALLOWED=NO ARCHS=arm64 EXCLUDED_ARCHS=x86_64 build >/dev/null
 xcrun simctl bootstatus "$DEV" -b >/dev/null 2>&1 || true
-xcrun simctl terminate "$DEV" link.elten.embedtest 2>/dev/null || true
-xcrun simctl uninstall "$DEV" link.elten.embedtest 2>/dev/null || true
+xcrun simctl terminate "$DEV" it.sixdots.klangten.embedtest 2>/dev/null || true
+xcrun simctl uninstall "$DEV" it.sixdots.klangten.embedtest 2>/dev/null || true
 xcrun simctl install "$DEV" "build/Build/Products/Debug-iphonesimulator/EltenEmbedTest.app" >/dev/null
-xcrun simctl launch "$DEV" link.elten.embedtest >/dev/null
+xcrun simctl launch "$DEV" it.sixdots.klangten.embedtest >/dev/null
 sleep 6
-CONT="$(xcrun simctl get_app_container "$DEV" link.elten.embedtest data 2>/dev/null)"
+CONT="$(xcrun simctl get_app_container "$DEV" it.sixdots.klangten.embedtest data 2>/dev/null)"
 echo "===================================================================="
 cat "$CONT/Documents/elten_test.txt" 2>/dev/null || echo "no result (app may still be starting)"
 echo "===================================================================="

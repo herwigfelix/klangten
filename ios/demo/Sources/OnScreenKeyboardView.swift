@@ -70,7 +70,7 @@ final class OnScreenKeyboardView: UIView {
         // exposing per-key VoiceOver buttons.
         accessibilityTraits = [.allowsDirectInteraction]
         isAccessibilityElement = true
-        accessibilityLabel = "Elten on-screen keyboard"
+        accessibilityLabel = "Klangten on-screen keyboard"
     }
 
     required init?(coder: NSCoder) { fatalError() }
