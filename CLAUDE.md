@@ -33,7 +33,7 @@ cd <klango-server-repo>/klango_server
 Packaging (build scripts are not executable in git — call them through `sh`/`bat`):
 
 ```sh
-./compile.sh --pkg                             # dist/osx/Klangten.pkg (--release = signed + notarized)
+./compile.sh --dmg                             # dist/osx/Klangten.dmg (--release = signed + notarized)
 compile.bat --pkg                              # dist\windows\KlangtenSetup.exe
 sh tools/build-osx-arm64.sh --app              # what compile.sh calls underneath
 tools/build-windows.bat --pkg --build-id 2026091401   # multi-arch helper, needs an ARM64 host

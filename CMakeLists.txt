@@ -181,12 +181,8 @@ if(APPLE)
     set(ELTEN_DEFAULT_MACOS_APP_IDENTITY "$ENV{MACOS_APP_IDENTITY}")
   endif()
 
-  set(ELTEN_DEFAULT_MACOS_INSTALLER_IDENTITY "Developer ID Installer")
-  if(DEFINED ENV{ELTEN_MACOS_INSTALLER_IDENTITY})
-    set(ELTEN_DEFAULT_MACOS_INSTALLER_IDENTITY "$ENV{ELTEN_MACOS_INSTALLER_IDENTITY}")
-  elseif(DEFINED ENV{MACOS_INSTALLER_IDENTITY})
-    set(ELTEN_DEFAULT_MACOS_INSTALLER_IDENTITY "$ENV{MACOS_INSTALLER_IDENTITY}")
-  endif()
+  # Klangten releases a disk image, which is signed with the Application
+  # identity above; there is no separate Developer ID Installer identity.
 
   set(ELTEN_DEFAULT_NOTARY_PROFILE "notary")
   if(DEFINED ENV{ELTEN_NOTARY_PROFILE})
@@ -202,9 +198,8 @@ if(APPLE)
     set(ELTEN_DEFAULT_MACOS_ENTITLEMENTS "$ENV{MACOS_ENTITLEMENTS}")
   endif()
 
-  option(ELTEN_MACOS_SIGN "Sign and notarize macOS runtime, app and package artifacts" OFF)
+  option(ELTEN_MACOS_SIGN "Sign and notarize the macOS runtime, app and disk image" OFF)
   set(ELTEN_MACOS_APP_IDENTITY "${ELTEN_DEFAULT_MACOS_APP_IDENTITY}" CACHE STRING "Developer ID Application identity")
-  set(ELTEN_MACOS_INSTALLER_IDENTITY "${ELTEN_DEFAULT_MACOS_INSTALLER_IDENTITY}" CACHE STRING "Developer ID Installer identity")
   set(ELTEN_NOTARY_PROFILE "${ELTEN_DEFAULT_NOTARY_PROFILE}" CACHE STRING "notarytool keychain profile")
   set(ELTEN_NOTARY_APPLE_ID "$ENV{ELTEN_NOTARY_APPLE_ID}" CACHE STRING "Apple ID for notarytool")
   set(ELTEN_NOTARY_PASSWORD "$ENV{ELTEN_NOTARY_PASSWORD}" CACHE STRING "App-specific notary password")
@@ -214,7 +209,6 @@ if(APPLE)
   set(ELTEN_MACOS_SCRIPT_ARGS
     "-DSIGN=${ELTEN_MACOS_SIGN}"
     "-DAPP_IDENTITY=${ELTEN_MACOS_APP_IDENTITY}"
-    "-DINSTALLER_IDENTITY=${ELTEN_MACOS_INSTALLER_IDENTITY}"
     "-DNOTARY_PROFILE=${ELTEN_NOTARY_PROFILE}"
     "-DNOTARY_APPLE_ID=${ELTEN_NOTARY_APPLE_ID}"
     "-DNOTARY_PASSWORD=${ELTEN_NOTARY_PASSWORD}"
@@ -227,7 +221,6 @@ if(APPLE)
   file(WRITE "${ELTEN_MACOS_SIGN_CONFIG}"
     "sign=${ELTEN_MACOS_SIGN}\n"
     "app_identity=${ELTEN_MACOS_APP_IDENTITY}\n"
-    "installer_identity=${ELTEN_MACOS_INSTALLER_IDENTITY}\n"
     "notary_profile=${ELTEN_NOTARY_PROFILE}\n"
     "entitlements=${ELTEN_MACOS_ENTITLEMENTS}\n"
   )
@@ -370,14 +363,18 @@ if(APPLE)
     VERBATIM
   )
 
+  # Klangten ships a disk image instead of an installer package: it is the
+  # ordinary macOS way, the updater can replace the app from it without an
+  # installer, and a .dmg is signed with the Developer ID *Application*
+  # identity - no separate Developer ID Installer certificate is needed.
   add_custom_target(EltenPkg
     COMMAND "${CMAKE_COMMAND}"
             ${ELTEN_MACOS_SCRIPT_ARGS}
-            "-DMODE=CREATE_PKG"
+            "-DMODE=CREATE_DMG"
             "-DDIST_DIR=${ELTEN_DIST_OSX_DIR}"
             -P "${ELTEN_MACOS_BUNDLE_SCRIPT}"
     DEPENDS EltenApp
-    COMMENT "Creating dist/osx/Klangten.pkg"
+    COMMENT "Creating dist/osx/Klangten.dmg"
     VERBATIM
   )
 elseif(UNIX AND NOT APPLE)

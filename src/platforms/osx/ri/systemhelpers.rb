@@ -570,10 +570,10 @@ module EltenSystemHelpers
     end
 
     def installer_extension
-      "pkg"
+      "dmg"
     end
 
-    # Klangten: Klangten.pkg in Klangten's data directory (see Klangten::Updates).
+    # Klangten: Klangten.dmg in Klangten's data directory (see Klangten::Updates).
     def installer_filename
       Klangten::Updates.installer_filename("osx")
     end
@@ -582,11 +582,28 @@ module EltenSystemHelpers
       EltenPath.join(data_dir, installer_filename)
     end
 
+    # Klangten: the update is a disk image, so the app replaces itself in place.
+    # Without a bundle around it (source runs) there is nothing to replace and
+    # the image is only opened.
     def update_install_command(installer, silent: true)
-      Klangten::Updates.install_command("osx", installer, silent: silent, open_command: NATIVE_OPEN_COMMAND)
+      Klangten::Updates.install_command("osx", installer, silent: silent, open_command: NATIVE_OPEN_COMMAND, app_path: installed_app_bundle)
     end
 
     private
+
+    # Klangten: path of the running app bundle, e.g. /Applications/Klangten.app.
+    # The launcher executable sits in <bundle>/Contents/MacOS, so the bundle is
+    # three levels up. Empty when Klangten does not run from a bundle.
+    def installed_app_bundle
+      executable = ENV["ELTEN_LAUNCHER_EXECUTABLE_PATH"].to_s
+      executable = Process.execpath.to_s if executable == "" && Process.respond_to?(:execpath)
+      return "" if executable == ""
+      bundle = File.expand_path("../../..", File.expand_path(executable))
+      return "" if !bundle.end_with?(".app") || !File.directory?(bundle)
+      bundle
+    rescue Exception
+      ""
+    end
 
     def home_dir
       Dir.home

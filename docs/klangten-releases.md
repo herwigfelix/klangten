@@ -13,10 +13,10 @@ Klangten's built-in updater is served by the Klango server the client is connect
 
 - An update is offered when a release is published for the client's platform and branch and its build id **differs** from the client's own build id. There is no "newer than" comparison: publishing an older installer again rolls clients back.
 - The installer is downloaded without credentials, only from the configured Klangten API (scheme, host and port must match, otherwise `system.untrusted_installer_url`), and is accepted only when its size and SHA-256 match the metadata. The hash is checked again immediately before the installer is started. There is no separate code signature check; the metadata comes from the same server over TLS.
-- The downloaded file is stored in Klangten's own data directory as `KlangtenSetup.exe`, `Klangten.pkg` or `klangten-linux.run`, so an Elten installation on the same machine is never touched.
+- The downloaded file is stored in Klangten's own data directory as `KlangtenSetup.exe`, `Klangten.dmg` or `klangten-linux.run`, so an Elten installation on the same machine is never touched.
 - Installers started after Klangten exits:
   - Windows: `"KlangtenSetup.exe" /tasks="" /silent` (Inno Setup with Klangten's own AppId; interactive installs omit the switches)
-  - macOS: `Klangten.pkg` is opened in the Installer app
+  - macOS: no installer runs. `Klangten.dmg` is mounted read-only, the app inside is copied out with `ditto` (which preserves the signature) over the running bundle — found from the launcher executable, usually `/Applications/Klangten.app` — the quarantine flag is dropped, the image is detached and Klangten is started again. The old bundle is moved aside first, so a failed copy is rolled back, and if any step fails the image is opened in the Finder so the update can be installed by hand.
   - Linux: `klangten-linux.run --silent` (it elevates itself with `pkexec` if needed), then `/opt/klangten/elten` is started again
 - Running from source (`ruby elten.rb`) never checks for updates on its own, and a build without a build id is never offered one. The Tools menu entry still lets a source run download and start the installer deliberately.
 - `KLANGTEN_UPDATES=0` disables the updater completely (menu entries, settings, checks). The switch lives in `src/eltenlink/klangten_config.rb`.
@@ -42,7 +42,7 @@ Current packages are published as follows:
 | Package | Contents | Publish as |
 | --- | --- | --- |
 | `dist/windows/KlangtenSetup.exe` | x64 and x86 launchers. There is no arm64 launcher: the facade `elten.exe` starts the x64 launcher on Windows on ARM | `--platform windows` (universal). ARM64 devices receive it without a separate entry |
-| `dist/osx/Klangten.pkg` | arm64 | `--platform osx --arch arm64` (or universal) |
+| `dist/osx/Klangten.dmg` | arm64 | `--platform osx --arch arm64` (or universal) |
 | `dist/linux/klangten-linux.run` | arm64, x64 and x86 payloads; the installer picks one | `--platform linux` (universal) |
 
 ## Build id and version
@@ -55,7 +55,7 @@ Current packages are published as follows:
 | --- | --- |
 | `src/eltenlink/klangten_config.rb` | `VERSION = "0.2.0"` (window title, user agent, Version screen) |
 | `launcher/installer/inst_elten.iss` | `AppVersion=Klangten 0.2.0` |
-| `cmake/macos_bundle.cmake` | `--version "0.2.0"` (both `pkgbuild` calls) |
+| `cmake/macos_bundle.cmake` | `CFBundleShortVersionString` and `CFBundleVersion` in `write_info_plist` |
 
 Pass the same value to the release tool with `--version`.
 
@@ -77,7 +77,7 @@ This builds the x64 and x86 launchers and the facade, and creates `dist\windows\
 tools/build-osx.sh --pkg --sign --build-id 2026091401
 ```
 
-This creates `dist/osx/Klangten.pkg`, signed and notarised when `--sign` is given (identities and notary profile: see `tools/build-osx-arm64.sh`).
+This creates `dist/osx/Klangten.dmg` (`--dmg` and `--pkg` are the same switch). With `--sign` the app and the image are signed with the Developer ID **Application** identity, notarised and stapled; no Developer ID Installer certificate is needed, because the release is a disk image and not an installer package. Identities and notary profile: see `tools/build-osx-arm64.sh`, or use `./compile.sh --dmg --release`.
 
 **Linux** (each architecture on a matching host or cross toolchain, all with the same id):
 
@@ -96,7 +96,7 @@ This creates `dist/linux/klangten-linux.run`. `build-linux.sh` refuses to packag
 The release tool belongs to the server (`klango_server/klango/klangten/release.py`). It computes size and SHA-256, copies the installer into the release store and atomically replaces the metadata. The endpoints pick up the change immediately, without a restart. Run it as the service user so that gunicorn can read the files:
 
 ```sh
-scp dist/windows/KlangtenSetup.exe dist/osx/Klangten.pkg dist/linux/klangten-linux.run root@klango.online:/tmp/
+scp dist/windows/KlangtenSetup.exe dist/osx/Klangten.dmg dist/linux/klangten-linux.run root@klango.online:/tmp/
 
 cd /opt/klango/app
 REL="sudo -u klango .venv/bin/python -m klango.klangten.release --dir /opt/klango/data/klangten_releases"
@@ -104,7 +104,7 @@ REL="sudo -u klango .venv/bin/python -m klango.klangten.release --dir /opt/klang
 $REL publish --platform windows --branch stable --build-id 2026091401 --version 0.2.0 \
   --file /tmp/KlangtenSetup.exe --notes "Klangten 0.2.0"
 $REL publish --platform osx --arch arm64 --branch stable --build-id 2026091401 --version 0.2.0 \
-  --file /tmp/Klangten.pkg
+  --file /tmp/Klangten.dmg
 $REL publish --platform linux --branch stable --build-id 2026091401 --version 0.2.0 \
   --file /tmp/klangten-linux.run
 
@@ -136,7 +136,7 @@ Besides the branches served by the Klango server, the update channel in Settings
 | Download | `src/eapi/network.rb` `download_github_installer` | the installer asset, verified against `<installer>.sha256` |
 | Installation after exit | unchanged (`src/main.rb`, `Klangten::Updates.install_command`) | — |
 
-- A release must publish three assets per platform: the installer under its usual name (`KlangtenSetup.exe`, `Klangten.pkg`, `klangten-linux.run`), a checksum file `<installer>.sha256` in `sha256sum`/`shasum` format, and `build-id.txt` with the build id compiled into it. A release without them is ignored.
+- A release must publish three assets per platform: the installer under its usual name (`KlangtenSetup.exe`, `Klangten.dmg`, `klangten-linux.run`), a checksum file `<installer>.sha256` in `sha256sum`/`shasum` format, and `build-id.txt` with the build id compiled into it. A release without them is ignored.
 - The same rule as on the server decides: the build id must **differ**, so a rollback works by publishing an older build again.
 - Downloads are accepted only from `github.com` and GitHub's asset hosts (`Klangten::GitHub.trusted_url?`); size and SHA-256 must match before the file is stored, and `src/main.rb` checks the hash again immediately before the installer runs.
 - There is **no background polling** in this channel: GitHub is asked once at start-up and whenever the user triggers an update. `Configuration.checkupdates` ("Check for updates automatically") switches the automatic check off in both channels — including the 600 s server poll, which upstream did not gate.
@@ -156,8 +156,7 @@ The Ruby runtime and the gems are compiled from source by the build itself, so b
 | `MACOS_SIGN_IDENTITY` | identity string, e.g. `Developer ID Application: … (TEAMID)` |
 | `MACOS_TEAM_ID` | Apple Team ID |
 | `MACOS_API_KEY_BASE64`, `MACOS_API_KEY_ID`, `MACOS_API_ISSUER_ID` | App Store Connect key for notarization |
-| `MACOS_INSTALLER_CERT_P12_BASE64`, `MACOS_INSTALLER_CERT_PASSWORD`, `MACOS_INSTALLER_IDENTITY` | Developer ID **Installer** certificate — only with it can the `.pkg` be signed (`productsign`) |
 
-The workflow imports the certificates into a throw-away keychain, makes it the default one and stores the notarization credentials as the keychain profile `klangten-notary`, which `cmake/macos_bundle.cmake` uses. Without the installer certificate the build falls back to an unsigned (ad-hoc signed) package and says so in the log; nothing else changes, so adding those three secrets later is enough to get signed packages.
+A Developer ID **Installer** certificate is deliberately not required: the release is a disk image, and an image is signed with the Application identity. The workflow imports the certificate into a throw-away keychain, makes it the default one and stores the notarization credentials as the keychain profile `klangten-notary`, which `cmake/macos_bundle.cmake` uses. Without the secrets the build still succeeds and produces an ad-hoc signed image, exactly like a local build.
 
 Locally the same is done by `./compile.sh --release`, which reads `compile.sh.dat` (template: `compile.sh.dat.example`, git-ignored).

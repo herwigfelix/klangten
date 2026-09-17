@@ -9,9 +9,8 @@
 # Signatur-Identität für die App, genau wie "security find-identity -v -p codesigning" sie nennt.
 SIGN_IDENTITY="Developer ID Application: Vorname Nachname (TEAMID)"
 
-# Signatur-Identität für das Installationspaket (productsign). Fehlt sie, baut
-# compile.sh nur die signierte App und kein Paket.
-INSTALLER_IDENTITY=""
+# Für das Disk-Image wird keine eigene Installer-Identität gebraucht: eine .dmg
+# wird mit derselben Application-Identität signiert wie die App.
 
 # App-Store-Connect-Schlüssel für die Notarisierung. Relative Pfade beziehen sich
 # auf dieses Verzeichnis; der Schlüssel selbst gehört nicht ins Repository.

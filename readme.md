@@ -33,7 +33,7 @@ All Klangten-specific settings live in [`src/eltenlink/klangten_config.rb`](src/
 
 ## Releases and updates
 
-Klangten updates itself from the Klango server it is connected to: it compares its build id with the release published for its platform and branch, downloads the installer, checks size and SHA-256 and runs `KlangtenSetup.exe`, `Klangten.pkg` or `klangten-linux.run` after exiting.
+Klangten updates itself from the Klango server it is connected to: it compares its build id with the release published for its platform and branch, downloads the installer, checks size and SHA-256 and installs it after exiting: `KlangtenSetup.exe` on Windows, `klangten-linux.run` on Linux, and on macOS `Klangten.dmg`, from which the app replaces itself in place.
 
 Settings > Auto updater switches the automatic check off and chooses where updates come from. Besides the server branches (stable, RC, beta) there is **Rolling release (GitHub)**, which follows the newest release of this repository — the builds produced by `.github/workflows`. Both channels verify size and SHA-256 before anything is installed. How to build releases with a build id and publish them is described in [Klangten releases and updates](docs/klangten-releases.md).
 

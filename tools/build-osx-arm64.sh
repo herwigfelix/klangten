@@ -8,7 +8,6 @@ BUILD_APP=0
 BUILD_PKG=0
 SIGN=0
 SIGN_APP_IDENTITY=${ELTEN_MACOS_APP_IDENTITY:-${MACOS_APP_IDENTITY:-Developer ID Application}}
-SIGN_INSTALLER_IDENTITY=${ELTEN_MACOS_INSTALLER_IDENTITY:-${MACOS_INSTALLER_IDENTITY:-Developer ID Installer}}
 NOTARY_PROFILE=${ELTEN_NOTARY_PROFILE:-${NOTARY_PROFILE:-notary}}
 NOTARY_APPLE_ID=${ELTEN_NOTARY_APPLE_ID:-}
 NOTARY_PASSWORD=${ELTEN_NOTARY_PASSWORD:-}
@@ -23,7 +22,7 @@ while [ "$#" -gt 0 ]; do
       BUILD_APP=1
       shift
       ;;
-    --pkg)
+    --pkg|--dmg)
       BUILD_APP=1
       BUILD_PKG=1
       shift
@@ -40,12 +39,13 @@ while [ "$#" -gt 0 ]; do
       SIGN_APP_IDENTITY=${1#*=}
       shift
       ;;
+    # Klangten releases a disk image, which is signed with the Application
+    # identity. The option is still accepted and ignored, so that an older
+    # invocation does not end up passing it on to CMake as an unknown argument.
     --sign-installer-identity)
-      SIGN_INSTALLER_IDENTITY=${2:-}
       shift 2
       ;;
     --sign-installer-identity=*)
-      SIGN_INSTALLER_IDENTITY=${1#*=}
       shift
       ;;
     --notary-profile)
@@ -112,9 +112,6 @@ if [ -n "$BUILD_ID" ]; then
 fi
 if [ "$SIGN" -eq 1 ]; then
   echo "App signing identity: $SIGN_APP_IDENTITY"
-  if [ "$BUILD_PKG" -eq 1 ]; then
-    echo "Installer signing identity: $SIGN_INSTALLER_IDENTITY"
-  fi
   echo "Notary profile: $NOTARY_PROFILE"
   echo "Entitlements: $SIGN_ENTITLEMENTS"
 fi
@@ -125,7 +122,6 @@ cmake --preset osx-arm64 \
   -DELTEN_BUILD_ID="$BUILD_ID" \
   -DELTEN_MACOS_SIGN="$SIGN_CMAKE" \
   -DELTEN_MACOS_APP_IDENTITY="$SIGN_APP_IDENTITY" \
-  -DELTEN_MACOS_INSTALLER_IDENTITY="$SIGN_INSTALLER_IDENTITY" \
   -DELTEN_NOTARY_PROFILE="$NOTARY_PROFILE" \
   -DELTEN_NOTARY_APPLE_ID="$NOTARY_APPLE_ID" \
   -DELTEN_NOTARY_PASSWORD="$NOTARY_PASSWORD" \

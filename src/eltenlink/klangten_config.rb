@@ -221,7 +221,7 @@ module Klangten
     # They match the release packages and never collide with Elten's eltenup.* files.
     INSTALLER_FILENAMES = {
       "windows" => "KlangtenSetup.exe",
-      "osx" => "Klangten.pkg",
+      "osx" => "Klangten.dmg",
       "linux" => "klangten-linux.run"
     }.freeze
     ARCHES = %w[x64 x86 arm64].freeze
@@ -257,17 +257,61 @@ module Klangten
       end
 
       # Command run after Klangten has exited. Windows: Inno Setup
-      # (KlangtenSetup.exe, own AppId); macOS: the Installer app opens
-      # Klangten.pkg; Linux: the self-extracting klangten-linux.run, which
-      # elevates itself, followed by a restart of /opt/klangten/elten.
-      def install_command(platform, installer, silent: true, open_command: "__elten_native_open__")
+      # (KlangtenSetup.exe, own AppId); macOS: the app replaces itself from
+      # Klangten.dmg (see below); Linux: the self-extracting klangten-linux.run,
+      # which elevates itself, followed by a restart of /opt/klangten/elten.
+      def install_command(platform, installer, silent: true, open_command: "__elten_native_open__", app_path: nil)
         case platform.to_s
         when "windows"
           command = "\"#{installer}\""
           command += " /tasks=\"\" /silent" if silent
           command
         when "osx"
-          [open_command, installer.to_s]
+          # Klangten ships a disk image, so there is no installer to run: the app
+          # replaces itself. Klangten has already exited when this runs.
+          #
+          # The image is mounted read-only and without a Finder window, the app
+          # is copied out with ditto (which keeps the signature), and the old
+          # bundle is moved aside first so a failed copy can be rolled back. The
+          # copy inherits the quarantine flag of the download; it is removed,
+          # because the image itself was checked (size, SHA-256) and, in signed
+          # builds, is notarized. Whenever a step fails, the image is opened in
+          # the Finder so the update can still be installed by hand.
+          target = app_path.to_s
+          return ["/usr/bin/open", installer.to_s] if target == ""
+          script = <<~SH
+            sleep 2
+            dmg="$1"
+            app="$2"
+            mnt=$(mktemp -d /tmp/klangten-update.XXXXXX) || exit 1
+            cleanup() {
+              hdiutil detach "$mnt" -quiet 2>/dev/null || hdiutil detach "$mnt" -force -quiet 2>/dev/null
+              rmdir "$mnt" 2>/dev/null
+            }
+            give_up() {
+              rm -rf "$app.update"
+              cleanup
+              /usr/bin/open "$dmg"
+              exit 1
+            }
+            hdiutil attach "$dmg" -nobrowse -readonly -noverify -mountpoint "$mnt" >/dev/null 2>&1 || give_up
+            [ -d "$mnt/Klangten.app" ] || give_up
+            rm -rf "$app.update"
+            ditto "$mnt/Klangten.app" "$app.update" || give_up
+            xattr -dr com.apple.quarantine "$app.update" 2>/dev/null
+            rm -rf "$app.old"
+            if [ -d "$app" ]; then
+              mv "$app" "$app.old" || give_up
+            fi
+            if ! mv "$app.update" "$app"; then
+              [ -d "$app.old" ] && mv "$app.old" "$app" 2>/dev/null
+              give_up
+            fi
+            rm -rf "$app.old"
+            cleanup
+            /usr/bin/open -a "$app" 2>/dev/null || /usr/bin/open "$app"
+          SH
+          ["/bin/sh", "-c", script, "klangten-update", installer.to_s, target]
         when "linux"
           script = <<~SH
             sleep 2

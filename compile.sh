@@ -2,7 +2,8 @@
 # compile.sh - Klangten bauen (macOS und Linux).
 #
 #   ./compile.sh                 App bauen (macOS: dist/osx/Klangten.app)
-#   ./compile.sh --pkg           zusätzlich das Installationspaket
+#   ./compile.sh --dmg           zusätzlich das Disk-Image dist/osx/Klangten.dmg
+#                                (--pkg bleibt als Schreibweise erhalten)
 #   ./compile.sh --release       mit Developer ID signieren und notarisieren
 #   ./compile.sh --build-id ID   Build id einbetten (sonst der Git-Hash)
 #
@@ -14,7 +15,6 @@
 # still etwas Unsigniertes auszuliefern. Nötig sind:
 #
 #   SIGN_IDENTITY        "Developer ID Application: ... (TEAMID)"
-#   INSTALLER_IDENTITY   "Developer ID Installer: ... (TEAMID)"  (nur für --pkg)
 #   API_KEY_P8           Pfad des App-Store-Connect-Schlüssels (.p8)
 #   API_KEY_ID           dessen Key-ID
 #   API_ISSUER_ID        die Issuer-ID des Teams
@@ -31,7 +31,7 @@ BUILD_ID=""
 
 while [ "$#" -gt 0 ]; do
 	case "$1" in
-		--pkg) PKG=1; shift ;;
+		--pkg|--dmg) PKG=1; shift ;;
 		--release) RELEASE=1; shift ;;
 		--build-id) BUILD_ID="${2:?--build-id braucht einen Wert}"; shift 2 ;;
 		--build-id=*) BUILD_ID="${1#*=}"; shift ;;
@@ -73,12 +73,6 @@ if [ "$RELEASE" = 1 ]; then
 		echo "        Vorhandene:"; security find-identity -v -p codesigning
 		exit 1
 	}
-	# Das Paket wird mit productsign signiert und braucht dafür eine eigene
-	# Installer-Identität. Fehlt sie, bleibt es bei der signierten App.
-	if [ "$PKG" = 1 ] && [ -z "${INSTALLER_IDENTITY:-}" ]; then
-		echo "Hinweis: INSTALLER_IDENTITY fehlt - es wird nur die App signiert, kein Paket."
-		PKG=0
-	fi
 fi
 
 # ------------------------------------------------------------------------ Linux
@@ -126,7 +120,6 @@ if [ "$RELEASE" = 1 ]; then
 		--key "$API_KEY_P8" --key-id "$API_KEY_ID" --issuer "$API_ISSUER_ID"
 
 	set -- "$@" --sign --sign-app-identity "$SIGN_IDENTITY" --notary-profile "$NOTARY_PROFILE"
-	[ -n "${INSTALLER_IDENTITY:-}" ] && set -- "$@" --sign-installer-identity "$INSTALLER_IDENTITY"
 	echo "== Signierter Build: $SIGN_IDENTITY =="
 else
 	echo "== Klangten für macOS (unsigniert, ad-hoc signiert) =="
@@ -136,7 +129,7 @@ sh "$ROOT/tools/build-osx-arm64.sh" "$@"
 
 echo
 if [ "$PKG" = 1 ]; then
-	echo "Fertig: dist/osx/Klangten.pkg"
+	echo "Fertig: dist/osx/Klangten.dmg"
 else
-	echo "Fertig: dist/osx/Klangten.app  (--pkg für das Installationspaket)"
+	echo "Fertig: dist/osx/Klangten.app  (--dmg für das Disk-Image)"
 fi

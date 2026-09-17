@@ -7,7 +7,6 @@ endif()
 
 foreach(optional_name
     APP_IDENTITY
-    INSTALLER_IDENTITY
     NOTARY_PROFILE
     NOTARY_APPLE_ID
     NOTARY_PASSWORD
@@ -604,29 +603,6 @@ function(write_info_plist plist_path)
 ]=])
 endfunction()
 
-function(write_component_plist plist_path)
-  file(WRITE "${plist_path}" [=[<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<array>
-  <dict>
-    <key>BundleHasStrictIdentifier</key>
-    <true/>
-    <key>BundleIsRelocatable</key>
-    <false/>
-    <key>BundleIsVersionChecked</key>
-    <false/>
-    <key>BundleOverwriteAction</key>
-    <string>upgrade</string>
-    <key>RootRelativeBundlePath</key>
-    <string>Applications/Klangten.app</string>
-  </dict>
-</array>
-</plist>
-]=])
-endfunction()
-
 function(create_app_bundle)
   require_value(RELEASE_ROOT)
   require_value(RUNTIME_DIR)
@@ -657,70 +633,74 @@ function(create_app_bundle)
   message(STATUS "Built ${app_dir}")
 endfunction()
 
-function(sign_pkg unsigned_pkg signed_pkg)
-  message(STATUS "Signing package ${signed_pkg}...")
-  run_checked("${PRODUCTSIGN_TOOL}" --sign "${INSTALLER_IDENTITY}" "${unsigned_pkg}" "${signed_pkg}")
-  run_checked("${PKGUTIL_TOOL}" --check-signature "${signed_pkg}")
-endfunction()
-
-function(notarize_pkg pkg_path)
+function(notarize_dmg dmg_path)
   if(NOT SIGN)
     return()
   endif()
-  message(STATUS "Notarizing ${pkg_path}...")
-  notary_submit("${pkg_path}")
-  message(STATUS "Stapling ${pkg_path}...")
-  run_checked("${XCRUN_TOOL}" stapler staple "${pkg_path}")
-  run_checked("${XCRUN_TOOL}" stapler validate "${pkg_path}")
+  message(STATUS "Notarizing ${dmg_path}...")
+  notary_submit("${dmg_path}")
+  message(STATUS "Stapling ${dmg_path}...")
+  run_checked("${XCRUN_TOOL}" stapler staple "${dmg_path}")
+  run_checked("${XCRUN_TOOL}" stapler validate "${dmg_path}")
 endfunction()
 
-function(create_pkg)
+# Klangten distributes a disk image instead of an installer package. It is the
+# ordinary macOS way, the updater replaces the app directly from it, and it is
+# signed with the Developer ID *Application* identity, so no separate Developer
+# ID Installer certificate is required.
+#
+# The app inside is copied with ditto, which preserves the signature; the
+# symbolic link to /Applications makes the usual drag-and-drop install work.
+function(create_dmg)
   require_value(DIST_DIR)
   set(app_dir "${DIST_DIR}/Klangten.app")
-  set(pkg_path "${DIST_DIR}/Klangten.pkg")
-  set(unsigned_pkg_path "${DIST_DIR}/Klangten.unsigned.pkg")
-  set(component_plist "${DIST_DIR}/Klangten.component.plist")
-  set(pkg_root "${DIST_DIR}/pkgroot")
+  set(dmg_path "${DIST_DIR}/Klangten.dmg")
+  set(stage_dir "${DIST_DIR}/dmgroot")
 
   if(NOT EXISTS "${app_dir}")
     message(FATAL_ERROR "Missing app bundle: ${app_dir}")
   endif()
 
-  message(STATUS "Creating ${pkg_path}...")
-  file(REMOVE "${pkg_path}" "${unsigned_pkg_path}" "${component_plist}")
-  file(REMOVE_RECURSE "${pkg_root}")
-  file(MAKE_DIRECTORY "${pkg_root}/Applications")
-  file(COPY "${app_dir}" DESTINATION "${pkg_root}/Applications")
-  write_component_plist("${component_plist}")
+  message(STATUS "Creating ${dmg_path}...")
+  file(REMOVE "${dmg_path}")
+  file(REMOVE_RECURSE "${stage_dir}")
+  file(MAKE_DIRECTORY "${stage_dir}")
+  run_checked("${DITTO_TOOL}" "${app_dir}" "${stage_dir}/Klangten.app")
+  file(CREATE_LINK "/Applications" "${stage_dir}/Applications" SYMBOLIC)
+
+  # hdiutil occasionally reports "Resource busy" while Spotlight or a previous
+  # mount still holds the volume, so the image is created with a few retries
+  # instead of failing the whole build.
+  set(dmg_created FALSE)
+  foreach(attempt RANGE 1 4)
+    execute_process(
+      COMMAND "${HDIUTIL_TOOL}" create -volname "Klangten" -srcfolder "${stage_dir}"
+              -ov -format UDZO "${dmg_path}"
+      RESULT_VARIABLE dmg_result
+      OUTPUT_VARIABLE dmg_output
+      ERROR_VARIABLE dmg_output
+    )
+    if(dmg_result EQUAL 0)
+      set(dmg_created TRUE)
+      break()
+    endif()
+    message(STATUS "hdiutil attempt ${attempt} failed, retrying...")
+    execute_process(COMMAND "${HDIUTIL_TOOL}" detach -force "/Volumes/Klangten"
+                    OUTPUT_QUIET ERROR_QUIET)
+  endforeach()
+  file(REMOVE_RECURSE "${stage_dir}")
+  if(NOT dmg_created)
+    message(FATAL_ERROR "Could not create ${dmg_path}: ${dmg_output}")
+  endif()
 
   if(SIGN)
-    run_checked(
-      "${PKGBUILD_TOOL}"
-      --root "${pkg_root}"
-      --component-plist "${component_plist}"
-      --install-location "/"
-      --identifier "it.sixdots.klangten"
-      --version "0.1.0"
-      "${unsigned_pkg_path}"
-    )
-    sign_pkg("${unsigned_pkg_path}" "${pkg_path}")
-    file(REMOVE "${unsigned_pkg_path}")
-  else()
-    run_checked(
-      "${PKGBUILD_TOOL}"
-      --root "${pkg_root}"
-      --component-plist "${component_plist}"
-      --install-location "/"
-      --identifier "it.sixdots.klangten"
-      --version "0.1.0"
-      "${pkg_path}"
-    )
+    # Without its own signature a downloaded image is reported by spctl as
+    # having no usable signature, even with a stapled notarization ticket.
+    message(STATUS "Signing ${dmg_path}...")
+    run_checked("${CODESIGN_TOOL}" --force --timestamp --sign "${APP_IDENTITY}" "${dmg_path}")
   endif()
-  file(REMOVE "${component_plist}")
-  file(REMOVE_RECURSE "${pkg_root}")
-  run_checked("${PKGUTIL_TOOL}" --payload-files "${pkg_path}")
-  notarize_pkg("${pkg_path}")
-  message(STATUS "Built ${pkg_path}")
+  notarize_dmg("${dmg_path}")
+  message(STATUS "Built ${dmg_path}")
 endfunction()
 
 string(TOUPPER "${MODE}" MODE_UPPER)
@@ -761,15 +741,13 @@ elseif(MODE_UPPER STREQUAL "CREATE_APP")
     require_program(DITTO_TOOL ditto)
   endif()
   create_app_bundle()
-elseif(MODE_UPPER STREQUAL "CREATE_PKG")
-  require_program(PKGBUILD_TOOL pkgbuild)
-  require_program(PKGUTIL_TOOL pkgutil)
+elseif(MODE_UPPER STREQUAL "CREATE_DMG")
+  require_program(HDIUTIL_TOOL hdiutil)
+  require_program(DITTO_TOOL ditto)
   if(SIGN)
-    require_program(PRODUCTSIGN_TOOL productsign)
     require_program(XCRUN_TOOL xcrun)
-    require_value(INSTALLER_IDENTITY)
   endif()
-  create_pkg()
+  create_dmg()
 else()
   message(FATAL_ERROR "Unsupported MODE: ${MODE}")
 endif()
