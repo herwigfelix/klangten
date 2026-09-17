@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module UI
@@ -42,8 +43,7 @@ rescue Exception
 end
 
                     # Updates a window, speech api and keyboard state
-                    @@call=nil
-                    @@missedcalls_window=nil
+                    # Klangten: incoming and missed call windows are managed by EltenAPI::UI::CallUI (src/ui/calls.rb).
      def loop_update(checkControls=true, responseCalls=true)
        if $reset==true
          if Thread::current!=$mainthread
@@ -149,41 +149,12 @@ end
                   Log.warning("Invalid app signal packet for #{d['appid']} from #{d['sender']}")
                 end
               end
-            elsif d['func']=='call_start'
-              call_sound_start(d['ringtone'] || 'ringing')
-              @@call = CallWindow.new(d['call_id'], d['caller'], d['channel'], d['password']) if @@call==nil || @@call.id!=d['call_id']
-           elsif d['func']=='call_stop'
-              call_sound_stop
-              missed_call = @@call if @@call != nil && @@call.id == d['call_id'] && !@@call.handled?
-              @@call=nil
-              if missed_call != nil && missed_call.caller != nil
-                @@missedcalls_window ||= MissedCallsWindow.new
-                @@missedcalls_window.add_caller(missed_call.caller)
-              end
-              $focus=true
-           elsif d['func']=='missed_call'
-             if d['caller']!=nil
-               @@missedcalls_window ||= MissedCallsWindow.new
-               @@missedcalls_window.add_caller(d['caller'])
-             end
-           elsif d['func']=='premiumpackages'
-             update_premiumpackages(d['premiumpackages'].to_s.split(","))
            elsif d['func']=="feeds"
-             changed_feeds = d['changed'].is_a?(String) ? JSON.parse(d['changed']) : Array(d['changed'])
-             for f in changed_feeds
-               feed = FeedMessage.new(f['id'], f['user'], f['time'], f['message'], f['response'], f['responses'], f['liked'], f['likes'], f['audio_url'])
-               Session.feeds[feed.id]=feed
-             end
+             # Klangten: the Mastodon home timeline is cached by Klangten::Mastodon::Service.
              Session.feeds_update
            elsif d['func']=="notifications"
              $main_notifications_changed = true
              Session.notifications_update
-           elsif d['func']=='auctions'
-             if d['auctions']==true and Configuration.language=="pl-PL"
-               Scene_Main.register_specialaction("auctions", "Uwaga! Trwa licytacja charytatywna na rzecz projektu EltenLink") {insert_scene(Scene_Auctions.new)}
-             else
-               Scene_Main.unregister_specialaction("auctions")
-             end
            else
              Log.warning("Notification service unknown data: #{d.inspect}")
            end
@@ -315,7 +286,7 @@ if tr == true
         $tray_restore_ignore_until = Time.now.to_f + 1.0
         clear_keyboard_input_state(preserve_activation_guard: true)
         play_sound("login")
-  speak("ELTEN")
+  speak(Klangten::Config::PRODUCT_NAME)
   end
 if $agalarm==true and $alarmproc!=true
   $alarmproc=true
@@ -339,14 +310,8 @@ if $agalarm==true and $alarmproc!=true
     loop_update
     $alarmproc=false
   end
-  if @@call!=nil
-  @@call.update
+  if CallUI.update_windows
   EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
-      $focus=false
-    elsif @@missedcalls_window!=nil && @@missedcalls_window.active==true
-@@missedcalls_window.update
-  EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
-      $focus=(@@missedcalls_window.active==false)
     end
           keyprocs
   if checkControls
