@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 require "json"
 
@@ -682,6 +683,8 @@ module EltenLink
       end
 
       def launcher_stamp
+        # Klangten: the EltenLink launcher stamp is not used.
+        return nil unless Klangten::Config.launcher_stamp_enabled?
         session = Client.session_object
         return nil if session == nil || !session.respond_to?(:logged?) || !session.logged?
 

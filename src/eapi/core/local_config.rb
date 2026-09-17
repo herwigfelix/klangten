@@ -3,13 +3,14 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   private
 def writeconfig(group, key, val)
   Log.debug("Changing configuration: (#{group}:#{key}): #{val.to_s}")
   val=val.to_s if val!=nil
-  writeini(EltenPath.join(Dirs.eltendata, "elten.ini"), group, key, val)
+  writeini(EltenPath.join(Dirs.eltendata, Klangten::Config::CONFIG_FILE_NAME), group, key, val)
 end
 
 module LocalConfig
@@ -20,7 +21,6 @@ module LocalConfig
   CONFERENCE_MOTDS_KEY = "ConferenceMOTDs"
   LEGACY_BOOLEAN_KEYS = [
     "BlogShowUnknownLanguages",
-    "CalendarShowUnknownLanguages",
     "ConferenceShowUnknownLanguages",
     "ConsoleAutoClearInput",
     "ConsoleAutoClearOutput",
@@ -47,10 +47,6 @@ module LocalConfig
         -2 => "unread_descending"
       }.freeze,
       default: "default"
-    }.freeze,
-    "PremiumPackagesCurrency" => {
-      values: { 0 => "unset", 1 => "PLN", 2 => "EUR", 3 => "USD", 4 => "GBP" }.freeze,
-      default: "PLN"
     }.freeze
   }.freeze
 
@@ -150,7 +146,7 @@ module LocalConfig
     end
 
     def legacy_path
-      EltenPath.join(Dirs.eltendata, "elten.ini")
+      EltenPath.join(Dirs.eltendata, Klangten::Config::CONFIG_FILE_NAME)
     end
 
     def legacy_conference_motds_path
@@ -252,7 +248,7 @@ module LocalConfig
       @legacy_pending = false
       true
     rescue Exception => e
-      Log.warning("Cannot remove migrated local configuration from elten.ini: #{e.class}: #{e.message}")
+      Log.warning("Cannot remove migrated local configuration from #{Klangten::Config::CONFIG_FILE_NAME}: #{e.class}: #{e.message}")
       false
     end
 

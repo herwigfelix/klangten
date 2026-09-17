@@ -1,9 +1,10 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
 
 module EltenLink
   class LoginResult
-    attr_reader :name, :token, :moderator, :fullname, :gender, :languages, :greeting, :auto_login_token, :issued_at, :premium_packages
+    attr_reader :name, :token, :moderator, :fullname, :gender, :languages, :greeting, :auto_login_token, :issued_at
 
     def initialize(data)
       @name = data["name"].to_s
@@ -15,9 +16,6 @@ module EltenLink
       @greeting = data["greeting"].to_s
       @auto_login_token = data["auto_login_token"].to_s
       @issued_at = data["issued_at"].to_i
-      packages = data["premiumpackages"]
-      packages = data["premium_packages"] if !packages.is_a?(Array)
-      @premium_packages = packages.is_a?(Array) ? packages.map(&:to_s) : nil
     end
 
     def success?
@@ -27,7 +25,9 @@ module EltenLink
 
   module Authentication
     class << self
-      def login(client, name:, password: nil, token: nil, version_string:, version_isdevelopment:, version_islauncher:, appid:, language:, os:, authmethod:, stamp: nil)
+      # Klangten: accept_tos: true agrees to the Klango terms of service with this
+      # login (answer to session.tos_required, whose details carry the terms url).
+      def login(client, name:, password: nil, token: nil, version_string:, version_isdevelopment:, version_islauncher:, appid:, language:, os:, authmethod:, stamp: nil, accept_tos: false)
         params = {
           "name" => name,
           "version_string" => version_string.to_s.upcase,
@@ -50,7 +50,23 @@ module EltenLink
         else
           params["password"] = password
         end
+        params["accept_tos"] = 1 if accept_tos
         LoginResult.new(client.api_data("POST", "/api/v1/session", params))
+      end
+
+      # Klangten: address of the Klango terms of service (no login needed).
+      def tos_url(client, language: nil)
+        params = {}
+        params["lang"] = language if language.to_s != ""
+        client.api_data("GET", "/api/v1/session/tos", params)["url"].to_s
+      end
+
+      # Klangten: accepts the Klango terms of service without logging in.
+      def accept_tos(client, name:, password:, language: nil)
+        params = { "name" => name, "password" => password }
+        params["lang"] = language if language.to_s != ""
+        data = client.api_data("POST", "/api/v1/session/tos", params)
+        data["accepted"] == true || data["accepted"].to_s == "1" || data["accepted"].to_s.downcase == "true"
       end
 
       def auto_login_token(client, name:, password:, computer:, appid:)

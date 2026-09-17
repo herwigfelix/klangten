@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module Structs
@@ -92,11 +93,11 @@ module EltenAPI
             end
           def eltendata
             if @@eltendata==nil
-              $portable=readini("./elten.ini","Elten","Portable","0").to_i
+              $portable=readini(EltenPath.join(".", Klangten::Config::PORTABLE_INI),Klangten::Config::PORTABLE_INI_SECTION,"Portable","0").to_i
 if $portable == 0
-@@eltendata = EltenPath.join(Dirs.appdata, "elten")
+@@eltendata = EltenPath.normalize(Klangten::Config.data_dir(Dirs.appdata))
 else
-  @@eltendata = EltenPath.join(".", "eltendata")
+  @@eltendata = EltenPath.join(".", Klangten::Config::PORTABLE_DATA_DIR)
 end
 end
 return @@eltendata

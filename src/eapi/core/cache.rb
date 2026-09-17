@@ -3,22 +3,14 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   private
+# Klangten: EltenLink's credential key (eltencredpub.pem) is not shipped, so the
+# data is returned unchanged, as upstream did when the key was unavailable.
 def eltencred(data)
-  $eltencred_mutex ||= Mutex.new
-  $eltencred_mutex.synchronize do
-    $eltencred ||= begin
-      pem = EltenAPI::Resources.read("eltencredpub.pem")
-      pem.to_s == "" ? nil : OpenSSL::PKey::RSA.new(pem)
-    rescue Exception => e
-      Log.warning("Credential public key load error: #{e.class}: #{e.message}") if defined?(Log)
-      nil
-    end
-    return data.to_s.b if $eltencred == nil
-    $eltencred.public_encrypt(data.to_s.b)
-  end
+  data.to_s.b
 end
 
             def synchsafe(input)

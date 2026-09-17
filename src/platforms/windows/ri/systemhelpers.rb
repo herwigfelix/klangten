@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 unless defined?(Fiddle)
   verbose = $VERBOSE
@@ -404,7 +405,7 @@ module EltenSystemHelpers
       require "win32/registry"
       runkey = Win32::Registry::HKEY_CURRENT_USER.create("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
       begin
-        current = runkey["elten"].to_s == command.to_s
+        current = runkey[Klangten::Config::WINDOWS_AUTOSTART_VALUE].to_s == command.to_s
         current_known = true
       rescue Exception
         current = false
@@ -415,12 +416,12 @@ module EltenSystemHelpers
       if current != requested
         if requested
           Log.debug("AUT") if defined?(Log)
-          runkey["elten"] = command.to_s
+          runkey[Klangten::Config::WINDOWS_AUTOSTART_VALUE] = command.to_s
         else
-          runkey.delete("elten") rescue nil
+          runkey.delete(Klangten::Config::WINDOWS_AUTOSTART_VALUE) rescue nil
         end
       elsif current_known && !requested
-        runkey.delete("elten") rescue nil
+        runkey.delete(Klangten::Config::WINDOWS_AUTOSTART_VALUE) rescue nil
       end
       true
     rescue Exception
@@ -445,8 +446,9 @@ module EltenSystemHelpers
       "exe"
     end
 
+    # Klangten: KlangtenSetup.exe in Klangten's data directory (see Klangten::Updates).
     def installer_filename
-      "eltenup.exe"
+      Klangten::Updates.installer_filename("windows")
     end
 
     def installer_path(data_dir)
@@ -454,9 +456,7 @@ module EltenSystemHelpers
     end
 
     def update_install_command(installer, silent: true)
-      command = "\"#{installer}\""
-      command += " /tasks=\"\" /silent" if silent
-      command
+      Klangten::Updates.install_command("windows", installer, silent: silent)
     end
 
     private

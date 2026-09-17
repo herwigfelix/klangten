@@ -3,10 +3,13 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
 def licensetext
-text= "Copyright (C) 2014-2026 Dawid Pieper\n"+p_("License", "Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.\nElten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.")+"\n"+p_("License", "Elten source code can be found on GitHub:")+"\nhttps://github.com/dawidpieper/elten3\n"+p_("License", "The original content of the GNU General Public License V3 can be found below.")+"\n\n"
+# Klangten: fork notice first. The GPL statement is branded (it applies to Klangten);
+# the pointer to the upstream sources names Elten literally.
+text= klangten_fork_notice+"\n\n"+"Copyright (C) 2014-2026 Dawid Pieper\n"+Klangten::Config::COPYRIGHT+"\n"+p_("License", "Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.\nElten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.")+"\n"+p_("Klangten", "Klangten source code:")+"\n"+Klangten::Config::SOURCE_URL+"\n"+unbranded { p_("License", "Elten source code can be found on GitHub:") }+"\n"+Klangten::Config::UPSTREAM_SOURCE_URL+"\n"+p_("License", "The original content of the GNU General Public License V3 can be found below.")+"\n\n"
 text+="                    GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 

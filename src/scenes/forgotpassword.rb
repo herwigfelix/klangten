@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_ForgotPassword
   def main
@@ -10,7 +11,7 @@ class Scene_ForgotPassword
     loop do    
     @user=input_text(p_("ForgotPassword", "If you forget your password, you can reset it using the email address you provided when registering. You can request a password reset code to verify your identity. The code will be sent to your email address. Warning: two-factor authentication will be disabled on your account. To continue, enter your username."),flags: 0,text: "",escapable: true)
     return $scene=Scene_Loading.new if @user==nil
-    @user=finduser(@user) if finduser(@user).downcase==@user.downcase
+    @user=klangten_canonical_user_name(@user) # Klangten: silent lookup
           break
       end
 @mail=""
@@ -54,9 +55,12 @@ loop do
     rescue EltenLink::Error => e
       Log.warning("Password reset request failed: #{e.message}")
       ok=false
+      guard_error=e if klangten_too_many_attempts?(e)
     end
     speech_wait
-    if !ok
+    if guard_error!=nil
+      alert(klangten_too_many_attempts_message(guard_error))
+    elsif !ok
       alert(p_("ForgotPassword", "Unexpected error"))
     else
       alert(p_("ForgotPassword", "The password reset code has been sent to the email address you provided. To continue, select the option to enter the code."))
@@ -71,8 +75,12 @@ loop do
 begin
   EltenLink::Accounts.verify_password_reset(elten_link, user: @user, mail: @mail, key: key)
   ok=true
-rescue EltenLink::Error
+rescue EltenLink::Error => e
   ok=false
+  if klangten_too_many_attempts?(e)
+    alert(klangten_too_many_attempts_message(e))
+    return
+  end
 end
 if ok
   break
@@ -101,9 +109,12 @@ begin
 rescue EltenLink::Error => e
   Log.warning("Password reset change failed: #{e.message}")
   ok=false
+  guard_error=e if klangten_too_many_attempts?(e)
 end
 speech_wait
-if !ok
+if guard_error!=nil
+  alert(klangten_too_many_attempts_message(guard_error))
+elsif !ok
   alert(p_("ForgotPassword", "Unexpected error"))
 else
   alert(p_("ForgotPassword", "You can log in to your account using your new credentials."))

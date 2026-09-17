@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_Loading
   def initialize(skiplogin=false)
@@ -59,7 +60,7 @@ class Scene_Loading
       Dirs.apps = EltenPath.join(Dirs.appsdata, "src")
 Dirs.extras = EltenPath.join(Dirs.eltendata, "extras")
 Dirs.soundthemes = EltenPath.join(Dirs.eltendata, "soundthemes")
-Dirs.temp=EltenPath.join(Dirs.tmp, "elten")
+Dirs.temp=EltenPath.join(Dirs.tmp, Klangten::Config::TEMP_DIR_NAME)
 FileUtils.mkdir_p(Dirs.eltendata)
 FileUtils.mkdir_p(Dirs.appsdata)
 FileUtils.mkdir_p(Dirs.apps)
@@ -165,7 +166,7 @@ if defined?(NVDA)
   loop_update while !NVDA.waiting?
 end
 EltenAPI::InvisibleInterface.reset_for_loading if defined?(EltenAPI::InvisibleInterface) && EltenAPI::InvisibleInterface.respond_to?(:reset_for_loading)
-Log.info("Connecting to Elten server")
+Log.info("Connecting to #{Klangten::Config::SERVER_NAME} server at #{Klangten::Config.api_base_url}")
 if !EltenLink::System.connected?(elten_link)
   Log.warning("Failed to connect")
   $neterror=true
@@ -230,7 +231,7 @@ if nvda_running && defined?(NVDA) && (!NVDA.check || NVDA.getversion!=v)
 elsif NVDA.getversion!=v
   str=p_("Loading", "A new version of the Elten add-on for NVDA is available. The version you are using is no longer supported by this Elten release and may cause errors. Do you want to update it now?")
     end
-  addon_path=EltenPath.join(File.dirname($path), "data", "elten.nvda-addon")
+  addon_path=EltenPath.join(File.dirname($path), "data", Klangten::Config::NVDA_ADDON_FILE)
   if FileTest.exists?(addon_path)
     suc=false
 confirm(str) {
@@ -252,30 +253,12 @@ suc=true
   end
 end
 Log.info("NVDA Version: "+NVDA.getnvdaversion.to_s) if defined?(NVDA) && NVDA.check
-10.times {
-Log.info("Veryfying server key...")
-$srvverify=srvverify
-if $srvverify==true
-  break
-else
-  loop_update
-  end
-}
-if $srvverify==true
-  Log.info("Server successfully verified")
-else
-  Log.warning("Server not verified")
-  if !confirm(p_("Loading", "Warning! Elten failed to verify the server's encryption key. You may be connecting not to an Elten server, but to a server controlled by an attacker. The Elten server's key may also have changed. Details of any legitimate key change should be published on the Elten website or forum. If no such information has been published, this connection may be under attack. Any data you provide, including your password, could be stolen. Are you sure you want to continue with this connection? Select No to exit Elten."))
-  $exit=true
-  $scene=nil
-    exit
-  end
-  end
-$srvverify=nil
+# Klangten: no EltenLink server key verification. The API is plain JSON over
+# TLS, and the server certificate is verified by EltenAPI::TLS on every connection.
 alert(startmessage) if $silentstart != true
             $speech_wait = true if $silentstart != true
-            if Configuration.checkupdates==true && launched_by_launcher?
-            build_info=EltenLink::System.build_info(elten_link, branch: get_updatesbranch, os: platform_os, current_build_id: Elten.build_id)
+            if Klangten::Config.updates_enabled? && Configuration.checkupdates==true && launched_by_launcher?
+            build_info=EltenLink::System.build_info(elten_link, branch: get_updatesbranch, os: platform_os, arch: Klangten::Updates.arch, current_build_id: Elten.build_id)
             bid=build_info.build_id
             $update_version_string=build_info.version_string if build_info.version_string.to_s!=""
                     if Elten.build_id.to_s!="" and Elten.build_id.to_s!=bid.to_s and build_info.present? and $denyupdate != true
@@ -302,7 +285,9 @@ if $portable != 1
                 $exit = true
 license
                 $exit = nil
-                File.binwrite(EltenPath.join(Dirs.eltendata, "license_agreed.dat"),"\001")
+                # Klangten: a fresh data directory has nothing to migrate from Elten 2.3, so the
+                # agreement is stored in its final form and the 2.4 migration notice is skipped.
+                File.binwrite(EltenPath.join(Dirs.eltendata, "license_agreed.dat"),"\002")
               elsif File.open(EltenPath.join(Dirs.eltendata, "license_agreed.dat"), "rb") { |io| io.read(1) }=="\001"
                 $exit = true
 license
@@ -318,7 +303,20 @@ license
             $scene = Scene_Login.new
       return
     end
-        @cw = ListBox.new([p_("Loading", "Log in"),p_("Loading", "Register"),p_("Loading", "Password reset"),p_("Loading", "Use guest account"),p_("Loading", "Settings"),p_("Loading", "Reinstall"),_("Exit")], header: "", index: 0, flags: 0, quiet: false)
+        # Klangten: "Reinstall" downloads an installer and is offered only when the updater is enabled.
+        @actions = [:login, :register, :password_reset, :guest, :settings]
+        @actions << :reinstall if Klangten::Config.updates_enabled?
+        @actions << :exit
+        labels = {
+          :login => p_("Loading", "Log in"),
+          :register => p_("Loading", "Register"),
+          :password_reset => p_("Loading", "Password reset"),
+          :guest => p_("Loading", "Use guest account"),
+          :settings => p_("Loading", "Settings"),
+          :reinstall => p_("Loading", "Reinstall"),
+          :exit => _("Exit")
+        }
+        @cw = ListBox.new(@actions.map { |action| labels[action] }, header: "", index: 0, flags: 0, quiet: false)
         loop do
 loop_update
       @cw.update
@@ -330,24 +328,24 @@ loop_update
     end
     def update
       if key_pressed?(:key_enter)
-        case @cw.index
-        when 0
+        case @actions[@cw.index]
+        when :login
           $scene = Scene_Login.new
-          when 1
+          when :register
             $scene = Scene_Registration.new
-            when 2
+            when :password_reset
               $scene=Scene_ForgotPassword.new
-              when 3
+              when :guest
                 Session.name=nil
                 Session.token=nil
                 Session.moderator=0
                 $preinitialized=true
                 $scene=Scene_Main.new
-                when 4
+                when :settings
               $scene = Scene_Settings.new
-                when 5
+                when :reinstall
                   $scene = Scene_Update.new
-              when 6
+              when :exit
                 $scene = nil
         end
         end

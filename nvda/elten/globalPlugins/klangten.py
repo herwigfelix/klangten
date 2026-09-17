@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own data and temp directories, so it does not collide with the Elten add-on.
 
 import globalPluginHandler
 import ui
@@ -82,8 +83,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		eltenpipein=None
 		eltenpipeout=None
 		eltenpipest=None
-		eltendata = os.getenv("appdata")+"\\elten"
-		eltentemp = os.getenv("temp")+"\\elten"
+		eltendata = os.getenv("appdata")+"\\sixdotsIT\\klangten"
+		eltentemp = os.getenv("temp")+"\\klangten"
 		nvdapipefile = eltentemp+"\\nvda.pipe"
 		while(1):
 			if(stopThreads): break

@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module WelcomeWizardLaunch
@@ -121,7 +122,7 @@ module EltenAPI
     private
 
     def migrate_configuration
-      path = EltenPath.join(Dirs.eltendata, "elten.ini")
+      path = EltenPath.join(Dirs.eltendata, Klangten::Config::CONFIG_FILE_NAME)
       version = readini(path, "Elten", "ConfigurationVersion", "0").to_i
       return false if version >= CURRENT_VERSION
 

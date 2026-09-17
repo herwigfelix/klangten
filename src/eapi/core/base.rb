@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 require "digest/sha1"
 require "fileutils"
@@ -260,7 +261,7 @@ return st
   end
 
          def readconfig(group, key, val="")
-  r=readini(EltenPath.join(Dirs.eltendata, "elten.ini"), group, key, "$DEFAULT")
+  r=readini(EltenPath.join(Dirs.eltendata, Klangten::Config::CONFIG_FILE_NAME), group, key, "$DEFAULT")
   if r=="$DEFAULT"
     writeconfig(group, key, val)
     r=val

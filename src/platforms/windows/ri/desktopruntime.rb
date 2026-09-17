@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 unless defined?(Fiddle)
   verbose = $VERBOSE
@@ -343,7 +344,7 @@ module EltenWindow
   MESSAGE_BOX = Fiddle::Function.new(USER32["MessageBoxW"], [HANDLE, PTR, PTR, INT], INT, ABI)
   GET_KEYBOARD_STATE = Fiddle::Function.new(USER32["GetKeyboardState"], [PTR], INT, ABI)
   SET_KEYBOARD_STATE = Fiddle::Function.new(USER32["SetKeyboardState"], [PTR], INT, ABI)
-  WINDOW_TITLE = "Elten"
+  WINDOW_TITLE = Klangten::Config::PRODUCT_NAME
   WS_CAPTION = 0x00C00000
   WS_SYSMENU = 0x00080000
   WS_MINIMIZEBOX = 0x00020000
@@ -1529,7 +1530,7 @@ module EltenTray
       EltenWin32.set_dword(buffer, hwnd_offset + EltenWin32::POINTER_SIZE + 4, NIF_MESSAGE | NIF_ICON | NIF_TIP)
       EltenWin32.set_dword(buffer, hwnd_offset + EltenWin32::POINTER_SIZE + 8, CALLBACK_MESSAGE)
       EltenWin32.set_pointer(buffer, icon_offset, @load_icon.call(0, IDI_APPLICATION))
-      write_wide_fixed(buffer, tip_offset, 128, "Elten")
+      write_wide_fixed(buffer, tip_offset, 128, Klangten::Config::PRODUCT_NAME)
       buffer
     end
 

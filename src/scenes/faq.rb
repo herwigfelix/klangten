@@ -2,7 +2,8 @@
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
-# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_FAQ
   def main
@@ -43,7 +44,10 @@ loop do
   end
   end
 def load_faq
-  @faqdoc = _doc("faq")
+  # Klangten: the FAQ is upstream Elten's and names EltenLink contacts, so it is
+  # shown unbranded, preceded by a category explaining this.
+  note = p_("Klangten", "These frequently asked questions come from Elten, the program Klangten is based on. Contact addresses and links in them refer to Elten and EltenLink, not to Klangten or the Klango server.")
+  @faqdoc = "# #{Klangten::Config::PRODUCT_NAME}\n## #{p_("Klangten", "About these questions")}\n#{note}\n\n" + _doc("faq")
 @faq = @faqdoc.split(/^\# /).map{|f|
 a=f.strip.split(/^\#\# /).map{|q|q.strip}
 a.delete("")

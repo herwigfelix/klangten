@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
 module OSXSystemNative
@@ -20,6 +21,15 @@ module OSXSystemNative
 
     def current_locale_name
       return "" unless available?
+      # Klangten: the bundle's development region is Polish without further
+      # localizations, so [NSLocale currentLocale] reports e.g. "pl_DE" on a
+      # German system. The user's preferred system language is what matters.
+      languages = @msg_id.call(cls("NSLocale"), sel("preferredLanguages"))
+      if languages.to_i != 0
+        first = @msg_id.call(languages, sel("firstObject"))
+        preferred = first.to_i != 0 ? objc_string(first).to_s : ""
+        return preferred if preferred != ""
+      end
       locale = @msg_id.call(cls("NSLocale"), sel("currentLocale"))
       identifier = @msg_id.call(locale, sel("localeIdentifier"))
       objc_string(identifier)
@@ -563,8 +573,9 @@ module EltenSystemHelpers
       "pkg"
     end
 
+    # Klangten: Klangten.pkg in Klangten's data directory (see Klangten::Updates).
     def installer_filename
-      "elten.pkg"
+      Klangten::Updates.installer_filename("osx")
     end
 
     def installer_path(data_dir)
@@ -572,7 +583,7 @@ module EltenSystemHelpers
     end
 
     def update_install_command(installer, silent: true)
-      [NATIVE_OPEN_COMMAND, installer.to_s]
+      Klangten::Updates.install_command("osx", installer, silent: silent, open_command: NATIVE_OPEN_COMMAND)
     end
 
     private

@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the feed card reads the home timeline of the connected Mastodon account; the conference card controls the current TeamConference room or call.
 
 require "cgi"
 
@@ -135,7 +136,7 @@ module EltenAPI
 
       def set_feed_id(id)
         ensure_state
-        @feed_id = id.to_i
+        @feed_id = id.to_s
       end
 
       def play_border
@@ -170,7 +171,6 @@ module EltenAPI
         @feed_id = nil
         @feed_lasttext = nil
         @conference_index = 0
-        @last_dice_roll = 6
         @quick_audio = nil
       end
 
@@ -200,9 +200,9 @@ module EltenAPI
         when :feed_submit
           submit_feed(job[1], job[2])
         when :chat_submit
-          submit_chat(job[1])
+          submit_chat(job[1], job[2])
         when :conference_stream_file
-          conference.set_stream(job[1]) if conference != nil && job[1] != nil
+          EltenAPI::Conference.set_stream(job[1]) if conference != nil && job[1] != nil
         when :hotkey_modifiers_selected
           profile = ConfigurationValues.invisible_interface_modifier_profile(job[1])
           Configuration.iimodifiers = profile
@@ -481,20 +481,18 @@ module EltenAPI
           play_border
           return
         end
-        @feed_id = feeds.last.id if @feed_id == nil || @feed_id.to_i == 0
-        feed = case action
-        when :prev
-          feeds.select { |f| f.id < @feed_id.to_i && f.message.to_s != "" }.max_by { |f| f.id }
-        when :next
-          feeds.select { |f| f.id > @feed_id.to_i && f.message.to_s != "" }.min_by { |f| f.id }
-        when :first
-          feeds.select { |f| f.message.to_s != "" }.min_by { |f| f.id }
-        when :last
-          feeds.select { |f| f.message.to_s != "" }.max_by { |f| f.id }
+        index = @feed_id == nil ? nil : feeds.index { |f| f.id.to_s == @feed_id.to_s }
+        index ||= feeds.size - 1
+        target = case action
+        when :prev then index > 0 ? index - 1 : nil
+        when :next then index < feeds.size - 1 ? index + 1 : nil
+        when :first then 0
+        when :last then feeds.size - 1
         end
+        feed = target == nil ? nil : feeds[target]
         if feed != nil
           quick_audio_stop
-          @feed_id = feed.id
+          @feed_id = feed.id.to_s
           Scene_Main.feed_id = feed.id if defined?(Scene_Main)
           @feed_lasttext = feed.user.to_s + ": " + feed.message.to_s
           play_move
@@ -509,10 +507,13 @@ module EltenAPI
         feed = current_feed
         return if feed == nil
         liked = !feed.liked
-        EltenLink::Feeds.set_liked(elten_link, feed.id, liked)
+        client = mastodon_client
+        raise "no Mastodon account connected" if client == nil
+        client.favourite(feed.target.id, liked)
         status = liked ? p_("FeedViewer", "Message liked") : p_("FeedViewer", "Message disliked")
         feed.likes = [feed.likes.to_i + (liked ? 1 : -1), 0].max if feed.respond_to?(:likes=)
         feed.liked = liked
+        Klangten::Mastodon::Service.update_status(feed)
         say(status)
       rescue Exception => e
         Log.error("InvisibleInterface feed like: #{e.class}: #{e.message}")
@@ -522,24 +523,21 @@ module EltenAPI
       def reply_current_feed
         feed = current_feed
         return if feed == nil
-        users = [feed.user]
-        users += feed.message.to_s.scan(/\@([a-zA-Z0-9\.\-\_]+)/).map { |r| r[0] }
-        users = users.compact.map(&:to_s)
-        users.delete_if { |user| user.downcase == session_name.to_s.downcase }
-        users = users.each_with_object([]) { |user, out| out << user if !out.map(&:downcase).include?(user.downcase) }
-        response = feed.response.to_i != 0 ? feed.response : feed.id
-        open_feed_dialog(users.map { |u| "@" + u }.join(" ") + (users.empty? ? "" : " "), p_("Main", "Reply"), response)
+        record = mastodon_account
+        return play_border if record == nil
+        open_feed_dialog(mastodon_reply_text(feed, record), p_("Main", "Reply"), feed.target.id)
       end
 
+      # Klangten: statuses of the Mastodon home timeline, oldest first.
       def feed_values
-        Session.feeds.values.compact.select { |feed| feed.respond_to?(:id) }.sort_by { |feed| feed.id.to_i }
+        Klangten::Mastodon::Service.home_statuses.reverse
       rescue Exception
         []
       end
 
       def current_feed
         return nil if @feed_id == nil
-        feed_values.find { |feed| feed.id.to_i == @feed_id.to_i }
+        feed_values.find { |feed| feed.id.to_s == @feed_id.to_s }
       end
 
       def feed_lasttext
@@ -596,33 +594,76 @@ module EltenAPI
         end
       end
 
+      # Klangten: the card works on the TeamConference client (src/eapi/conference.rb)
+      # while you are in a room or call. Elten's positional audio, dice, whisper and
+      # push-to-talk do not exist there.
       def conference_options
-        return [] if conference == nil
+        client = conference
+        return [] if client == nil
         opts = [
-          [conference.muted == true ? p_("Conference", "Unmute microphone") : p_("Conference", "Mute microphone"), Proc.new {
-            conference.muted = !conference.muted
-            say(conference.muted ? p_("Conference", "Microphone muted") : p_("Conference", "Microphone unmuted"))
+          [client.muted? ? p_("Conference", "Unmute microphone") : p_("Conference", "Mute microphone"), Proc.new {
+            muted = !client.muted?
+            client.mute = muted
+            say(muted ? p_("Conference", "Microphone muted") : p_("Conference", "Microphone unmuted"))
           }],
-          [p_("Conference", "Roll a 6-sided die"), Proc.new { conference.diceroll(6) }],
-          [p_("Conference", "Roll a custom die"), Proc.new { open_dice_category }]
-        ]
-        if !conference.streaming?
-          opts << [p_("Conference", "Stream audio file"), Proc.new {
-            NativeDialogs.open_file(
-              :title => p_("Conference", "Select audio file"),
-              :filters => [["Audio", "*.wav", "*.ogg", "*.mp3", "*.opus", "*.aac", "*.m4a", "*.flac", "*.aiff"]]
-            ) do |file|
-              @jobs << [:conference_stream_file, file] if file != nil
-            end
+          [client.deafened? ? p_("Conference", "Unmute sound") : p_("Conference", "Mute sound"), Proc.new {
+            deafened = !client.deafened?
+            client.deafen = deafened
+            say(deafened ? p_("Conference", "Sound muted") : p_("Conference", "Sound unmuted"))
           }]
-        else
-          opts << [p_("Conference", "Remove audio stream"), Proc.new { conference.remove_stream }]
+        ]
+        if client.in_room?
+          if !client.streaming?
+            opts << [p_("Conference", "Stream audio file"), Proc.new {
+              NativeDialogs.open_file(
+                :title => p_("Conference", "Select audio file"),
+                :filters => [["Audio", "*.wav", "*.ogg", "*.mp3", "*.opus", "*.aac", "*.m4a", "*.flac", "*.aiff"]]
+              ) do |file|
+                @jobs << [:conference_stream_file, file] if file != nil
+              end
+            }]
+          else
+            opts << [p_("Conference", "Remove audio stream"), Proc.new { EltenAPI::Conference.remove_stream }]
+          end
+          opts << [p_("Conference", "Show chat history"), Proc.new { open_chat_history }]
+          opts << [p_("Conference", "Post in chat"), Proc.new { open_chat_dialog }]
         end
-        opts << [conference.pushtotalk == true ? p_("Conference", "Disable push-to-talk") : p_("Conference", "Enable push-to-talk"), Proc.new { conference.pushtotalk = !conference.pushtotalk }]
-        opts << [p_("Conference", "Show chat history"), Proc.new { open_chat_history }]
-        opts << [p_("Conference", "Post in chat"), Proc.new { open_chat_dialog }]
-        conference.transmitters.each { |id, transmitter| opts << [transmitter.username, Proc.new { open_user_category(id, transmitter) }] }
+        in_call = client.call_info != nil
+        opts << [in_call ? p_("Conference", "Hang up") : p_("Conference", "Leave room"), Proc.new {
+          in_call ? client.hang_up : client.leave_room
+          play_sound("conference_userleave") rescue nil
+        }]
+        client.users.each do |user|
+          next if user[:me]
+          opts << [conference_user_label(user), Proc.new { open_user_category(user) }]
+        end
         opts
+      end
+
+      def conference_user_label(user)
+        flags = []
+        if user[:owner]
+          flags << p_("Conference", "owner")
+        elsif user[:admin]
+          flags << p_("Conference", "administrator")
+        end
+        flags << p_("Conference", "microphone muted") if user[:muted]
+        flags << p_("Conference", "sound muted") if user[:deafened]
+        flags << p_("Conference", "streaming") if user[:streaming]
+        flags.empty? ? user[:nickname].to_s : "#{user[:nickname]} (#{flags.join(', ')})"
+      end
+
+      def conference_chat_label(entry)
+        case entry[:kind]
+        when :private
+          p_("Conference", "Private message from %{user}: %{message}") % { user: entry[:nickname].to_s, message: entry[:message].to_s }
+        when :private_out
+          p_("Conference", "Private message to %{user}: %{message}") % { user: entry[:nickname].to_s, message: entry[:message].to_s }
+        when :server
+          p_("Conference", "Server message: %{message}") % { message: entry[:message].to_s }
+        else
+          "#{entry[:nickname]}: #{entry[:message]}"
+        end
       end
 
       def read_conference(action)
@@ -665,44 +706,23 @@ module EltenAPI
         opts[@conference_index][1].call
       end
 
-      def open_dice_category
-        category = CustomCategory.new(p_("Conference", "Which dice do you want to roll?"))
-        category.available_proc = Proc.new { conference != nil }
-        1.upto(100) do |sides|
-          label = p_("Conference", "%{count}-sided") % {:count => sides.to_s}
-          category.add_option(label) do
-            @last_dice_roll = sides
-            conference.diceroll(sides) if conference != nil
-          end
-        end
-        @categories << category
-        @category = category
-        category.select_option(@last_dice_roll.to_i - 1)
-      end
-
       def open_chat_history
+        client = conference
+        return if client == nil
         category = CustomCategory.new(p_("Conference", "Chat"))
         category.available_proc = Proc.new { conference != nil }
-        conference.chat.reverse.each { |entry| category.add_option(entry.username.to_s + ": " + entry.message.to_s) }
+        client.chat.reverse.each { |entry| category.add_option(conference_chat_label(entry)) }
         @categories << category
         @category = category
         category.select_option(0)
       end
 
-      def open_user_category(userid, transmitter)
-        category = CustomCategory.new(transmitter.username)
+      def open_user_category(user)
+        category = CustomCategory.new(user[:nickname].to_s)
         category.available_proc = Proc.new { conference != nil }
-        category.add_option(Proc.new { conference.whisper != userid ? p_("Conference", "Whisper") : p_("Conference", "End whispering") }) do
-          conference.whisper = conference.whisper != userid ? userid : 0
+        category.add_option(p_("Conference", "Send private message")) do
+          open_chat_dialog(nil, p_("Conference", "Private message to %{user}") % { user: user[:nickname].to_s }, user[:id])
         end
-        category.add_option(Proc.new { !conference.is_muted_user(transmitter.username) ? p_("Conference", "Mute user") : p_("Conference", "Unmute user") }) do
-          if conference.toggle_muted_user(transmitter.username)
-            play_sound("recording_stop")
-          else
-            play_sound("recording_start")
-          end
-        end
-        category.add_option(p_("Conference", "Go to user")) { conference.goto(userid) }
         @categories << category
         @category = category
         category.select_option(0)
@@ -711,7 +731,7 @@ module EltenAPI
       def open_message_dialog(recipient=nil, subject=nil, text=nil, title=nil)
         return if !logged_in?
         NativeDialogs.open_message(
-          :title => (title || p_("Messages", "Send a new message")) + " - ELTEN",
+          :title => (title || p_("Messages", "Send a new message")) + " - " + Klangten::Config::PRODUCT_NAME,
           :recipient_label => p_("Messages", "Recipient"),
           :subject_label => p_("Messages", "Subject:"),
           :text_label => p_("Messages", "Message:"),
@@ -729,12 +749,12 @@ module EltenAPI
       def open_feed_dialog(text=nil, title=nil, response=0)
         return if !logged_in?
         NativeDialogs.open_writer(
-          :title => (title || p_("Main", "Publish to a feed")) + " - ELTEN",
+          :title => (title || p_("Main", "Publish to a feed")) + " - " + Klangten::Config::PRODUCT_NAME,
           :text_label => p_("Main", "Message"),
           :send_label => p_("Messages", "Send"),
           :cancel_label => _("Cancel"),
           :text => text,
-          :max_length => 300,
+          :max_length => (mastodon_account&.max_characters.to_i > 0 ? mastodon_account.max_characters.to_i : 500),
           :character_counter => true
         ) do |result, values|
           @jobs << [:feed_submit, values[:text], response] if result == :submit
@@ -742,17 +762,17 @@ module EltenAPI
         play_sound("signal")
       end
 
-      def open_chat_dialog(text=nil, title=nil)
+      def open_chat_dialog(text=nil, title=nil, user_id=nil)
         return if !logged_in?
         NativeDialogs.open_writer(
-          :title => (title || p_("Conference", "Chat message")) + " - ELTEN",
+          :title => (title || p_("Conference", "Chat message")) + " - " + Klangten::Config::PRODUCT_NAME,
           :text_label => p_("Main", "Message"),
           :send_label => p_("Messages", "Send"),
           :cancel_label => _("Cancel"),
           :text => text,
           :max_length => 500
         ) do |result, values|
-          @jobs << [:chat_submit, values[:text]] if result == :submit
+          @jobs << [:chat_submit, values[:text], user_id] if result == :submit
         end
         play_sound("signal")
       end
@@ -787,15 +807,21 @@ module EltenAPI
       end
 
       def submit_feed(text, response=0)
-        ok = EltenLink::Feeds.publish(elten_link, text.to_s, response: response.to_i)
+        ok = mastodon_publish_text(text.to_s, in_reply_to_id: response.to_s == "0" ? nil : response.to_s)
         open_feed_dialog(text, p_("Messages", "Failed to send message"), response) if !ok
       rescue Exception => e
         Log.error("InvisibleInterface feed submit: #{e.class}: #{e.message}")
         open_feed_dialog(text, p_("Messages", "Failed to send message"), response)
       end
 
-      def submit_chat(text)
-        conference.send_text(text.to_s) if conference != nil
+      def submit_chat(text, user_id=nil)
+        client = conference
+        return if client == nil
+        if user_id != nil
+          client.send_private(user_id, text.to_s)
+        else
+          client.send_chat(text.to_s)
+        end
       end
 
       def quick_audio_play(url)
@@ -824,8 +850,13 @@ module EltenAPI
         Session.name.to_s
       end
 
+      # The TeamConference client while you are in a room or call, otherwise nil.
       def conference
-        $conference
+        return nil unless defined?(EltenAPI::Conference) && EltenAPI::Conference.available?
+        client = EltenAPI::Conference.client
+        client != nil && (client.in_room? || client.call_info != nil) ? client : nil
+      rescue Exception
+        nil
       end
 
       def config_cards

@@ -1,3 +1,65 @@
+# Klangten
+
+Klangten is a modified version of [Elten 3](https://github.com/dawidpieper/elten3), the self-voicing desktop client for blind users by Dawid Pieper. Klangten behaves like Elten, but it connects to a **Klango** server (default: `https://ten.klango.online`) instead of EltenLink, and it can be installed and used side by side with a normal Elten installation.
+
+> [!IMPORTANT]
+> Klangten is **not an official product** of Dawid Pieper, the Prowadnica Foundation or EltenLink and is not endorsed by them. Please do not report Klangten problems to the Elten or EltenLink maintainers. "Elten" is used only to describe where this software comes from.
+
+- Elten: Copyright (C) 2014-2026 Dawid Pieper and contributors, GNU GPL version 3.
+- Klangten modifications: Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT), GNU GPL version 3.
+- See [`NOTICE.md`](NOTICE.md) for the fork statement, contributors and a summary of the modifications, and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) for third-party components.
+
+## Running from source
+
+```sh
+bundle install
+bundle exec ruby elten.rb
+```
+
+The Ruby quick start and packaging are described in [Building Elten 3](docs/building.md); the steps are the same for Klangten.
+
+## Configuration
+
+All Klangten-specific settings live in [`src/eltenlink/klangten_config.rb`](src/eltenlink/klangten_config.rb).
+
+| Setting | Default | Override |
+| --- | --- | --- |
+| API base URL | `https://ten.klango.online` | `KLANGTEN_API_URL`, e.g. `KLANGTEN_API_URL=http://127.0.0.1:5100` for a local development server (plain HTTP uses HTTP/1.1) |
+| HTTP/2 for HTTPS | enabled when the server negotiates it | `KLANGTEN_HTTP2=0` |
+| Conferences (TeamConference) | host and ports come from `GET /api/v1/conference/token`; library from `bin/` | `KLANGTEN_TCLIB` (path of the TeamConference core library) |
+| Program relay host and port (no relay on Klango) | API host, port 8244 | `KLANGTEN_RELAY_HOST`, `KLANGTEN_RELAY_PORT` |
+| Built-in updater (served by the Klango server, launcher builds only) | enabled | `KLANGTEN_UPDATES=0` |
+| Program repository, SMS two-factor authentication, launcher stamp | disabled | constants in the configuration module |
+
+## Releases and updates
+
+Klangten updates itself from the Klango server it is connected to: it compares its build id with the release published for its platform and branch, downloads the installer, checks size and SHA-256 and runs `KlangtenSetup.exe`, `Klangten.pkg` or `klangten-linux.run` after exiting. How to build releases with a build id and publish them for the updater is described in [Klangten releases and updates](docs/klangten-releases.md).
+
+## Where Klangten keeps its data
+
+| System | Data directory |
+| --- | --- |
+| Windows | `%APPDATA%\sixdotsIT\klangten` |
+| macOS | `~/Library/Application Support/sixdotsIT/klangten` |
+| Linux | `$XDG_DATA_HOME/sixdotsIT/klangten` (usually `~/.local/share/sixdotsIT/klangten`) |
+
+The configuration file is `klangten.ini` and the log `klangten.log`. A portable installation uses a `klangtendata` directory next to the program, enabled by `klangten.ini` in the program directory with `[Klangten]` `Portable=1`. Temporary files go to `<temp>/klangten`.
+
+Packages use their own identities: Windows installer `KlangtenSetup.exe` (own AppId, `Program Files\Klangten`), macOS `Klangten.app` (`online.klango.klangten`), Linux `/opt/klangten` with `klangten.desktop`, and the NVDA add-on `KLANGTEN`.
+
+## Differences from Elten
+
+- plain JSON over TLS with certificate verification; no Elten payload encryption, server key check, realtime stream or launcher stamp;
+- no EltenLink hosts, keys or program signing root;
+- the user interface says "Klangten" and "Klango" where upstream texts say "Elten" and "EltenLink" (display-time substitution, see `src/eapi/dictionary.rb`);
+- the built-in updater installs Klangten releases published on the Klango server (see [Klangten releases and updates](docs/klangten-releases.md)).
+
+---
+
+# Original Elten README
+
+> The following section is the README of upstream Elten 3, kept for reference. Statements about official builds, the integrated updater, EltenLink forums and bug reporting refer to Elten, not to Klangten.
+
 # Elten 3
 
 Elten is the desktop client for [EltenLink](https://elten.link), a social networking for the blind, active since 2014.

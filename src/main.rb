@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Object
   include EltenAPI
@@ -22,13 +23,13 @@ end
 
 begin
 Dirs.eltendata = EltenBoot.early_datadir if defined?(EltenBoot)
-EltenAPI::WelcomeWizardLaunch.capture_initial_state(EltenPath.join(Dirs.eltendata, "elten.ini"))
+EltenAPI::WelcomeWizardLaunch.capture_initial_state(EltenPath.join(Dirs.eltendata, Klangten::Config::CONFIG_FILE_NAME))
 FileUtils.mkdir_p(Dirs.eltendata)
 end
 
 begin
-Log.head("Starting Elten")
-Log.head("Elten version: #{Elten.version.to_s}")
+Log.head("Starting #{Klangten::Config::PRODUCT_NAME}")
+Log.head("#{Klangten::Config::PRODUCT_NAME} version: #{Elten.version.to_s} (based on Elten #{Elten.upstream_version})")
 Log.head("Ruby version: #{RUBY_DESCRIPTION.to_s}")
     loop_update_window
         Configuration.volume=50 if Configuration.volume==nil

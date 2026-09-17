@@ -3,13 +3,16 @@
 
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
-# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 # This file contains the Ruby source load order, each in separate line
 
 # Lines beginning with # will be ignored
 
 src/bootstrap.rb
+# Klangten: central product, server and data-location configuration (also loaded early by elten.rb)
+src/eltenlink/klangten_config.rb
 src/ri/nativestructs.rb
 src/platforms/windows/ri/win32structs.rb :windows
 src/platforms/windows/ri/systemhelpers.rb :windows
@@ -40,41 +43,38 @@ src/eltenlink/users.rb
 src/eltenlink/contacts.rb
 src/eltenlink/admins.rb
 src/eltenlink/apps.rb
-src/eltenlink/calls.rb
+src/eltenlink/conference.rb
 src/eltenlink/activities.rb
-src/eltenlink/conferenceresources.rb
-src/eltenlink/voip.rb
-src/eltenlink/feeds.rb
+# Klangten: client for Mastodon accounts, replacing the EltenLink feed
+src/eapi/mastodon/client.rb
+src/eapi/mastodon/service.rb
 src/eltenlink/system.rb
 src/eltenlink/notifications.rb
 src/eltenlink/monitors.rb
 src/eltenlink/honors.rb
 src/eltenlink/profiles.rb
 src/eltenlink/soundthemes.rb
-src/eltenlink/auctions.rb
+# Klangten: Klango media catalog and audio avatars
+src/eltenlink/media.rb
+src/eltenlink/avatars.rb
 src/eltenlink/authentication.rb
 src/eltenlink/accounts.rb
 src/eltenlink/bans.rb
-src/eltenlink/premiumpackages.rb
-src/eltenlink/payments.rb
 src/eltenlink/polls.rb
 src/eltenlink/messages.rb
 src/eltenlink/blog.rb
 src/eltenlink/notes.rb
-src/eltenlink/calendars.rb
-src/eltenlink/tasks.rb
 src/eltenlink/forum.rb
 src/scenes/faq.rb
-src/scenes/sponsors.rb
-src/scenes/auctions.rb
 src/eapi/audio/audioeditor.rb
 src/scenes/iikeys.rb
-src/scenes/feedviewer.rb
+src/scenes/mastodon_timeline.rb
 src/scenes/callhistory.rb
-src/scenes/premiumpackages.rb
 src/scenes/documentation.rb
 src/scenes/install.rb
 src/scenes/conference.rb
+# Klangten: TeamConference binding (native library in bin/) used by the conference API
+src/eapi/teamconference.rb
 src/eapi/conference.rb
 src/scenes/account.rb
 src/scenes/keyboardshortcuts.rb
@@ -82,6 +82,9 @@ src/scenes/settings.rb
 src/scenes/spellcheckdictionary.rb
 src/scenes/clock.rb
 src/scenes/programs.rb
+# Klangten: media catalog (Media menu) and audio avatar settings
+src/scenes/mediacatalog.rb
+src/scenes/audioavatar.rb
 src/scenes/palantiri.rb
 src/scenes/log.rb
 src/eapi/speechoutput.rb
@@ -114,8 +117,6 @@ src/scenes/users_recentlyregistered.rb
 src/scenes/users_recentlyactived.rb
 src/scenes/usersearch.rb
 src/scenes/notes.rb
-src/scenes/calendar.rb
-src/scenes/tasks.rb
 src/scenes/forgotpassword.rb
 src/scenes/honors.rb
 src/scenes/console.rb
@@ -167,10 +168,11 @@ src/eapi/common/threads.rb
 src/eapi/common/premium.rb
 src/eapi/common/platform.rb
 src/eapi/common/activity.rb
-src/eapi/common/feed.rb
 src/eapi/common/soundthemes.rb
 src/eapi/common/voice.rb
 src/eapi/common/url.rb
+src/eapi/common/klangten.rb
+src/eapi/common/audioavatar.rb
 src/eapi/common/__common.rb
 src/eapi/eltensrv/client.rb
 src/eapi/eltensrv/attachments.rb
@@ -178,7 +180,6 @@ src/eapi/eltensrv/users.rb
 src/eapi/eltensrv/blogs.rb
 src/eapi/eltensrv/feeds.rb
 src/eapi/eltensrv/monitors.rb
-src/eapi/eltensrv/calls.rb
 src/eapi/eltensrv/system.rb
 src/eapi/eltensrv/notifications.rb
 src/eapi/eltensrv/bugs.rb
@@ -238,6 +239,8 @@ src/eapi/runner.rb
 src/eapi/program_package_metadata.rb
 src/eapi/unsigned_package_builder.rb
 src/eapi/program.rb
+# Klangten: built-in former Elten programs (sources in src/programs, loaded by Programs.load_all)
+src/eapi/program_builtins.rb
 src/eapi/program_installer.rb
 src/eapi/scheduler.rb
 src/eapi/extensions.rb

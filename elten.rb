@@ -2,14 +2,22 @@
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
-# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: product identity, data directory and window class.
 
 root = File.expand_path(__dir__)
 Dir.chdir(root)
 $LOAD_PATH.unshift(File.join(root, "src")) unless defined?(::EltenEmbedded)
 
+# Klangten: the product configuration is needed before the filelist is loaded
+# (data directory, window identity). The filelist entry is then a no-op.
+load File.join(root, "src", "eltenlink", "klangten_config.rb")
+
 module Elten
-  VERSION_STRING = "ELTEN 3.0.3"
+  # Version of the Elten sources this Klangten build is based on.
+  UPSTREAM_VERSION = "3.0.3"
+  UPSTREAM_VERSION_STRING = "ELTEN #{UPSTREAM_VERSION}"
+  VERSION_STRING = "#{Klangten::Config::PRODUCT_NAME} #{Klangten::Config::VERSION}"
   BRANCH = "stable"
 
   class << self
@@ -17,12 +25,16 @@ module Elten
       VERSION_STRING
     end
 
+    def upstream_version
+      UPSTREAM_VERSION
+    end
+
     def window_title
       VERSION_STRING + ($developer_mode == true ? " DEV" : "")
     end
 
     def window_titles
-      [window_title, VERSION_STRING, "Elten"].uniq
+      [window_title, VERSION_STRING, Klangten::Config::PRODUCT_NAME].uniq
     end
 
     def build_id
@@ -49,7 +61,8 @@ end
 module EltenBoot
   HIDDEN_FLAGS = ["/hidden", "-hidden", "--hidden"]
   DEVELOPER_FLAGS = ["/developer", "-developer", "--developer", "/dev", "-dev", "--dev"]
-  WINDOWS_MAIN_CLASS = "ELTENMAINWND"
+  # Klangten: own class name, so a running Elten window is never mistaken for this instance.
+  WINDOWS_MAIN_CLASS = Klangten::Config::WINDOWS_MAIN_CLASS
   WINDOWS_MAIN_STYLE = 0x00CA0000
   WINDOWS_ERROR_CLASS_ALREADY_EXISTS = 1410
   WINDOWS_CS_HREDRAW = 0x0002
@@ -153,8 +166,8 @@ module EltenBoot
     def early_datadir
       return @early_datadir if @early_datadir != nil
       datadir = datadir_argument
-      datadir = File.join(".", "eltendata") if datadir == nil && portable?
-      datadir = File.join(appdata, "elten") if datadir == nil
+      datadir = File.join(".", Klangten::Config::PORTABLE_DATA_DIR) if datadir == nil && portable?
+      datadir = Klangten::Config.data_dir(appdata) if datadir == nil
       @early_datadir = datadir
     end
 
@@ -355,12 +368,12 @@ module EltenBoot
 
     def portable?
       in_section = false
-      ini = File.join(app_root, "elten.ini")
+      ini = File.join(app_root, Klangten::Config::PORTABLE_INI)
       return false if !FileTest.exist?(ini)
       File.foreach(ini) do |line|
         text = line.to_s.strip
         if text =~ /^\[(.+)\]$/
-          in_section = $1.to_s.casecmp("Elten") == 0
+          in_section = $1.to_s.casecmp(Klangten::Config::PORTABLE_INI_SECTION) == 0
         elsif in_section && text =~ /^Portable\s*=\s*(.+)$/i
           return $1.to_i != 0
         end
@@ -370,9 +383,10 @@ module EltenBoot
       false
     end
 
+    # Platform application data root; Klangten::Config.data_dir appends sixdotsIT/klangten.
     def appdata
-      return File.join(Dir.home, "Library", "Application Support", "Elten") if EltenBoot.platform?(:osx)
-      return File.join(xdg_data_home, "elten") if EltenBoot.platform?(:linux)
+      return File.join(Dir.home, "Library", "Application Support") if EltenBoot.platform?(:osx)
+      return xdg_data_home if EltenBoot.platform?(:linux)
       ENV["APPDATA"].to_s != "" ? ENV["APPDATA"] : File.join(Dir.home, "AppData", "Roaming")
     rescue Exception
       "."

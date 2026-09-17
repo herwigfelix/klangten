@@ -3,6 +3,7 @@
 // Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 // Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 // You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+// Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 #include "platform.h"
 
@@ -102,7 +103,7 @@ std::string FatalTimestamp() {
 }
 
 fs::path FatalLogPath() {
-  // Same base as EltenSystemHelpers.appdata_dir, so this lands next to elten.log.
+  // Same base as EltenSystemHelpers.appdata_dir plus Klangten's sixdotsIT/klangten data directory, so this lands next to klangten.log.
   fs::path base;
   if (const char *xdg = std::getenv("XDG_DATA_HOME")) {
     if (*xdg != '\0') base = fs::path(xdg);
@@ -112,7 +113,7 @@ fs::path FatalLogPath() {
     if (home == nullptr || *home == '\0') return {};
     base = fs::path(home) / ".local" / "share";
   }
-  return base / "elten" / "launcher-fatal.log";
+  return base / "sixdotsIT" / "klangten" / "launcher-fatal.log";
 }
 
 // The desktop entry runs with Terminal=false and --launcher-log is opt-in, so

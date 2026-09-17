@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 require "openssl"
 require_relative "resources" if !defined?(EltenAPI::Resources)
@@ -12,7 +13,9 @@ module Programs
     SIGNATURE_MAGIC = "EltenPKSignature".b.freeze
     SIGNATURE_VERSION = 1
     ALGORITHM_RSA_SHA256 = 1
-    TRUST_ROOT_RESOURCE = "program-signing-root.pem"
+    # Klangten: EltenLink's signing root is not trusted. Without a root of its own,
+    # signed packages are handled like unsigned ones (developer-mode rules apply).
+    TRUST_ROOT_RESOURCE = Klangten::Config::PROGRAM_SIGNING_ROOT_RESOURCE
 
     class SignatureError < StandardError
     end
@@ -131,6 +134,7 @@ module Programs
       end
 
       def trusted_root_pems
+        return [] if TRUST_ROOT_RESOURCE == nil
         pem = EltenAPI::Resources.read(TRUST_ROOT_RESOURCE).to_s
         pem.scan(/-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----/m)
       end

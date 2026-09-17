@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: built-in programs are loaded first and shadow installed copies.
 
 require_relative "programsigning" if !defined?(Programs::ProgramSigning)
 require_relative "program_package_metadata" if !defined?(Programs::ProgramPackageMetadata)
@@ -2443,8 +2444,11 @@ module Programs
 
     def load_all
       Log.info("Loading programs")
+      # Klangten: former Elten programs are built in (src/eapi/program_builtins.rb).
+      BuiltIns.load_all if defined?(BuiltIns)
       apps_registry["apps"].each do |storage_id, record|
         next if !record.is_a?(Hash) || record["loaded"] != true
+        next if defined?(BuiltIns) && BuiltIns.uuid?(record["uuid"])
         entry = registry_entry_for_record(storage_id, record)
         next if entry == "" || ignored_program_entry?(entry)
         next if !program_entry?(entry)
@@ -2737,6 +2741,7 @@ module Programs
       source = discover_source(entry)
       raise ProgramError, "Program #{entry} has no Elten3AppInfo" if source == nil
       manifest = source[:manifest]
+      raise ProgramError, "Program #{manifest.name} is built into Klangten" if defined?(BuiltIns) && BuiltIns.uuid?(manifest.id)
       raise ProgramError, "Code file programs can be loaded only in developer mode" if source[:type] == :ruby && !ProgramSigning.developer_mode?
       @@configs[entry] = manifest.to_config(source[:main])
       if !manifest.supports_current_platform?

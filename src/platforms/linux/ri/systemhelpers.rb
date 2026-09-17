@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper, Arkadiusz Koziol
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module LinuxSystemNative
   class << self
@@ -374,8 +375,9 @@ module EltenSystemHelpers
       "run"
     end
 
+    # Klangten: klangten-linux.run in Klangten's data directory (see Klangten::Updates).
     def installer_filename
-      "elten.run"
+      Klangten::Updates.installer_filename("linux")
     end
 
     def installer_path(data_dir)
@@ -387,18 +389,7 @@ module EltenSystemHelpers
     # and handles privilege elevation, so updates and fresh installs exercise
     # exactly the same path.
     def update_install_command(installer, silent: true)
-      script = <<~'SH'
-        sleep 2
-        installer="$1"
-        chmod 0700 "$installer" || exit 1
-        if [ "$2" = "1" ]; then
-          "$installer" --silent || exit 1
-        else
-          "$installer" || exit 1
-        fi
-        [ -x /opt/elten/elten ] && exec /opt/elten/elten
-      SH
-      ["/bin/sh", "-c", script, "elten-update", installer.to_s, silent ? "1" : "0"]
+      Klangten::Updates.install_command("linux", installer, silent: silent)
     end
 
     private

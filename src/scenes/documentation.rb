@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_Documentation
   def initialize(docid)
@@ -15,15 +16,15 @@ class Scene_Documentation
     when "license"
       label=p_("Documentation", "Licence agreement")
       text= licensetext
-      when "rules"
-        label=p_("Documentation", "EltenLink terms and conditions")
-        text=_doc('rules')
-        when "privacypolicy"
-          label=p_("Documentation", "EltenLink Privacy Policy")
-          text=_doc('privacypolicy')
+      when "rules", "privacypolicy"
+        # Klangten: EltenLink's documents are replaced by a notice about the Klango server's terms.
+        label=p_("Klangten", "Terms of the Klango server")
+        text=klangten_server_terms_text
           when "readme"
             label=p_("Documentation", "Read me")
-            text=_doc('readme')
+            # Klangten: the manual is upstream Elten's; say which parts do not apply.
+            # The note names Elten literally, so it is not branded.
+            text="**#{Klangten::Config::PRODUCT_NAME}:** "+unbranded { p_("Klangten","This manual comes from Elten and has not been fully adapted to Klangten. Premium packages, sponsors, the calendar, tasks, SMS two-factor authentication and the built-in updater do not exist in Klangten. Conferences and calls use the TeamConference rooms of the Klango server: positional sound, whispering, dice, cards, recording and sound card streaming are not available. The Feed shows the home timeline of your Mastodon account.") }+"\n\n"+_doc('readme')
             when "migration24"
               label=p_("Documentation", "Information about migration to Elten version 2.4")
             text=_doc('migration24')

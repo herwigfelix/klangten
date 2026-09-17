@@ -1,0 +1,20 @@
+Klangten - modified version of Elten
+
+Elten: Copyright (C) 2014-2026 Dawid Pieper, GNU General Public License version 3.
+Modifications: Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT).
+
+Klangten is not an official product of Dawid Pieper, the Prowadnica Foundation
+or EltenLink and is not endorsed by them. The name "Elten" is used only to
+describe the origin of this software.
+
+Server: Klango (klango.online).
+
+Klangten installs into its own program folder and keeps its data in
+%APPDATA%\sixdotsIT\klangten, so it can be used side by side with Elten.
+
+Klangten is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, version 3. It is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+details. Third-party components are listed in THIRD-PARTY-NOTICES.md.

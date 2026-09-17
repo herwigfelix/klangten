@@ -205,11 +205,13 @@ use_soundtheme(stheme)
                             setlocale(Configuration.language)
                             SpeechOutput.apply_current_settings if defined?(SpeechOutput)
                           end
+                                # Klangten: the Klango server discards activity reports, so
+                                # neither ask for consent nor force reporting in beta builds.
                                 if Configuration.registeractivity==nil
-  Configuration.registeractivity = confirm(p_("EAPI_EltenAPI", "Do you want to send reports on how Elten is used? This data does not contain any confidential information and is very helpful in program development. This selection can be changed at any time from the Settings."))
+  Configuration.registeractivity = false
   writeconfig("Privacy", "RegisterActivity", Configuration.registeractivity)
   end
-  if Elten.branch.to_s.downcase!="stable" && Configuration.registeractivity==false
+  if false && Elten.branch.to_s.downcase!="stable" && Configuration.registeractivity==false
     delay(1)
     alert(p_("EAPI_EltenAPI", "You are currently using a beta version of Elten. In these versions, uploading usage statistics is always enabled. They contain information about the most frequently used functions, configurations and problems with program operation. They do not contain any confidential or private information. If you do not want to send statistics, please use the stable version of Elten."))
   Configuration.registeractivity = true

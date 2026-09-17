@@ -19579,6 +19579,1446 @@ msgctxt "EAPI_UI"
 msgid "Alarm"
 msgstr "Wecker"
 
+# Klangten translations (added 2026 for the Klangten fork; not part of upstream elten.pot).
+msgctxt "Klangten"
+msgid "Klangten - modified version of Elten. Elten: Copyright (C) 2014-2026 Dawid Pieper, GPLv3. Modifications: Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT). Klangten is not an official product of Dawid Pieper, the Prowadnica Foundation or EltenLink and is not endorsed by them. Server: Klango (klango.online)."
+msgstr "Klangten – modifizierte Version von Elten. Elten: Copyright (C) 2014-2026 Dawid Pieper, GPLv3. Änderungen: Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT). Klangten ist kein offizielles Produkt von Dawid Pieper, der Prowadnica-Stiftung oder EltenLink und wird von diesen weder unterstützt noch empfohlen. Server: Klango (klango.online)."
+
+msgctxt "Klangten"
+msgid "Klangten connects to the Klango server at %{server}. The terms of use and the privacy policy of this server are published by its operator at %{url}. The terms and conditions and the privacy policy of EltenLink do not apply to Klangten."
+msgstr "Klangten verbindet sich mit dem Klango-Server unter %{server}. Die Nutzungsbedingungen und die Datenschutzerklärung dieses Servers veröffentlicht sein Betreiber unter %{url}. Die Nutzungsbedingungen und die Datenschutzerklärung von EltenLink gelten für Klangten nicht."
+
+msgctxt "Klangten"
+msgid "The built-in installer and updater are not available in this version of Klangten."
+msgstr "Der eingebaute Installer und die Update-Funktion sind in dieser Version von Klangten nicht verfügbar."
+
+msgctxt "Klangten"
+msgid "&Terms of the Klango server"
+msgstr "&Bedingungen des Klango-Servers"
+
+msgctxt "Klangten"
+msgid "Terms of the Klango server"
+msgstr "Bedingungen des Klango-Servers"
+
+msgctxt "Klangten"
+msgid "Klangten source code:"
+msgstr "Quellcode von Klangten:"
+
+msgctxt "Klangten"
+msgid "About Klangten"
+msgstr "Über Klangten"
+
+msgctxt "Klangten"
+msgid "I accept the licence agreement and the terms of the Klango server"
+msgstr "Ich akzeptiere die Lizenzvereinbarung und die Bedingungen des Klango-Servers"
+
+msgctxt "Klangten"
+msgid "Do you accept the licence agreement and the terms of the Klango server?"
+msgstr "Akzeptieren Sie die Lizenzvereinbarung und die Bedingungen des Klango-Servers?"
+
+msgctxt "Klangten"
+msgid "No recommended group exists yet for your preferred language, so an English-language group is offered instead. If your language community needs its own recommended group, please contact the server administrators."
+msgstr "Für Ihre bevorzugte Sprache gibt es noch keine empfohlene Gruppe, daher wird stattdessen eine englischsprachige Gruppe angeboten. Wenn Ihre Sprachgemeinschaft eine eigene empfohlene Gruppe braucht, wenden Sie sich bitte an die Server-Administratoren."
+
+msgctxt "Klangten"
+msgid "These frequently asked questions come from Elten, the program Klangten is based on. Contact addresses and links in them refer to Elten and EltenLink, not to Klangten or the Klango server."
+msgstr "Diese häufig gestellten Fragen stammen aus Elten, dem Programm, auf dem Klangten basiert. Kontaktadressen und Links darin beziehen sich auf Elten und EltenLink, nicht auf Klangten oder den Klango-Server."
+
+msgctxt "Klangten"
+msgid "About these questions"
+msgstr "Über diese Fragen"
+
+# Klangten: media catalog, built-in programs and audio avatars (added 2026).
+msgctxt "Klangten"
+msgid "FFmpeg was not found on this computer. Install FFmpeg with your package manager (for example Homebrew on macOS or apt on Linux) and try again."
+msgstr "FFmpeg wurde auf diesem Computer nicht gefunden. Installieren Sie FFmpeg mit Ihrer Paketverwaltung (zum Beispiel Homebrew unter macOS oder apt unter Linux) und versuchen Sie es erneut."
+
+msgctxt "Klangten"
+msgid "FFmpeg is not available for 32-bit Windows."
+msgstr "FFmpeg ist für 32-Bit-Windows nicht verfügbar."
+
+msgctxt "Klangten"
+msgid "The FFmpeg encoders need FFmpeg %{version}, which is downloaded once from %{url} (about %{size} MB). FFmpeg is free software licensed under the GNU General Public License, version 3; its source code is available at %{source}. Do you want to download it now?"
+msgstr "Die FFmpeg-Encoder benötigen FFmpeg %{version}, das einmalig von %{url} heruntergeladen wird (etwa %{size} MB). FFmpeg ist freie Software unter der GNU General Public License, Version 3; der Quellcode ist unter %{source} erhältlich. Möchten Sie es jetzt herunterladen?"
+
+msgctxt "Klangten"
+msgid "FFmpeg could not be installed: %{error}"
+msgstr "FFmpeg konnte nicht installiert werden: %{error}"
+
+msgctxt "Klangten"
+msgid "FFmpeg has been installed."
+msgstr "FFmpeg wurde installiert."
+
+msgctxt "Klangten"
+msgid "The FFmpeg encoders are ready. FFmpeg: %{path}"
+msgstr "Die FFmpeg-Encoder sind bereit. FFmpeg: %{path}"
+
+msgctxt "Klangten"
+msgid "Remove downloaded FFmpeg"
+msgstr "Heruntergeladenes FFmpeg entfernen"
+
+msgctxt "Klangten"
+msgid "Remove the downloaded copy of FFmpeg?"
+msgstr "Die heruntergeladene Kopie von FFmpeg entfernen?"
+
+msgctxt "Klangten"
+msgid "FFmpeg has been removed."
+msgstr "FFmpeg wurde entfernt."
+
+msgctxt "Klangten"
+msgid "This feature is not available on this system."
+msgstr "Diese Funktion ist auf diesem System nicht verfügbar."
+
+msgctxt "Klangten"
+msgid "You have an audio avatar."
+msgstr "Sie haben einen Audio-Avatar."
+
+msgctxt "Klangten"
+msgid "Last changed: %{date}"
+msgstr "Zuletzt geändert: %{date}"
+
+msgctxt "Klangten"
+msgid "You have no audio avatar yet. Record a short greeting or select an audio file (at most two minutes). Other users can play it from the user menu, in Klangten and in Klango."
+msgstr "Sie haben noch keinen Audio-Avatar. Nehmen Sie eine kurze Begrüßung auf oder wählen Sie eine Audiodatei (höchstens zwei Minuten). Andere Benutzer können ihn im Benutzermenü abspielen, in Klangten und in Klango."
+
+msgctxt "Klangten"
+msgid "Audio avatar"
+msgstr "Audio-Avatar"
+
+msgctxt "Klangten"
+msgid "Play my audio avatar"
+msgstr "Meinen Audio-Avatar abspielen"
+
+msgctxt "Klangten"
+msgid "Record a new audio avatar or select a file"
+msgstr "Neuen Audio-Avatar aufnehmen oder Datei auswählen"
+
+msgctxt "Klangten"
+msgid "Save as my audio avatar"
+msgstr "Als meinen Audio-Avatar speichern"
+
+msgctxt "Klangten"
+msgid "Remove my audio avatar"
+msgstr "Meinen Audio-Avatar entfernen"
+
+msgctxt "Klangten"
+msgid "Record or select an audio file first."
+msgstr "Nehmen Sie zuerst etwas auf oder wählen Sie eine Audiodatei."
+
+msgctxt "Klangten"
+msgid "The recording is too large."
+msgstr "Die Aufnahme ist zu groß."
+
+msgctxt "Klangten"
+msgid "Your audio avatar has been saved."
+msgstr "Ihr Audio-Avatar wurde gespeichert."
+
+msgctxt "Klangten"
+msgid "Do you really want to remove your audio avatar?"
+msgstr "Möchten Sie Ihren Audio-Avatar wirklich entfernen?"
+
+msgctxt "Klangten"
+msgid "Your audio avatar has been removed."
+msgstr "Ihr Audio-Avatar wurde entfernt."
+
+msgctxt "Klangten"
+msgid "This user has no audio avatar."
+msgstr "Dieser Benutzer hat keinen Audio-Avatar."
+
+msgctxt "Klangten"
+msgid "Audio avatar of %{user}"
+msgstr "Audio-Avatar von %{user}"
+
+msgctxt "Klangten"
+msgid "Play audio avatar"
+msgstr "Audio-Avatar abspielen"
+
+msgctxt "Klangten"
+msgid "&Media"
+msgstr "&Medien"
+
+msgctxt "Klangten"
+msgid "Media &catalog"
+msgstr "Medien&katalog"
+
+msgctxt "Klangten"
+msgid "&YouTube"
+msgstr "&YouTube"
+
+msgctxt "Klangten"
+msgid "&Files"
+msgstr "&Dateien"
+
+msgctxt "Klangten"
+msgid "File &manager"
+msgstr "Datei&manager"
+
+msgctxt "Klangten"
+msgid "FFmpeg &encoders"
+msgstr "FFmpeg-&Encoder"
+
+msgctxt "Klangten"
+msgid "Media, files and MCP"
+msgstr "Medien, Dateien und MCP"
+
+msgctxt "Klangten"
+msgid "Klangten already includes programs that had to be installed separately in Elten. The Media menu contains the Klango media catalog with radio stations and podcasts, and YouTube (the yt-dlp tool is downloaded on first use). The Files menu contains the file manager and the FFmpeg encoders for additional audio and video formats (on Windows, FFmpeg is downloaded on first use; on macOS and Linux, an installed FFmpeg is used). Klangten MCP lets AI assistants on this computer use selected Klangten features with your permission; it stays disabled until you enable it in Program settings."
+msgstr "Klangten enthält bereits Programme, die in Elten separat installiert werden mussten. Das Menü Medien enthält den Klango-Medienkatalog mit Radiosendern und Podcasts sowie YouTube (das Werkzeug yt-dlp wird bei der ersten Verwendung heruntergeladen). Das Menü Dateien enthält den Dateimanager und die FFmpeg-Encoder für weitere Audio- und Videoformate (unter Windows wird FFmpeg bei der ersten Verwendung heruntergeladen, unter macOS und Linux wird ein installiertes FFmpeg verwendet). Mit Klangten MCP können KI-Assistenten auf diesem Computer mit Ihrer Erlaubnis ausgewählte Funktionen von Klangten nutzen; es bleibt deaktiviert, bis Sie es in den Programmeinstellungen aktivieren."
+
+msgctxt "MediaCatalog"
+msgid "Media catalog"
+msgstr "Medienkatalog"
+
+msgctxt "MediaCatalog"
+msgid "Browse categories"
+msgstr "Kategorien durchsuchen"
+
+msgctxt "MediaCatalog"
+msgid "Search"
+msgstr "Suchen"
+
+msgctxt "MediaCatalog"
+msgid "My favourites"
+msgstr "Meine Favoriten"
+
+msgctxt "MediaCatalog"
+msgid "Popular"
+msgstr "Beliebt"
+
+msgctxt "MediaCatalog"
+msgid "Top rated"
+msgstr "Am besten bewertet"
+
+msgctxt "MediaCatalog"
+msgid "Recently added"
+msgstr "Neu hinzugefügt"
+
+msgctxt "MediaCatalog"
+msgid "Recently played"
+msgstr "Zuletzt gespielt"
+
+msgctxt "MediaCatalog"
+msgid "Random selection"
+msgstr "Zufällige Auswahl"
+
+msgctxt "MediaCatalog"
+msgid "Media type: %{type}"
+msgstr "Medienart: %{type}"
+
+msgctxt "MediaCatalog"
+msgid "Add my own stream or podcast"
+msgstr "Eigenen Stream oder Podcast hinzufügen"
+
+msgctxt "MediaCatalog"
+msgid "Radio station"
+msgstr "Radiosender"
+
+msgctxt "MediaCatalog"
+msgid "Podcast"
+msgstr "Podcast"
+
+msgctxt "MediaCatalog"
+msgid "Audiobook"
+msgstr "Hörbuch"
+
+msgctxt "MediaCatalog"
+msgid "YouTube"
+msgstr "YouTube"
+
+msgctxt "MediaCatalog"
+msgid "RSS feed"
+msgstr "RSS-Feed"
+
+msgctxt "MediaCatalog"
+msgid "Web page"
+msgstr "Webseite"
+
+msgctxt "MediaCatalog"
+msgid "Media file"
+msgstr "Mediendatei"
+
+msgctxt "MediaCatalog"
+msgid "All"
+msgstr "Alle"
+
+msgctxt "MediaCatalog"
+msgid "Media type"
+msgstr "Medienart"
+
+msgctxt "MediaCatalog"
+msgid "rating %{average} of 5 from %{count} votes"
+msgstr "Bewertung %{average} von 5 aus %{count} Stimmen"
+
+msgctxt "MediaCatalog"
+msgid "favourite"
+msgstr "Favorit"
+
+msgctxt "MediaCatalog"
+msgid "Category: %{name}"
+msgstr "Kategorie: %{name}"
+
+msgctxt "MediaCatalog"
+msgid "No entries found."
+msgstr "Keine Einträge gefunden."
+
+msgctxt "MediaCatalog"
+msgid "Load more"
+msgstr "Mehr laden"
+
+msgctxt "MediaCatalog"
+msgid "Categories"
+msgstr "Kategorien"
+
+msgctxt "MediaCatalog"
+msgid "Search the media catalog"
+msgstr "Im Medienkatalog suchen"
+
+msgctxt "MediaCatalog"
+msgid "Search results"
+msgstr "Suchergebnisse"
+
+msgctxt "MediaCatalog"
+msgid "You have no favourites yet."
+msgstr "Sie haben noch keine Favoriten."
+
+msgctxt "MediaCatalog"
+msgid "Play"
+msgstr "Abspielen"
+
+msgctxt "MediaCatalog"
+msgid "Episodes"
+msgstr "Folgen"
+
+msgctxt "MediaCatalog"
+msgid "Open in YouTube"
+msgstr "In YouTube öffnen"
+
+msgctxt "MediaCatalog"
+msgid "Open in the web browser"
+msgstr "Im Webbrowser öffnen"
+
+msgctxt "MediaCatalog"
+msgid "Remove from favourites"
+msgstr "Aus Favoriten entfernen"
+
+msgctxt "MediaCatalog"
+msgid "Add to favourites"
+msgstr "Zu Favoriten hinzufügen"
+
+msgctxt "MediaCatalog"
+msgid "Rate"
+msgstr "Bewerten"
+
+msgctxt "MediaCatalog"
+msgid "Show ratings"
+msgstr "Bewertungen anzeigen"
+
+msgctxt "MediaCatalog"
+msgid "Details"
+msgstr "Details"
+
+msgctxt "MediaCatalog"
+msgid "Open homepage"
+msgstr "Webseite öffnen"
+
+msgctxt "MediaCatalog"
+msgid "Copy address to the clipboard"
+msgstr "Adresse in die Zwischenablage kopieren"
+
+msgctxt "MediaCatalog"
+msgid "Copied to clipboard."
+msgstr "In die Zwischenablage kopiert."
+
+msgctxt "MediaCatalog"
+msgid "Open"
+msgstr "Öffnen"
+
+msgctxt "MediaCatalog"
+msgid "Added to favourites."
+msgstr "Zu Favoriten hinzugefügt."
+
+msgctxt "MediaCatalog"
+msgid "Removed from favourites."
+msgstr "Aus Favoriten entfernt."
+
+msgctxt "MediaCatalog"
+msgid "%{vote} of 5"
+msgstr "%{vote} von 5"
+
+msgctxt "MediaCatalog"
+msgid "Remove my rating"
+msgstr "Meine Bewertung entfernen"
+
+msgctxt "MediaCatalog"
+msgid "Your rating"
+msgstr "Ihre Bewertung"
+
+msgctxt "MediaCatalog"
+msgid "Your rating has been removed."
+msgstr "Ihre Bewertung wurde entfernt."
+
+msgctxt "MediaCatalog"
+msgid "Comment (optional)"
+msgstr "Kommentar (optional)"
+
+msgctxt "MediaCatalog"
+msgid "Thank you for your rating."
+msgstr "Vielen Dank für Ihre Bewertung."
+
+msgctxt "MediaCatalog"
+msgid "Average rating: %{average} of 5 from %{count} votes"
+msgstr "Durchschnittliche Bewertung: %{average} von 5 aus %{count} Stimmen"
+
+msgctxt "MediaCatalog"
+msgid "Ratings"
+msgstr "Bewertungen"
+
+msgctxt "MediaCatalog"
+msgid "Language"
+msgstr "Sprache"
+
+msgctxt "MediaCatalog"
+msgid "Bitrate"
+msgstr "Bitrate"
+
+msgctxt "MediaCatalog"
+msgid "Played"
+msgstr "Abgespielt"
+
+msgctxt "MediaCatalog"
+msgid "Added by"
+msgstr "Hinzugefügt von"
+
+msgctxt "MediaCatalog"
+msgid "Homepage"
+msgstr "Webseite"
+
+msgctxt "MediaCatalog"
+msgid "Address"
+msgstr "Adresse"
+
+msgctxt "MediaCatalog"
+msgid "Keywords"
+msgstr "Stichwörter"
+
+msgctxt "MediaCatalog"
+msgid "Loading episodes..."
+msgstr "Folgen werden geladen..."
+
+msgctxt "MediaCatalog"
+msgid "The episodes of this podcast cannot be loaded."
+msgstr "Die Folgen dieses Podcasts können nicht geladen werden."
+
+msgctxt "MediaCatalog"
+msgid "No episodes found."
+msgstr "Keine Folgen gefunden."
+
+msgctxt "MediaCatalog"
+msgid "Download"
+msgstr "Herunterladen"
+
+msgctxt "MediaCatalog"
+msgid "Select destination directory"
+msgstr "Zielordner auswählen"
+
+msgctxt "MediaCatalog"
+msgid "The file %{file} already exists. Do you want to replace it?"
+msgstr "Die Datei %{file} existiert bereits. Möchten Sie sie ersetzen?"
+
+msgctxt "MediaCatalog"
+msgid "The episode has been saved."
+msgstr "Die Folge wurde gespeichert."
+
+msgctxt "MediaCatalog"
+msgid "Duration"
+msgstr "Dauer"
+
+msgctxt "MediaCatalog"
+msgid "Title"
+msgstr "Titel"
+
+msgctxt "MediaCatalog"
+msgid "Stream or feed address"
+msgstr "Stream- oder Feed-Adresse"
+
+msgctxt "MediaCatalog"
+msgid "Homepage (optional)"
+msgstr "Webseite (optional)"
+
+msgctxt "MediaCatalog"
+msgid "Enter a title and an address."
+msgstr "Geben Sie einen Titel und eine Adresse ein."
+
+# Klangten: client for Mastodon accounts (replaces the feed), added 2026.
+msgctxt "Mastodon"
+msgid "The Mastodon server no longer accepts the connection to your account. Connect the account again."
+msgstr "Der Mastodon-Server akzeptiert die Verbindung zu Ihrem Konto nicht mehr. Verbinden Sie das Konto erneut."
+
+msgctxt "Mastodon"
+msgid "The Mastodon server has temporarily limited the number of requests. Try again in a few minutes."
+msgstr "Der Mastodon-Server hat die Anzahl der Anfragen vorübergehend begrenzt. Versuchen Sie es in einigen Minuten erneut."
+
+msgctxt "Mastodon"
+msgid "The Mastodon server could not be reached. Check your internet connection and try again later."
+msgstr "Der Mastodon-Server ist nicht erreichbar. Prüfen Sie Ihre Internetverbindung und versuchen Sie es später erneut."
+
+msgctxt "Mastodon"
+msgid "The Mastodon server reported an error: %{error}"
+msgstr "Der Mastodon-Server meldet einen Fehler: %{error}"
+
+msgctxt "Mastodon"
+msgid "No Mastodon account is connected to Klangten yet. Do you want to connect one now?"
+msgstr "Mit Klangten ist noch kein Mastodon-Konto verbunden. Möchten Sie jetzt eines verbinden?"
+
+msgctxt "Mastodon"
+msgid "Address of your Mastodon server, for example mastodon.social"
+msgstr "Adresse Ihres Mastodon-Servers, zum Beispiel mastodon.social"
+
+msgctxt "Mastodon"
+msgid "This is not a valid server address."
+msgstr "Dies ist keine gültige Serveradresse."
+
+msgctxt "Mastodon"
+msgid "Klangten will now open the sign-in page of %{server} in your web browser. Sign in there and allow Klangten to access your account. The server then shows an authorization code. Copy this code and paste it into the next field."
+msgstr "Klangten öffnet jetzt die Anmeldeseite von %{server} in Ihrem Webbrowser. Melden Sie sich dort an und erlauben Sie Klangten den Zugriff auf Ihr Konto. Der Server zeigt anschließend einen Autorisierungscode an. Kopieren Sie diesen Code und fügen Sie ihn in das nächste Feld ein."
+
+msgctxt "Mastodon"
+msgid "Authorization code"
+msgstr "Autorisierungscode"
+
+msgctxt "Mastodon"
+msgid "Your Mastodon account %{account} is now connected to Klangten."
+msgstr "Ihr Mastodon-Konto %{account} ist jetzt mit Klangten verbunden."
+
+msgctxt "Mastodon"
+msgid "Do you want to disconnect the Mastodon account %{account} from Klangten? Klangten will ask the server to revoke its access."
+msgstr "Möchten Sie die Verbindung des Mastodon-Kontos %{account} mit Klangten trennen? Klangten bittet den Server, den Zugriff zu widerrufen."
+
+msgctxt "Mastodon"
+msgid "The Mastodon account has been disconnected."
+msgstr "Die Verbindung zum Mastodon-Konto wurde getrennt."
+
+msgctxt "Mastodon"
+msgid "Sign in to Klangten first."
+msgstr "Melden Sie sich zuerst bei Klangten an."
+
+msgctxt "Mastodon"
+msgid "Connect a different account"
+msgstr "Ein anderes Konto verbinden"
+
+msgctxt "Mastodon"
+msgid "Disconnect this account"
+msgstr "Verbindung zu diesem Konto trennen"
+
+msgctxt "Mastodon"
+msgid "Connected Mastodon account: %{account}"
+msgstr "Verbundenes Mastodon-Konto: %{account}"
+
+msgctxt "Mastodon"
+msgid "Image"
+msgstr "Bild"
+
+msgctxt "Mastodon"
+msgid "Animation"
+msgstr "Animation"
+
+msgctxt "Mastodon"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "Mastodon"
+msgid "Audio"
+msgstr "Audio"
+
+msgctxt "Mastodon"
+msgid "Attachment"
+msgstr "Anhang"
+
+msgctxt "Mastodon"
+msgid "%{kind} without description"
+msgstr "%{kind} ohne Beschreibung"
+
+msgctxt "Mastodon"
+msgid "Public"
+msgstr "Öffentlich"
+
+msgctxt "Mastodon"
+msgid "Quiet public"
+msgstr "Öffentlich (still)"
+
+msgctxt "Mastodon"
+msgid "Followers only"
+msgstr "Nur für Follower"
+
+msgctxt "Mastodon"
+msgid "Mentioned people only"
+msgstr "Nur für erwähnte Profile"
+
+msgctxt "Mastodon"
+msgid "Poll: %{options}"
+msgstr "Umfrage: %{options}"
+
+msgctxt "Mastodon"
+msgid "closed"
+msgstr "beendet"
+
+msgctxt "Mastodon"
+msgid "Content warning: %{text}"
+msgstr "Inhaltswarnung: %{text}"
+
+msgctxt "Mastodon"
+msgid "Content hidden, press Enter to read it"
+msgstr "Inhalt verborgen, zum Lesen Eingabe drücken"
+
+msgctxt "Mastodon"
+msgid "Link preview: %{title}"
+msgstr "Linkvorschau: %{title}"
+
+msgctxt "Mastodon"
+msgid "%{user} boosted %{author}"
+msgstr "%{user} hat %{author} geteilt"
+
+msgctxt "Mastodon"
+msgid "Boosted by %{user}"
+msgstr "Geteilt von %{user}"
+
+msgctxt "Mastodon"
+msgid "Edited on %{date}"
+msgstr "Bearbeitet am %{date}"
+
+msgctxt "Mastodon"
+msgid "Visibility: %{visibility}"
+msgstr "Sichtbarkeit: %{visibility}"
+
+msgctxt "Mastodon"
+msgid "%{replies} replies, %{boosts} boosts, %{favourites} favourites"
+msgstr "%{replies} Antworten, %{boosts} Mal geteilt, %{favourites} Favoriten"
+
+msgctxt "Mastodon"
+msgid "Published with %{application}"
+msgstr "Veröffentlicht mit %{application}"
+
+msgctxt "Mastodon"
+msgid "New post"
+msgstr "Neuer Beitrag"
+
+msgctxt "Mastodon"
+msgid "Reply to %{user}"
+msgstr "Antwort an %{user}"
+
+msgctxt "Mastodon"
+msgid "Content warning (optional)"
+msgstr "Inhaltswarnung (optional)"
+
+msgctxt "Mastodon"
+msgid "Visibility"
+msgstr "Sichtbarkeit"
+
+msgctxt "Mastodon"
+msgid "Language of the post (two-letter code, for example en)"
+msgstr "Sprache des Beitrags (zweistelliger Code, zum Beispiel de)"
+
+msgctxt "Mastodon"
+msgid "Description of the audio (optional)"
+msgstr "Beschreibung der Audioaufnahme (optional)"
+
+msgctxt "Mastodon"
+msgid "A post must contain text or audio."
+msgstr "Ein Beitrag muss Text oder eine Audioaufnahme enthalten."
+
+msgctxt "Mastodon"
+msgid "Post published."
+msgstr "Beitrag veröffentlicht."
+
+msgctxt "Mastodon"
+msgid "Added to favourites"
+msgstr "Zu Favoriten hinzugefügt"
+
+msgctxt "Mastodon"
+msgid "Removed from favourites"
+msgstr "Aus Favoriten entfernt"
+
+msgctxt "Mastodon"
+msgid "Post boosted"
+msgstr "Beitrag geteilt"
+
+msgctxt "Mastodon"
+msgid "Boost removed"
+msgstr "Teilen zurückgenommen"
+
+msgctxt "Mastodon"
+msgid "Bookmark added"
+msgstr "Lesezeichen hinzugefügt"
+
+msgctxt "Mastodon"
+msgid "Bookmark removed"
+msgstr "Lesezeichen entfernt"
+
+msgctxt "Mastodon"
+msgid "This post on the web"
+msgstr "Dieser Beitrag im Web"
+
+msgctxt "Mastodon"
+msgid "This post contains no links."
+msgstr "Dieser Beitrag enthält keine Links."
+
+msgctxt "Mastodon"
+msgid "Links"
+msgstr "Links"
+
+msgctxt "Mastodon"
+msgid "No accounts found."
+msgstr "Keine Konten gefunden."
+
+msgctxt "Mastodon"
+msgid "Search for an account (name or address such as user@example.social)"
+msgstr "Konto suchen (Name oder Adresse wie user@example.social)"
+
+msgctxt "Mastodon"
+msgid "Accounts"
+msgstr "Konten"
+
+msgctxt "Mastodon"
+msgid "Hashtag"
+msgstr "Hashtag"
+
+msgctxt "Mastodon"
+msgid "Profile of %{user}"
+msgstr "Profil von %{user}"
+
+msgctxt "Mastodon"
+msgid "Remove from favourites"
+msgstr "Aus Favoriten entfernen"
+
+msgctxt "Mastodon"
+msgid "Add to favourites"
+msgstr "Zu Favoriten hinzufügen"
+
+msgctxt "Mastodon"
+msgid "Remove boost"
+msgstr "Teilen zurücknehmen"
+
+msgctxt "Mastodon"
+msgid "Boost"
+msgstr "Teilen"
+
+msgctxt "Mastodon"
+msgid "Remove bookmark"
+msgstr "Lesezeichen entfernen"
+
+msgctxt "Mastodon"
+msgid "Add bookmark"
+msgstr "Lesezeichen hinzufügen"
+
+msgctxt "Mastodon"
+msgid "Timelines and lists"
+msgstr "Timelines und Listen"
+
+msgctxt "Mastodon"
+msgid "Home timeline"
+msgstr "Home-Timeline"
+
+msgctxt "Mastodon"
+msgid "Notifications"
+msgstr "Benachrichtigungen"
+
+msgctxt "Mastodon"
+msgid "Mentions"
+msgstr "Erwähnungen"
+
+msgctxt "Mastodon"
+msgid "Local timeline"
+msgstr "Lokale Timeline"
+
+msgctxt "Mastodon"
+msgid "Federated timeline"
+msgstr "Föderierte Timeline"
+
+msgctxt "Mastodon"
+msgid "Hashtag..."
+msgstr "Hashtag..."
+
+msgctxt "Mastodon"
+msgid "Bookmarks"
+msgstr "Lesezeichen"
+
+msgctxt "Mastodon"
+msgid "Favourites"
+msgstr "Favoriten"
+
+msgctxt "Mastodon"
+msgid "My posts"
+msgstr "Meine Beiträge"
+
+msgctxt "Mastodon"
+msgid "Search for an account..."
+msgstr "Konto suchen..."
+
+msgctxt "Mastodon"
+msgid "Mastodon account..."
+msgstr "Mastodon-Konto..."
+
+msgctxt "Mastodon"
+msgid "%{posts} posts, %{following} following, %{followers} followers"
+msgstr "%{posts} Beiträge, folgt %{following}, %{followers} Follower"
+
+msgctxt "Mastodon"
+msgid "Automated account"
+msgstr "Automatisiertes Konto"
+
+msgctxt "Mastodon"
+msgid "Follow requests to this account are reviewed"
+msgstr "Folgeanfragen an dieses Konto werden geprüft"
+
+msgctxt "Mastodon"
+msgid "Follows you"
+msgstr "Folgt Ihnen"
+
+msgctxt "Mastodon"
+msgid "Profile"
+msgstr "Profil"
+
+msgctxt "Mastodon"
+msgid "Show posts"
+msgstr "Beiträge anzeigen"
+
+msgctxt "Mastodon"
+msgid "Unfollow"
+msgstr "Nicht mehr folgen"
+
+msgctxt "Mastodon"
+msgid "Withdraw follow request"
+msgstr "Folgeanfrage zurückziehen"
+
+msgctxt "Mastodon"
+msgid "Follow"
+msgstr "Folgen"
+
+msgctxt "Mastodon"
+msgid "Mention"
+msgstr "Erwähnen"
+
+msgctxt "Mastodon"
+msgid "Unmute"
+msgstr "Stummschaltung aufheben"
+
+msgctxt "Mastodon"
+msgid "Mute"
+msgstr "Stummschalten"
+
+msgctxt "Mastodon"
+msgid "Unblock"
+msgstr "Blockierung aufheben"
+
+msgctxt "Mastodon"
+msgid "Block"
+msgstr "Blockieren"
+
+msgctxt "Mastodon"
+msgid "Open in web browser"
+msgstr "Im Webbrowser öffnen"
+
+msgctxt "Mastodon"
+msgid "You now follow this account."
+msgstr "Sie folgen diesem Konto jetzt."
+
+msgctxt "Mastodon"
+msgid "Follow request sent."
+msgstr "Folgeanfrage gesendet."
+
+msgctxt "Mastodon"
+msgid "You no longer follow this account."
+msgstr "Sie folgen diesem Konto nicht mehr."
+
+msgctxt "Mastodon"
+msgid "Account muted."
+msgstr "Konto stummgeschaltet."
+
+msgctxt "Mastodon"
+msgid "Account unmuted."
+msgstr "Stummschaltung des Kontos aufgehoben."
+
+msgctxt "Mastodon"
+msgid "Do you want to block %{user}? You will no longer see each other's posts."
+msgstr "Möchten Sie %{user} blockieren? Sie sehen dann gegenseitig keine Beiträge mehr."
+
+msgctxt "Mastodon"
+msgid "Account blocked."
+msgstr "Konto blockiert."
+
+msgctxt "Mastodon"
+msgid "Account unblocked."
+msgstr "Blockierung des Kontos aufgehoben."
+
+msgctxt "Mastodon"
+msgid "%{user} mentioned you"
+msgstr "%{user} hat Sie erwähnt"
+
+msgctxt "Mastodon"
+msgid "Mastodon mentions"
+msgstr "Mastodon-Erwähnungen"
+
+msgctxt "Mastodon"
+msgid "No entries"
+msgstr "Keine Einträge"
+
+msgctxt "Mastodon"
+msgid "Posts of %{user}"
+msgstr "Beiträge von %{user}"
+
+msgctxt "Mastodon"
+msgid "%{user} published a post"
+msgstr "%{user} hat einen Beitrag veröffentlicht"
+
+msgctxt "Mastodon"
+msgid "%{user} boosted your post"
+msgstr "%{user} hat Ihren Beitrag geteilt"
+
+msgctxt "Mastodon"
+msgid "%{user} added your post to favourites"
+msgstr "%{user} hat Ihren Beitrag favorisiert"
+
+msgctxt "Mastodon"
+msgid "%{user} follows you now"
+msgstr "%{user} folgt Ihnen jetzt"
+
+msgctxt "Mastodon"
+msgid "%{user} asks to follow you"
+msgstr "%{user} möchte Ihnen folgen"
+
+msgctxt "Mastodon"
+msgid "A poll has ended"
+msgstr "Eine Umfrage ist beendet"
+
+msgctxt "Mastodon"
+msgid "%{user} edited a post"
+msgstr "%{user} hat einen Beitrag bearbeitet"
+
+msgctxt "Mastodon"
+msgid "Load older entries"
+msgstr "Ältere Einträge laden"
+
+msgctxt "Mastodon"
+msgid "No Mastodon account is connected. Press Enter to connect one."
+msgstr "Kein Mastodon-Konto verbunden. Drücken Sie Eingabe, um eines zu verbinden."
+
+msgctxt "Mastodon"
+msgid "The Mastodon server no longer accepts the connection to your account. Press Enter to connect the account again."
+msgstr "Der Mastodon-Server akzeptiert die Verbindung zu Ihrem Konto nicht mehr. Drücken Sie Eingabe, um das Konto erneut zu verbinden."
+
+msgctxt "Mastodon"
+msgid "The home timeline is empty."
+msgstr "Die Home-Timeline ist leer."
+
+msgctxt "Mastodon"
+msgid "Loading the home timeline..."
+msgstr "Home-Timeline wird geladen..."
+
+msgctxt "Mastodon"
+msgid "The home timeline is being refreshed."
+msgstr "Die Home-Timeline wird aktualisiert."
+
+msgctxt "Mastodon"
+msgid "Mastodon t&imelines"
+msgstr "Mastodon-T&imelines"
+
+msgctxt "Klangten"
+msgid "In Klangten, the Feed tab shows the home timeline of your Mastodon account: the short posts of the people you follow on Mastodon, a decentralised social network that is independent of the Klango server. You can read posts and replies, add them to your favourites, boost them and publish posts with text or audio. Whom you follow is managed on Mastodon and is independent of your Klango contacts."
+msgstr "In Klangten zeigt der Feed-Reiter die Home-Timeline Ihres Mastodon-Kontos: die kurzen Beiträge der Menschen, denen Sie auf Mastodon folgen, einem dezentralen sozialen Netzwerk, das vom Klango-Server unabhängig ist. Sie können Beiträge und Antworten lesen, favorisieren, teilen und Beiträge mit Text oder Audio veröffentlichen. Wem Sie folgen, wird auf Mastodon verwaltet und ist unabhängig von Ihren Klango-Kontakten."
+
+msgctxt "Klangten"
+msgid "Mastodon account"
+msgstr "Mastodon-Konto"
+
+msgctxt "Klangten"
+msgid "Your Mastodon account %{account} is connected. The Feed tab shows its home timeline."
+msgstr "Ihr Mastodon-Konto %{account} ist verbunden. Der Feed-Reiter zeigt seine Home-Timeline."
+
+msgctxt "Klangten"
+msgid "No Mastodon account is connected yet. You can connect one now with the button below: your web browser opens the sign-in page of your server, and Klangten asks for the authorization code shown there. You can also do this later under Tools, Program settings, Main window, or from the context menu of the Feed tab."
+msgstr "Es ist noch kein Mastodon-Konto verbunden. Mit der Schaltfläche unten können Sie jetzt eines verbinden: Ihr Webbrowser öffnet die Anmeldeseite Ihres Servers, und Klangten fragt nach dem dort angezeigten Autorisierungscode. Sie können dies auch später unter Werkzeuge, Programmeinstellungen, Hauptfenster oder über das Kontextmenü des Feed-Reiters erledigen."
+
+msgctxt "Klangten"
+msgid "Connect a Mastodon account now"
+msgstr "Jetzt ein Mastodon-Konto verbinden"
+
+msgctxt "Mastodon"
+msgid "%{count} vote"
+msgid_plural "%{count} votes"
+msgstr[0] "%{count} Stimme"
+msgstr[1] "%{count} Stimmen"
+
+msgctxt "Mastodon"
+msgid "%{count} favourite"
+msgid_plural "%{count} favourites"
+msgstr[0] "%{count} Favorit"
+msgstr[1] "%{count} Favoriten"
+
+msgctxt "Mastodon"
+msgid "%{count} new mention"
+msgid_plural "%{count} new mentions"
+msgstr[0] "%{count} neue Erwähnung"
+msgstr[1] "%{count} neue Erwähnungen"
+
+# Klangten conference translations (TeamConference, added 2026 for the Klangten fork; not part of upstream elten.pot).
+msgctxt "CallHistory"
+msgid "%{minutes} min %{seconds} s"
+msgstr "%{minutes} Min. %{seconds} Sek."
+
+msgctxt "CallHistory"
+msgid "Are you sure you want to clear the call history?"
+msgstr "Möchten Sie den Anrufverlauf wirklich löschen?"
+
+msgctxt "CallHistory"
+msgid "Call back"
+msgstr "Zurückrufen"
+
+msgctxt "CallHistory"
+msgid "Clear call history"
+msgstr "Anrufverlauf löschen"
+
+msgctxt "Conference"
+msgid "%{user} did not answer the call"
+msgstr "%{user} hat den Anruf nicht angenommen"
+
+msgctxt "Conference"
+msgid "%{user} has answered the call"
+msgstr "%{user} hat den Anruf angenommen"
+
+msgctxt "Conference"
+msgid "%{user} has declined the call"
+msgstr "%{user} hat den Anruf abgelehnt"
+
+msgctxt "Conference"
+msgid "%{user} is busy"
+msgstr "%{user} ist besetzt"
+
+msgctxt "Conference"
+msgid "%{user} is not online"
+msgstr "%{user} ist nicht online"
+
+msgctxt "Conference"
+msgid "%{user} is streaming %{file}"
+msgstr "%{user} überträgt %{file}"
+
+msgctxt "Conference"
+msgid "administrator"
+msgstr "Administrator"
+
+msgctxt "Conference"
+msgid "Are you sure you want to delete the room %{name}?"
+msgstr "Möchten Sie den Raum %{name} wirklich löschen?"
+
+msgctxt "Conference"
+msgid "Are you sure you want to remove %{user} from the room?"
+msgstr "Möchten Sie %{user} wirklich aus dem Raum entfernen?"
+
+msgctxt "Conference"
+msgid "Ban duration in minutes (0 until the room is closed)"
+msgstr "Dauer der Sperre in Minuten (0 = bis der Raum geschlossen wird)"
+
+msgctxt "Conference"
+msgid "Call ended"
+msgstr "Anruf beendet"
+
+msgctxt "Conference"
+msgid "Call with %{user}"
+msgstr "Anruf mit %{user}"
+
+msgctxt "Conference"
+msgid "Calling %{user}"
+msgstr "%{user} wird angerufen"
+
+msgctxt "Conference"
+msgid "Cannot connect to the conference server."
+msgstr "Keine Verbindung zum Konferenzserver möglich."
+
+msgctxt "Conference"
+msgid "Conferences are not available on this platform."
+msgstr "Konferenzen sind auf dieser Plattform nicht verfügbar."
+
+msgctxt "Conference"
+msgid "Conferences are not enabled on the server."
+msgstr "Konferenzen sind auf dem Server nicht eingeschaltet."
+
+msgctxt "Conference"
+msgid "Connecting to the conference server..."
+msgstr "Verbindung zum Konferenzserver wird hergestellt..."
+
+msgctxt "Conference"
+msgid "Create room"
+msgstr "Raum erstellen"
+
+msgctxt "Conference"
+msgid "Delete room"
+msgstr "Raum löschen"
+
+msgctxt "Conference"
+msgid "Do you want to hang up?"
+msgstr "Möchten Sie auflegen?"
+
+msgctxt "Conference"
+msgid "Do you want to leave the room?"
+msgstr "Möchten Sie den Raum verlassen?"
+
+msgctxt "Conference"
+msgid "Do you want to lift the ban of %{user}?"
+msgstr "Möchten Sie die Sperre von %{user} aufheben?"
+
+msgctxt "Conference"
+msgid "Edit room"
+msgstr "Raum bearbeiten"
+
+msgctxt "Conference"
+msgid "Enter a room name."
+msgstr "Geben Sie einen Raumnamen ein."
+
+msgctxt "Conference"
+msgid "group"
+msgstr "Gruppe"
+
+msgctxt "Conference"
+msgid "Hang up"
+msgstr "Auflegen"
+
+msgctxt "Conference"
+msgid "Leave room"
+msgstr "Raum verlassen"
+
+msgctxt "Conference"
+msgid "Make room administrator"
+msgstr "Zum Raumadministrator machen"
+
+msgctxt "Conference"
+msgid "Maximum number of participants (0 for no limit)"
+msgstr "Höchstzahl der Teilnehmer (0 = unbegrenzt)"
+
+msgctxt "Conference"
+msgid "microphone muted"
+msgstr "Mikrofon stumm"
+
+msgctxt "Conference"
+msgid "Mute sound"
+msgstr "Ton stummschalten"
+
+msgctxt "Conference"
+msgid "Mute user in the room"
+msgstr "Nutzer im Raum stummschalten"
+
+msgctxt "Conference"
+msgid "Nobody is banned from this room."
+msgstr "Niemand ist in diesem Raum gesperrt."
+
+msgctxt "Conference"
+msgid "owner"
+msgstr "Eigentümer"
+
+msgctxt "Conference"
+msgid "Participants"
+msgstr "Teilnehmer"
+
+msgctxt "Conference"
+msgid "Password (leave empty for none)"
+msgstr "Passwort (leer lassen für keines)"
+
+msgctxt "Conference"
+msgid "Private message from %{user}: %{message}"
+msgstr "Private Nachricht von %{user}: %{message}"
+
+msgctxt "Conference"
+msgid "Private message to %{user}"
+msgstr "Private Nachricht an %{user}"
+
+msgctxt "Conference"
+msgid "Private message to %{user}: %{message}"
+msgstr "Private Nachricht an %{user}: %{message}"
+
+msgctxt "Conference"
+msgid "Remove room administrator"
+msgstr "Raumadministrator entfernen"
+
+msgctxt "Conference"
+msgid "Return to the current room"
+msgstr "Zum aktuellen Raum zurückkehren"
+
+msgctxt "Conference"
+msgid "Room %{name}"
+msgstr "Raum %{name}"
+
+msgctxt "Conference"
+msgid "Room name"
+msgstr "Raumname"
+
+msgctxt "Conference"
+msgid "Room participants"
+msgstr "Teilnehmer im Raum"
+
+msgctxt "Conference"
+msgid "Room password"
+msgstr "Raumpasswort"
+
+msgctxt "Conference"
+msgid "Room saved"
+msgstr "Raum gespeichert"
+
+msgctxt "Conference"
+msgid "Rooms"
+msgstr "Räume"
+
+msgctxt "Conference"
+msgid "Save"
+msgstr "Speichern"
+
+msgctxt "Conference"
+msgid "Send private message"
+msgstr "Private Nachricht senden"
+
+msgctxt "Conference"
+msgid "Server message: %{message}"
+msgstr "Servernachricht: %{message}"
+
+msgctxt "Conference"
+msgid "sound muted"
+msgstr "Ton stumm"
+
+msgctxt "Conference"
+msgid "Sound muted"
+msgstr "Ton stummgeschaltet"
+
+msgctxt "Conference"
+msgid "Sound unmuted"
+msgstr "Stummschaltung des Tons aufgehoben"
+
+msgctxt "Conference"
+msgid "streaming"
+msgstr "überträgt"
+
+msgctxt "Conference"
+msgid "The call could not be established."
+msgstr "Der Anruf konnte nicht aufgebaut werden."
+
+msgctxt "Conference"
+msgid "The connection to the conference server was lost."
+msgstr "Die Verbindung zum Konferenzserver wurde unterbrochen."
+
+msgctxt "Conference"
+msgid "The file could not be streamed."
+msgstr "Die Datei konnte nicht übertragen werden."
+
+msgctxt "Conference"
+msgid "The room could not be changed."
+msgstr "Der Raum konnte nicht geändert werden."
+
+msgctxt "Conference"
+msgid "The room could not be created."
+msgstr "Der Raum konnte nicht erstellt werden."
+
+msgctxt "Conference"
+msgid "The room has been closed."
+msgstr "Der Raum wurde geschlossen."
+
+msgctxt "Conference"
+msgid "Unmute sound"
+msgstr "Stummschaltung des Tons aufheben"
+
+msgctxt "Conference"
+msgid "Unmute user in the room"
+msgstr "Stummschaltung des Nutzers im Raum aufheben"
+
+msgctxt "Conference"
+msgid "you"
+msgstr "Sie"
+
+msgctxt "Conference"
+msgid "You are already in a call"
+msgstr "Sie telefonieren bereits"
+
+msgctxt "Conference"
+msgid "You are banned from this room."
+msgstr "Sie sind in diesem Raum gesperrt."
+
+msgctxt "Conference"
+msgid "You are not connected to the conference server."
+msgstr "Sie sind nicht mit dem Konferenzserver verbunden."
+
+msgctxt "Conference"
+msgid "You cannot call yourself."
+msgstr "Sie können sich nicht selbst anrufen."
+
+msgctxt "Conference"
+msgid "You cannot join this room."
+msgstr "Sie können diesem Raum nicht beitreten."
+
+msgctxt "Conference"
+msgid "You have been banned from the room."
+msgstr "Sie wurden aus dem Raum gesperrt."
+
+msgctxt "Conference"
+msgid "You have been removed from the room."
+msgstr "Sie wurden aus dem Raum entfernt."
+
+msgctxt "Conference"
+msgid "You will leave the current room. Do you want to call %{user}?"
+msgstr "Sie verlassen dabei den aktuellen Raum. Möchten Sie %{user} anrufen?"
+
+msgctxt "Conference"
+msgid "Your conference session was taken over by another login of your account."
+msgstr "Ihre Konferenzsitzung wurde von einer anderen Anmeldung Ihres Kontos übernommen."
+
+# Klangten polish translations (welcome wizard, Invisible Interface, documentation and account screens; added 2026 for the Klangten fork; not part of upstream elten.pot).
+msgctxt "Klangten"
+msgid "Add the selected Mastodon post to your favourites or remove it"
+msgstr "Ausgewählten Mastodon-Beitrag zu den Favoriten hinzufügen oder daraus entfernen"
+
+msgctxt "Klangten"
+msgid "Publish a post on Mastodon"
+msgstr "Einen Beitrag auf Mastodon veröffentlichen"
+
+msgctxt "Klangten"
+msgid "No activity statistics are available for your account at the moment."
+msgstr "Für Ihr Konto sind derzeit keine Aktivitätsstatistiken verfügbar."
+
+msgctxt "Klangten"
+msgid "Open the Klangten project page"
+msgstr "Projektseite von Klangten öffnen"
+
+msgctxt "Klangten"
+msgid "Open the Elten source code on GitHub"
+msgstr "Quellcode von Elten auf GitHub öffnen"
+
+msgctxt "Klangten"
+msgid "Conferences are live audio rooms on the TeamConference server of Klango, so you meet people using Klango there as well. The Conferences screen lists a room for each forum group you belong to and the open rooms created by other users; a room can be protected by a password, and creating your own room takes a moment. In a room you hear everyone taking part, can mute your microphone or the sound, write in the room chat, send private messages to participants and stream an audio file to the room. When you would rather talk to one particular person, simply call them: the call can be accepted or declined, and your calls, including missed ones, are kept in the call history on this computer."
+msgstr "Konferenzen sind Live-Audioräume auf dem TeamConference-Server von Klango, dort treffen Sie also auch Menschen, die Klango verwenden. Der Bildschirm Konferenzen zeigt einen Raum für jede Forengruppe, der Sie angehören, und die offenen Räume anderer Nutzer; ein Raum kann mit einem Passwort geschützt sein, und ein eigener Raum ist schnell erstellt. In einem Raum hören Sie alle Teilnehmenden, können Ihr Mikrofon oder den Ton stummschalten, im Raumchat schreiben, Teilnehmenden private Nachrichten senden und eine Audiodatei in den Raum übertragen. Wenn Sie lieber mit einer bestimmten Person sprechen möchten, rufen Sie sie einfach an: Der Anruf kann angenommen oder abgelehnt werden, und Ihre Anrufe, auch verpasste, werden im Anrufverlauf auf diesem Computer gespeichert."
+
+msgctxt "Klangten"
+msgid "Klangten does not stop being useful when you switch to another program. The Invisible Interface is a set of global hotkeys that work across the whole system while Klangten is running, so you can check new messages, read your Mastodon feed or control the conference room you are in without leaving the application you are using. Its content is arranged into cards: Messages, Feed and, while you are in a conference room or call, Conference options for muting, the room chat, streaming a file, leaving and the participants. Hold the Klangten modifier keys and use the arrow keys to move between cards and their items, press Enter to activate one, or add a command key, for example M to write a message or F to publish a post on Mastodon. The complete list is available under Help, List of Invisible Interface hotkeys."
+msgstr "Klangten bleibt auch dann nützlich, wenn Sie zu einem anderen Programm wechseln. Die unsichtbare Oberfläche ist eine Sammlung systemweiter Tastenkombinationen, die funktionieren, solange Klangten läuft. So können Sie neue Nachrichten prüfen, Ihren Mastodon-Feed lesen oder den Konferenzraum steuern, in dem Sie sich befinden, ohne die Anwendung zu verlassen, die Sie gerade verwenden. Die Inhalte sind in Karten gegliedert: Nachrichten, Feed und, solange Sie in einem Konferenzraum oder Anruf sind, Konferenzoptionen zum Stummschalten, für den Raumchat, das Übertragen einer Datei, das Verlassen und die Teilnehmenden. Halten Sie die Klangten-Zusatztasten gedrückt und wechseln Sie mit den Pfeiltasten zwischen Karten und ihren Einträgen, aktivieren Sie einen Eintrag mit der Eingabetaste, oder drücken Sie zusätzlich eine Befehlstaste, zum Beispiel M, um eine Nachricht zu schreiben, oder F, um einen Beitrag auf Mastodon zu veröffentlichen. Die vollständige Liste finden Sie unter Hilfe, Liste der Tastenkombinationen der unsichtbaren Oberfläche."
+
+msgctxt "Klangten"
+msgid "Klangten is built on Elten 3, which exists thanks to Dawid Pieper and the people around it: those who contributed, tested the development builds, reported reproducible problems, proposed improvements, translated the program and patiently helped other users. To every one of them, thank you."
+msgstr "Klangten beruht auf Elten 3, das es dank Dawid Pieper und den Menschen um das Projekt gibt: allen, die beigetragen, Entwicklungsversionen getestet, nachvollziehbare Probleme gemeldet, Verbesserungen vorgeschlagen, das Programm übersetzt und anderen Nutzern geduldig geholfen haben. Ihnen allen herzlichen Dank."
+
+msgctxt "Klangten"
+msgid "Klangten is free software released under the GNU General Public License, version 3. It is a modified version of Elten, whose complete source code and development history are public on GitHub; the changes made for Klangten are described in the NOTICE.md file of its source code. Klangten is not an official product of the Elten developers, so please send questions and suggestions about Klangten to the Klangten project, not to them."
+msgstr "Klangten ist freie Software unter der GNU General Public License, Version 3. Es ist eine veränderte Fassung von Elten, dessen vollständiger Quellcode und Entwicklungsverlauf öffentlich auf GitHub stehen; die Änderungen für Klangten sind in der Datei NOTICE.md seines Quellcodes beschrieben. Klangten ist kein offizielles Produkt der Elten-Entwickler, richten Sie Fragen und Vorschläge zu Klangten daher bitte an das Klangten-Projekt und nicht an sie."
+
+msgctxt "Klangten"
+msgid "The areas described so far are the busiest, but not the only ones. Klangten also offers polls, where you can put structured questions to the community and study the answers, and notes, where you can keep texts for yourself or share one with another user to work on together. In the Community menu you will additionally find your contacts, a user search, a list of who is currently online and more. Take your time; none of this needs to be learnt at once."
+msgstr "Die bisher beschriebenen Bereiche sind die belebtesten, aber nicht die einzigen. Klangten bietet außerdem Umfragen, mit denen Sie der Community strukturierte Fragen stellen und die Antworten auswerten können, und Notizen, in denen Sie Texte für sich aufbewahren oder mit einem anderen Nutzer teilen und gemeinsam bearbeiten können. Im Menü Community finden Sie zusätzlich Ihre Kontakte, eine Nutzersuche, eine Liste der gerade angemeldeten Nutzer und mehr. Lassen Sie sich Zeit; nichts davon muss auf einmal gelernt werden."
+
+msgctxt "Klangten"
+msgid "The Feed tab will not be shown in your main window, so you may also prefer not to be notified about new posts in the home timeline of your Mastodon account. Ticking the option below keeps the feed quiet: you can still open it whenever you wish, but new posts will no longer announce themselves. Leave it unticked to keep receiving feed notifications as usual."
+msgstr "Der Reiter Feed wird in Ihrem Hauptfenster nicht angezeigt, daher möchten Sie vielleicht auch keine Benachrichtigungen über neue Beiträge in der Startseiten-Timeline Ihres Mastodon-Kontos erhalten. Wenn Sie die Option unten ankreuzen, bleibt der Feed still: Sie können ihn weiterhin jederzeit öffnen, aber neue Beiträge melden sich nicht mehr. Lassen Sie sie leer, um Feed-Benachrichtigungen wie gewohnt zu erhalten."
+
+msgctxt "Klangten"
+msgid "The main window greets you with a list of Quick Actions: shortcuts that take you straight to the places and commands you use most, such as opening Messages, publishing a post on Mastodon or opening the conference rooms. The default set covers the essentials, but all of it is yours to change: choose below which actions should be visible in your Quick Actions list; shortcuts assigned to hidden actions remain active. You can also use a Quick Action's context menu at any time to move, rename, hide or delete it, assign a hotkey to it, add further actions or restore the defaults."
+msgstr "Das Hauptfenster begrüßt Sie mit einer Liste von Schnellaktionen: Abkürzungen, die Sie direkt zu den Orten und Befehlen bringen, die Sie am häufigsten verwenden, etwa Nachrichten öffnen, einen Beitrag auf Mastodon veröffentlichen oder die Konferenzräume öffnen. Die Standardauswahl deckt das Wesentliche ab, aber Sie können alles ändern: Wählen Sie unten, welche Aktionen in Ihrer Liste der Schnellaktionen sichtbar sein sollen; Tastenkombinationen ausgeblendeter Aktionen bleiben aktiv. Über das Kontextmenü einer Schnellaktion können Sie sie jederzeit verschieben, umbenennen, ausblenden oder löschen, ihr eine Tastenkombination zuweisen, weitere Aktionen hinzufügen oder die Standardeinstellungen wiederherstellen."
+
+msgctxt "Klangten"
+msgid "The main window is built of tabs: Notifications, the Feed with the home timeline of your Mastodon account, and Quick Actions. Not everyone needs all three, so you can choose which of them are shown. The notifications tab has two habits of its own that you can adjust as well: by default it appears only while there are notifications to show, and you can decide whether, and when, it takes focus as you return to the main window. All of this can also be changed later under Tools, Program settings, Main window."
+msgstr "Das Hauptfenster besteht aus Reitern: Benachrichtigungen, dem Feed mit der Startseiten-Timeline Ihres Mastodon-Kontos und den Schnellaktionen. Nicht jeder braucht alle drei, daher können Sie wählen, welche angezeigt werden. Der Reiter Benachrichtigungen hat zwei eigene Gewohnheiten, die Sie ebenfalls anpassen können: Standardmäßig erscheint er nur, solange es Benachrichtigungen gibt, und Sie können entscheiden, ob und wann er den Fokus erhält, wenn Sie zum Hauptfenster zurückkehren. All das lässt sich auch später unter Werkzeuge, Programmeinstellungen, Hauptfenster ändern."
+
+msgctxt "Klangten"
+msgid "This manual comes from Elten and has not been fully adapted to Klangten. Premium packages, sponsors, the calendar, tasks, SMS two-factor authentication and the built-in updater do not exist in Klangten. Conferences and calls use the TeamConference rooms of the Klango server: positional sound, whispering, dice, cards, recording and sound card streaming are not available. The Feed shows the home timeline of your Mastodon account."
+msgstr "Diese Anleitung stammt aus Elten und wurde noch nicht vollständig an Klangten angepasst. Premiumpakete, Sponsoren, der Kalender, Aufgaben, die Zwei-Faktor-Authentifizierung per SMS und die eingebaute Aktualisierung gibt es in Klangten nicht. Konferenzen und Anrufe verwenden die TeamConference-Räume des Klango-Servers: Positionsklang, Flüstern, Würfel, Karten, Aufnahmen und das Übertragen der Soundkarte sind nicht verfügbar. Der Feed zeigt die Startseiten-Timeline Ihres Mastodon-Kontos."
+
+# Klangten: Klango terms of service, verification word, login protection and temporary bans (added 2026).
+msgctxt "Klangten"
+msgid "Before you can log in, the Klango server asks you to accept its terms of use. You can read them at %{url}. Accept the Klango server terms?"
+msgstr "Bevor Sie sich anmelden können, müssen Sie den Nutzungsbedingungen des Klango-Servers zustimmen. Sie finden sie unter %{url}. Den Nutzungsbedingungen des Klango-Servers zustimmen?"
+
+msgctxt "Klangten"
+msgid "Open the terms in the browser"
+msgstr "Nutzungsbedingungen im Browser öffnen"
+
+msgctxt "Klangten"
+msgid "Accept the terms"
+msgstr "Nutzungsbedingungen annehmen"
+
+msgctxt "Klangten"
+msgid "Decline"
+msgstr "Ablehnen"
+
+msgctxt "Klangten"
+msgid "Too many failed attempts. Please wait a while before trying again."
+msgstr "Zu viele Fehlversuche. Bitte warten Sie eine Weile, bevor Sie es erneut versuchen."
+
+msgctxt "Klangten"
+msgid "Too many failed attempts from your network connection. For security reasons, please try again in 1 minute."
+msgstr "Zu viele Fehlversuche von Ihrer Netzwerkverbindung aus. Bitte versuchen Sie es aus Sicherheitsgründen in 1 Minute erneut."
+
+msgctxt "Klangten"
+msgid "Too many failed attempts from your network connection. For security reasons, please try again in %{minutes} minutes."
+msgstr "Zu viele Fehlversuche von Ihrer Netzwerkverbindung aus. Bitte versuchen Sie es aus Sicherheitsgründen in %{minutes} Minuten erneut."
+
+msgctxt "Klangten"
+msgid "Too many failed attempts for this account. For security reasons, please try again in 1 minute."
+msgstr "Zu viele Fehlversuche für dieses Konto. Bitte versuchen Sie es aus Sicherheitsgründen in 1 Minute erneut."
+
+msgctxt "Klangten"
+msgid "Too many failed attempts for this account. For security reasons, please try again in %{minutes} minutes."
+msgstr "Zu viele Fehlversuche für dieses Konto. Bitte versuchen Sie es aus Sicherheitsgründen in %{minutes} Minuten erneut."
+
+msgctxt "Klangten"
+msgid "This account is banned until %{date}."
+msgstr "Dieses Konto ist bis %{date} gesperrt."
+
+msgctxt "Klangten"
+msgid "This account is banned indefinitely."
+msgstr "Dieses Konto ist unbefristet gesperrt."
+
+msgctxt "Klangten"
+msgid "This account is banned."
+msgstr "Dieses Konto ist gesperrt."
+
+msgctxt "Login"
+msgid "You cannot log in without accepting the terms of use of the Klango server."
+msgstr "Ohne Zustimmung zu den Nutzungsbedingungen des Klango-Servers ist keine Anmeldung möglich."
+
+msgctxt "Login"
+msgid "Automatic login could not be enabled. You are still logged in."
+msgstr "Die automatische Anmeldung konnte nicht aktiviert werden. Sie bleiben angemeldet."
+
+msgctxt "Registration"
+msgid "Enter the verification word. The Klango team gives it out, for example on the Klango website, to keep automated registrations away. If you do not have one, leave the field empty."
+msgstr "Geben Sie das Verify-Wort ein. Das Klango-Team gibt es heraus, zum Beispiel auf der Klango-Webseite, um automatische Registrierungen fernzuhalten. Wenn Sie keines haben, lassen Sie das Feld leer."
+
+msgctxt "Registration"
+msgid "The Klango server requires a verification word for new accounts. Enter the verification word you received from the Klango team or found on the Klango website."
+msgstr "Der Klango-Server verlangt für neue Konten ein Verify-Wort. Geben Sie das Verify-Wort ein, das Sie vom Klango-Team erhalten oder auf der Klango-Webseite gefunden haben."
+
+msgctxt "Registration"
+msgid "The verification word is not correct. Please check it and enter it again."
+msgstr "Das Verify-Wort stimmt nicht. Bitte prüfen Sie es und geben Sie es erneut ein."
+
+msgctxt "Registration"
+msgid "Registration from the program is currently closed on the Klango server. Please register on the Klango website."
+msgstr "Die Registrierung über das Programm ist auf dem Klango-Server derzeit geschlossen. Bitte registrieren Sie sich auf der Klango-Webseite."
+
+msgctxt "Registration"
+msgid "Klango server terms"
+msgstr "Nutzungsbedingungen des Klango-Servers"
+
+msgctxt "Registration"
+msgid "To register, you must accept the terms of use of the Klango server. You can read them at %{url}."
+msgstr "Für die Registrierung müssen Sie den Nutzungsbedingungen des Klango-Servers zustimmen. Sie finden sie unter %{url}."
+
+msgctxt "Registration"
+msgid "Open the terms in the browser"
+msgstr "Nutzungsbedingungen im Browser öffnen"
+
+msgctxt "Registration"
+msgid "I accept the Klango server terms"
+msgstr "Ich stimme den Nutzungsbedingungen des Klango-Servers zu"
+
+msgctxt "Registration"
+msgid "Register"
+msgstr "Registrieren"
+
+msgctxt "Registration"
+msgid "You must accept the Klango server terms to register."
+msgstr "Um sich zu registrieren, müssen Sie den Nutzungsbedingungen des Klango-Servers zustimmen."
+
 #~ msgctxt "Settings"
 #~ msgid "Session refresh interval in seconds"
 #~ msgstr "Sitzungsaktualisierungszeit (in Sekunden)"

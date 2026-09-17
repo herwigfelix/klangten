@@ -3,6 +3,7 @@
 
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: fork notice, EltenLink-only pages and links removed; conference, feed, source code and thanks pages describe Klangten.
 
 require "date"
 
@@ -17,9 +18,9 @@ class Scene_WelcomeWizard
     mcp: "bf4dbbd4-cadc-4ab2-8738-7340677de1e2"
   }.freeze
 
-  DOWNLOAD_URL = "https://elten.link/download".freeze
-  WEBSITE_URL = "https://elten.link".freeze
-  SOURCE_URL = "https://github.com/dawidpieper/elten3".freeze
+  # Klangten: project links come from Klangten::Config; EltenLink pages are not linked.
+  WEBSITE_URL = Klangten::Config::WEBSITE_URL
+  SOURCE_URL = Klangten::Config::SOURCE_URL
 
   def initialize(first_run=false, force_all=false)
     @first_run = first_run == true
@@ -82,11 +83,13 @@ class Scene_WelcomeWizard
     add_profile_pages
     add_security_page
     add_community_pages
-    APP_IDS.each_key { |kind| add_app_page(kind) }
+    # Klangten: program pages need the EltenLink program repository; donation,
+    # premium and GitHub-star promotion pages are EltenLink/Elten specific.
+    APP_IDS.each_key { |kind| add_app_page(kind) } if Klangten::Config.program_store_enabled?
+    # Klangten: FFmpeg encoders, File Manager, MCP and YouTube are built in (Programs::BuiltIns).
+    add_builtin_programs_page if !Klangten::Config.program_store_enabled?
     add_platforms_page if @first_run
     add_open_source_page
-    add_support_page
-    add_github_star_page
     add_thanks_page
     add_summary_page
   end
@@ -99,16 +102,17 @@ class Scene_WelcomeWizard
     end
     add_page(:welcome, p_("WelcomeWizard", "Welcome")) do
       info = information_field(p_("WelcomeWizard", "Welcome"), text)
+      notice = information_field(p_("Klangten", "About Klangten"), klangten_fork_notice)
       if @force_all
         check = CheckBox.new(p_("WelcomeWizard", "Show pages that do not apply to me"), checked: @show_irrelevant)
-        view([info, check]) do
+        view([info, notice, check]) do
           if check.checked != @show_irrelevant
             @show_irrelevant = check.checked
             rebuild_pages
           end
         end
       else
-        view([info])
+        view([info, notice])
       end
     end
   end
@@ -126,23 +130,10 @@ class Scene_WelcomeWizard
         p_("WelcomeWizard", "Until now, Elten was a Windows-only program. Elten 3.0 also runs on GNU/Linux and on macOS on Apple Silicon, and instead of being an x86 program it now runs natively on x64 and arm64 processors. These are not cut-down ports: every system receives exactly the same client, with the same interface and the same features.")
       end
       desktop = information_field(p_("WelcomeWizard", "Desktop computers"), desktop_text)
-      mobile_text = if @first_run
-        p_("WelcomeWizard", "Eltenger is a separate, native application for iOS and Android, designed to ultimately allow full participation in the community from a smartphone. It is still in early testing, so do not expect it to match the desktop client in features or stability just yet.")
-      else
-        p_("WelcomeWizard", "The community can now also be reached from a smartphone: Eltenger is a separate, native application for iOS and Android, designed to ultimately allow full integration with Elten. It is still in early testing, so do not expect it to match the desktop client in features or stability just yet.")
-      end
-      mobile = information_field(p_("WelcomeWizard", "Mobile devices"), mobile_text)
-      website_text = if @first_run
-        p_("WelcomeWizard", "The project's website allows you to take a full part in the community from an ordinary web browser, and it is being developed step by step. It is also where every client can be downloaded.")
-      else
-        p_("WelcomeWizard", "If you remember the legacy Elten website, the new one is a different story altogether: completely renewed, it allows fully fledged participation in the community from an ordinary web browser, and it is being developed step by step.")
-      end
-      website = information_field(p_("WelcomeWizard", "Project website"), website_text)
-      downloads_button = Button.new(p_("WelcomeWizard", "Open the downloads page"))
-      downloads_button.on(:press) { platform_open_url(DOWNLOAD_URL) }
+      # Klangten: Eltenger, the EltenLink website and its downloads page are not part of Klangten.
       website_button = Button.new(p_("WelcomeWizard", "Open the project website"))
       website_button.on(:press) { platform_open_url(WEBSITE_URL) }
-      view([desktop, mobile, website, downloads_button, website_button])
+      view([desktop, website_button])
     end
   end
 
@@ -202,7 +193,7 @@ class Scene_WelcomeWizard
   def add_main_window_page
     add_page(:main_window, p_("WelcomeWizard", "Main window")) do
       intro = if @first_run
-        p_("WelcomeWizard", "The main window is built of tabs: Notifications, the Feed and Quick Actions. Not everyone needs all three, so you can choose which of them are shown. The notifications tab has two habits of its own that you can adjust as well: by default it appears only while there are notifications to show, and you can decide whether, and when, it takes focus as you return to the main window. All of this can also be changed later under Tools, Program settings, Main window.")
+        p_("Klangten", "The main window is built of tabs: Notifications, the Feed with the home timeline of your Mastodon account, and Quick Actions. Not everyone needs all three, so you can choose which of them are shown. The notifications tab has two habits of its own that you can adjust as well: by default it appears only while there are notifications to show, and you can decide whether, and when, it takes focus as you return to the main window. All of this can also be changed later under Tools, Program settings, Main window.")
       else
         p_("WelcomeWizard", "In Elten 2.x, the main window had two tabs: Quick Actions and the feed. Elten 3.0 joins them with a third, Notifications, and leaves the whole arrangement to you: choose exactly the tabs you want to see. The notifications tab has two habits of its own that you can adjust as well: by default it appears only while there are notifications to show, and you can decide whether, and when, it takes focus as you return to the main window. All of this can also be changed later under Tools, Program settings, Main window.")
       end
@@ -257,7 +248,7 @@ class Scene_WelcomeWizard
       current = Configuration.disablefeednotifications == true rescue false
       info = information_field(
         p_("WelcomeWizard", "Feed notifications"),
-        p_("WelcomeWizard", "The Feed tab will not be shown in your main window, so you may also prefer not to be notified about new feed entries. Ticking the option below keeps the feed quiet: you can still open it and follow people whenever you wish, but new entries will no longer announce themselves. Leave it unticked to keep receiving feed notifications as usual.")
+        p_("Klangten", "The Feed tab will not be shown in your main window, so you may also prefer not to be notified about new posts in the home timeline of your Mastodon account. Ticking the option below keeps the feed quiet: you can still open it whenever you wish, but new posts will no longer announce themselves. Leave it unticked to keep receiving feed notifications as usual.")
       )
       check = CheckBox.new(
         p_("WelcomeWizard", "Disable feed notifications"),
@@ -354,7 +345,7 @@ class Scene_WelcomeWizard
   end
 
   def add_quick_actions_page
-    text = p_("WelcomeWizard", "The main window greets you with a list of Quick Actions: shortcuts that take you straight to the places and commands you use most, such as opening Messages, publishing to the feed or entering a conference channel. The default set covers the essentials, but all of it is yours to change: choose below which actions should be visible in your Quick Actions list; shortcuts assigned to hidden actions remain active. You can also use a Quick Action's context menu at any time to move, rename, hide or delete it, assign a hotkey to it, add further actions or restore the defaults.")
+    text = p_("Klangten", "The main window greets you with a list of Quick Actions: shortcuts that take you straight to the places and commands you use most, such as opening Messages, publishing a post on Mastodon or opening the conference rooms. The default set covers the essentials, but all of it is yours to change: choose below which actions should be visible in your Quick Actions list; shortcuts assigned to hidden actions remain active. You can also use a Quick Action's context menu at any time to move, rename, hide or delete it, assign a hotkey to it, add further actions or restore the defaults.")
     if available_quick_actions.empty?
       add_info_page(:quick_actions, p_("WelcomeWizard", "Quick Actions"), text)
       return
@@ -429,7 +420,7 @@ class Scene_WelcomeWizard
 
   def add_invisible_interface_page
     add_page(:invisible_interface, p_("WelcomeWizard", "Invisible Interface")) do
-      text = p_("WelcomeWizard", "Elten does not stop being useful when you switch to another program. The Invisible Interface is a set of global hotkeys that work across the whole system while Elten is running, so you can check new messages, browse the feed or control a conference without leaving the application you are in. Its content is arranged into cards, such as Messages, Feed and Conference options: hold the Elten modifier keys and use the arrow keys to move between cards and their items, press Enter to activate one, or add a command key, for example M to write a message or F to publish to the feed. The complete list is available under Help, List of Invisible Interface hotkeys.")
+      text = p_("Klangten", "Klangten does not stop being useful when you switch to another program. The Invisible Interface is a set of global hotkeys that work across the whole system while Klangten is running, so you can check new messages, read your Mastodon feed or control the conference room you are in without leaving the application you are using. Its content is arranged into cards: Messages, Feed and, while you are in a conference room or call, Conference options for muting, the room chat, streaming a file, leaving and the participants. Hold the Klangten modifier keys and use the arrow keys to move between cards and their items, press Enter to activate one, or add a command key, for example M to write a message or F to publish a post on Mastodon. The complete list is available under Help, List of Invisible Interface hotkeys.")
       current_modifiers = invisible_interface_current_modifiers
       if current_modifiers != ""
         text += "\n\n" + p_("WelcomeWizard", "The currently selected modifier combination is %{keys}. If you would rather use a different one, choose it below.") % { keys: current_modifiers }
@@ -496,16 +487,13 @@ class Scene_WelcomeWizard
 
   def add_upgrade_information_pages
     add_platforms_page
-    add_info_page(
-      :server_api,
-      p_("WelcomeWizard", "A rewritten server"),
-      p_("WelcomeWizard", "The rebuild does not stop at the client: Elten 3.0 talks to a completely rewritten server API. In practice this should mean noticeably smoother operation, especially when the network is under heavy load, and reliable service for many different clients and platforms working at the same time.")
-    )
+    # Klangten: the page about EltenLink's rewritten server is not shown.
+    # Klangten: without the program repository there are no compatible versions to offer.
     add_info_page(
       :program_compatibility,
       p_("WelcomeWizard", "Programs from Elten 2.x"),
       p_("WelcomeWizard", "Programs written for Elten 2.x cannot run in Elten 3.0 and are not carried over during the upgrade. Compatible versions of the official programs are available from Programs management in the Programs menu, and later in this wizard you will be offered a few of the most useful ones. When an installed program has an update available, Elten 3.0 lets you know through a notification.")
-    )
+    ) if Klangten::Config.program_store_enabled?
     add_info_page(
       :shared_notifications,
       p_("WelcomeWizard", "Notifications instead of What's New"),
@@ -516,26 +504,13 @@ class Scene_WelcomeWizard
       p_("WelcomeWizard", "Voice message transcriptions"),
       p_("WelcomeWizard", "Audio posts on the forum have long been accompanied by text transcriptions, and Elten 3.0 brings the same to private conversations: voice messages can now carry a transcription as well. A transcribed message can simply be read wherever listening would be inconvenient. You can also decide, in the program settings or later in this wizard, whether audio content should play automatically: always, never, or only when no transcription is available.")
     )
-    add_info_page(
-      :calendar,
-      p_("WelcomeWizard", "Calendar"),
-      p_("WelcomeWizard", "Elten 3.0 introduces a calendar, which you will find in the Community menu. It is a place to plan your events and keep track of what is coming up, for yourself and with others. Besides your personal calendar, you can create more, share a calendar with another user, or publish a language-specific public calendar for anyone to subscribe to, so it covers everything from private appointments to events for a whole community.")
-    )
-    add_info_page(
-      :tasks,
-      p_("WelcomeWizard", "Tasks"),
-      p_("WelcomeWizard", "Alongside the calendar, Elten 3.0 also introduces tasks. A task can carry a description, a due date and a person responsible for completing it, and tasks are grouped into projects: besides your personal list, you can create a project and share it with other users, who receive an invitation and can then plan the work together with you. It suits anything from a simple to-do list to a project run jointly with friends.")
-    )
+    # Klangten: the calendar and tasks pages are not shown; Klangten has neither.
     add_info_page(
       :activity_statistics,
       p_("WelcomeWizard", "Activity statistics"),
       p_("WelcomeWizard", "Until now, a summary of the past year's activity was sent out on the first day of each new year, and only some could read it: it reached Polish-speaking users who were active around that time, and it existed only in Polish. Elten 3.0 replaces that tradition with something better. Activity statistics are now available to everyone, for any year and at any time, under Manage my account. You can check how many forum posts, messages, blog posts and comments a year brought, how much time you spent in conferences and how often you signed in; each year can be compared with the one before, and rankings show, among other things, the forums you used most and the people you wrote with most often.")
     )
-    add_info_page(
-      :feed_audio,
-      p_("WelcomeWizard", "Audio on the feed"),
-      p_("WelcomeWizard", "Feed entries can now speak: publishing entries with audio is a premium option, described in detail under Premium packages in Manage my account. When composing an entry, the Attach audio button records a clip on the spot, and the recording travels with the text: entries carrying audio are marked on the feed and play straight from the list, with no need to open anything. To everyone who chooses to support Elten's development this way, thank you.")
-    )
+    # Klangten: the premium "Audio on the feed" promotion page is not shown.
     add_info_page(
       :honors_revival,
       p_("WelcomeWizard", "Honors are back"),
@@ -792,6 +767,8 @@ class Scene_WelcomeWizard
   end
 
   def add_security_page
+    # Klangten: the setup screen configures EltenLink's SMS based two-factor authentication.
+    return unless Klangten::Config.sms_two_factor_enabled?
     return unless show_when(@authentication_state == 0)
 
     add_page(:two_factor_authentication, p_("WelcomeWizard", "Two-factor authentication")) do
@@ -840,7 +817,7 @@ class Scene_WelcomeWizard
       add_info_page(
         :feed,
         p_("WelcomeWizard", "Feed"),
-        p_("WelcomeWizard", "The feed is Elten's space for the small things: short status updates of no more than a few sentences. Your Feed tab collects the entries of the people you follow, and following someone's feed is independent of having them in your contacts. It is the easiest way to stay in touch day to day without writing a whole blog post.")
+        p_("Klangten", "In Klangten, the Feed tab shows the home timeline of your Mastodon account: the short posts of the people you follow on Mastodon, a decentralised social network that is independent of the Klango server. You can read posts and replies, add them to your favourites, boost them and publish posts with text or audio. Whom you follow is managed on Mastodon and is independent of your Klango contacts.")
       )
     end
     add_feed_pages
@@ -848,12 +825,12 @@ class Scene_WelcomeWizard
       add_info_page(
         :conferences,
         p_("WelcomeWizard", "Conferences"),
-        p_("WelcomeWizard", "Conferences are live audio channels where you can talk with others, listen or stream sound, and every channel also has its own text chat. Sound in a channel is positional: each participant occupies a place in the channel space, you move around it with the arrow keys, and you can whisper something to a single person standing nearby. You can also stream an audio file or your whole sound card to a channel, which makes listening to music or watching a film together easy. Channels come in many forms; some are open to everyone, while others are protected by a password or a waiting room. And when you would rather talk to one particular person, simply call them: the invitation can be accepted or declined, and missed calls are kept in the call history. Creating your own channel takes a moment, and a channel you like can be followed or added to Quick Actions.")
+        p_("Klangten", "Conferences are live audio rooms on the TeamConference server of Klango, so you meet people using Klango there as well. The Conferences screen lists a room for each forum group you belong to and the open rooms created by other users; a room can be protected by a password, and creating your own room takes a moment. In a room you hear everyone taking part, can mute your microphone or the sound, write in the room chat, send private messages to participants and stream an audio file to the room. When you would rather talk to one particular person, simply call them: the call can be accepted or declined, and your calls, including missed ones, are kept in the call history on this computer.")
       )
       add_info_page(
         :other_areas,
         p_("WelcomeWizard", "And there is more"),
-        p_("WelcomeWizard", "The areas described so far are the busiest, but not the only ones. Elten also offers polls, where you can put structured questions to the community and study the answers; notes, where you can keep texts for yourself or share one with another user to work on together; and a calendar for your events, which can also be shared with other users. In the Community menu you will additionally find your contacts, a user search, a list of who is currently online and more. Take your time; none of this needs to be learnt at once.")
+        p_("Klangten", "The areas described so far are the busiest, but not the only ones. Klangten also offers polls, where you can put structured questions to the community and study the answers, and notes, where you can keep texts for yourself or share one with another user to work on together. In the Community menu you will additionally find your contacts, a user search, a list of who is currently online and more. Take your time; none of this needs to be learnt at once.")
       )
     end
   end
@@ -871,7 +848,7 @@ class Scene_WelcomeWizard
           p_("WelcomeWizard", "These recommended groups match your languages, and you are not yet a member of any of them. Tick the communities you would like to join; Elten will join them when you finish the wizard. Joining a group does not automatically follow its forums or threads, so you remain in charge of what you hear about. Nothing is ticked by default.")
         end
         if fallback && !already_joined
-          info_text += "\n\n" + p_("WelcomeWizard", "No recommended group exists yet for your preferred language, so an English-language group is offered instead. If your language community needs its own recommended group, the Council of Elders will be glad to hear from you.")
+          info_text += "\n\n" + p_("Klangten", "No recommended group exists yet for your preferred language, so an English-language group is offered instead. If your language community needs its own recommended group, please contact the server administrators.")
         end
         info = information_field(p_("WelcomeWizard", "Recommended forum groups"), info_text)
         if candidates.empty?
@@ -964,64 +941,26 @@ class Scene_WelcomeWizard
     end
   end
 
-  def add_feed_pages
-    if show_when(!@contacts.empty? && !@feed_suggestions.empty?)
-      add_page(:follow_feeds, p_("WelcomeWizard", "People to follow on the feed")) do
-        users = @feed_suggestions
-        info = information_field(
-          p_("WelcomeWizard", "People to follow on the feed"),
-          p_("WelcomeWizard", "The feed is where people post short status updates, separate from their blogs. Listed below are contacts whose feeds you do not follow yet; tick anyone whose updates you would like to see on your Feed tab. Following someone's feed does not add or remove a contact. Leave every item unticked to make no change.")
-        )
-        if users.empty?
-          availability = if @preload_errors.key?(:contacts)
-            p_("WelcomeWizard", "Your contacts could not be checked.")
-          elsif @preload_errors.key?(:feed_follows)
-            p_("WelcomeWizard", "The people you already follow on the feed could not be checked.")
-          elsif @contacts.empty?
-            p_("WelcomeWizard", "There are no contacts to suggest.")
-          else
-            p_("WelcomeWizard", "You already follow all of your contacts on the feed.")
-          end
-          view([info, information_field(p_("WelcomeWizard", "Availability"), availability)])
-        else
-          list = ListBox.new(users, header: p_("WelcomeWizard", "Contacts"), flags: ListBox::Flags::MultiSelection)
-          selected = @state[:follow_feed_users].to_a
-          users.each_with_index { |user, index| list.selected[index] = true if selected.include?(user) }
-          view([info, list]) do
-            values = list.multiselections.map { |index| users[index] }.compact
-            store_selection(:follow_feed_users, values)
-          end
-        end
-      end
+# Klangten: the feed is the home timeline of a Mastodon account connected in
+# the client. EltenLink's feed follow suggestions and greeting post are gone.
+def add_feed_pages
+  add_page(:mastodon_account, p_("Klangten", "Mastodon account")) do
+    record = mastodon_account
+    text = if record != nil
+      p_("Klangten", "Your Mastodon account %{account} is connected. The Feed tab shows its home timeline.") % { account: record.label }
+    else
+      p_("Klangten", "No Mastodon account is connected yet. You can connect one now with the button below: your web browser opens the sign-in page of your server, and Klangten asks for the authorization code shown there. You can also do this later under Tools, Program settings, Main window, or from the context menu of the Feed tab.")
     end
-
-    feed_page_needed = @own_feed.empty? || latest_feed_time <= Time.now.to_i - 365 * 24 * 60 * 60
-    if show_when(!@preload_errors.key?(:own_feed) && feed_page_needed)
-      add_page(:feed_greeting, p_("WelcomeWizard", "Post to the feed")) do
-        prompt = if @preload_errors.key?(:own_feed)
-          p_("WelcomeWizard", "Elten could not load your feed history, so it cannot determine whether a new entry would be useful. Posting is disabled on this page; open the Feed later if you want to write an update.")
-        elsif @own_feed.empty?
-          p_("WelcomeWizard", "You have not posted anything to the feed yet. If you would like to let others know you have arrived, write a short first entry below; a sentence or two is plenty.")
-        elsif feed_page_needed
-          p_("WelcomeWizard", "Your most recent feed entry is more than a year old. If you would like your followers to know you are back, write a short update below.")
-        else
-          p_("WelcomeWizard", "You have posted on the feed within the past year. No new introduction is needed, but you may still write an update if you want to.")
-        end
-        if !@preload_errors.key?(:own_feed)
-          prompt += " " + p_("WelcomeWizard", "It will be published when you finish the wizard; leave the field empty to make no post.")
-        end
-        info = information_field(p_("WelcomeWizard", "Post to the feed"), prompt)
-        if @preload_errors.key?(:own_feed)
-          view([info])
-        else
-          edit = EditBox.new(p_("WelcomeWizard", "Feed entry"), type: EditBox::Flags::MultiLine, text: @state[:feed_greeting].to_s, max_length: 300)
-          view([info, edit]) do
-            store_changed_text(:feed_greeting, edit.text, "")
-          end
-        end
-      end
+    info = information_field(p_("Klangten", "Mastodon account"), text)
+    if record != nil
+      view([info])
+    else
+      button = Button.new(p_("Klangten", "Connect a Mastodon account now"))
+      button.on(:press) { mastodon_connect }
+      view([info, button])
     end
   end
+end
 
   def add_app_page(kind)
     app = available_app(kind)
@@ -1087,57 +1026,25 @@ class Scene_WelcomeWizard
     end
   end
 
+  # Klangten: the former Elten programs are part of Klangten, nothing has to be installed.
+  def add_builtin_programs_page
+    add_info_page(
+      :builtin_programs,
+      p_("Klangten", "Media, files and MCP"),
+      p_("Klangten", "Klangten already includes programs that had to be installed separately in Elten. The Media menu contains the Klango media catalog with radio stations and podcasts, and YouTube (the yt-dlp tool is downloaded on first use). The Files menu contains the file manager and the FFmpeg encoders for additional audio and video formats (on Windows, FFmpeg is downloaded on first use; on macOS and Linux, an installed FFmpeg is used). Klangten MCP lets AI assistants on this computer use selected Klangten features with your permission; it stays disabled until you enable it in Program settings.")
+    )
+  end
+
+  # Klangten: the texts name Elten literally, so they are not branded.
   def add_open_source_page
-    add_action_page(
-      :open_source,
-      p_("WelcomeWizard", "Source code and contributions"),
-      p_("WelcomeWizard", "Elten is free, open-source software released under the GNU General Public License, version 3, and its complete source code and development history are public on GitHub. Contributions are genuinely welcome: well-scoped features, bug fixes and translations are all reviewed and merged when ready. If you ever decide to contribute, thank you in advance for the time and care you put into it."),
-      p_("WelcomeWizard", "Open the Elten repository")
-    ) do
-      platform_open_url(SOURCE_URL)
-    end
-  end
-
-  def add_support_page
-    add_page(:support, p_("WelcomeWizard", "Supporting Elten")) do
-      intro = information_field(
-        p_("WelcomeWizard", "Supporting Elten"),
-        p_("WelcomeWizard", "Elten is free to use, but keeping it running is not free: servers, domains and infrastructure all carry real costs, borne by the Prowadnica Foundation, which supports the project's development. If Elten is valuable to you, there are two easy ways to help. Premium packages add optional conveniences to your account, and the proceeds go towards the upkeep of the service; you will find them under Manage my account. You can also simply make a donation towards Elten's development.")
-      )
-      transfer_field = if @donation_transfer.is_a?(Hash)
-        details = [
-          [p_("WelcomeWizard", "Account holder"), "holder"],
-          [p_("WelcomeWizard", "Address"), "address"],
-          [p_("WelcomeWizard", "Account number (Poland)"), "placcount"],
-          [p_("WelcomeWizard", "IBAN"), "iban"],
-          [p_("WelcomeWizard", "BIC/SWIFT"), "swift"],
-          [p_("WelcomeWizard", "Bank address"), "bankaddress"],
-          [p_("WelcomeWizard", "Sort code"), "sortcode"]
-        ].filter_map do |label, key|
-          value = @donation_transfer[key].to_s.strip
-          "#{label}: #{value}" unless value.empty?
-        end
-        text = p_("WelcomeWizard", "A donation can be made by bank transfer using the details below. Mentioning Elten in the transfer title helps the foundation account for the donation correctly.")
-        text += "\n\n" + details.join("\n") unless details.empty?
-        information_field(p_("WelcomeWizard", "Donation by bank transfer"), text)
-      else
-        information_field(
-          p_("WelcomeWizard", "Donation by bank transfer"),
-          p_("WelcomeWizard", "The transfer details could not be loaded. You will also find them in the Premium packages section under Manage my account.")
-        )
-      end
-      view([intro, transfer_field])
-    end
-  end
-
-  def add_github_star_page
-    add_action_page(
-      :github_star,
-      p_("WelcomeWizard", "A star on GitHub"),
-      p_("WelcomeWizard", "If you have a GitHub account and want to show that this project matters to you, we would be grateful for a star on the Elten repository. It costs nothing and takes a moment, yet it makes the project more visible. The button below opens the repository; the Star button is near the top of the page."),
-      p_("WelcomeWizard", "Open the Elten repository on GitHub")
-    ) do
-      platform_open_url(SOURCE_URL)
+    add_page(:open_source, p_("WelcomeWizard", "Source code and contributions")) do
+      text = unbranded { p_("Klangten", "Klangten is free software released under the GNU General Public License, version 3. It is a modified version of Elten, whose complete source code and development history are public on GitHub; the changes made for Klangten are described in the NOTICE.md file of its source code. Klangten is not an official product of the Elten developers, so please send questions and suggestions about Klangten to the Klangten project, not to them.") }
+      info = information_field(p_("WelcomeWizard", "Source code and contributions"), text)
+      project_button = Button.new(p_("Klangten", "Open the Klangten project page"))
+      project_button.on(:press) { platform_open_url(SOURCE_URL) }
+      upstream_button = Button.new(unbranded { p_("Klangten", "Open the Elten source code on GitHub") })
+      upstream_button.on(:press) { platform_open_url(Klangten::Config::UPSTREAM_SOURCE_URL) }
+      view([info, project_button, upstream_button])
     end
   end
 
@@ -1145,7 +1052,7 @@ class Scene_WelcomeWizard
     add_info_page(
       :thanks,
       p_("WelcomeWizard", "Contributors and testers"),
-      p_("WelcomeWizard", "Elten 3.0 exists thanks to the people around it: those who contributed, tested the development builds, reported reproducible problems, proposed improvements and patiently helped other users through the changes. To every one of them, thank you.")
+      unbranded { p_("Klangten", "Klangten is built on Elten 3, which exists thanks to Dawid Pieper and the people around it: those who contributed, tested the development builds, reported reproducible problems, proposed improvements, translated the program and patiently helped other users. To every one of them, thank you.") }
     )
   end
 
@@ -1172,32 +1079,17 @@ class Scene_WelcomeWizard
     load_introduction_posting_statuses
     @contacts = wizard_fetch(:contacts, []) { EltenLink::Contacts.list(elten_link) }
     load_contact_suggestions
-    @own_feed = wizard_fetch(:own_feed, []) { EltenLink::Feeds.show(elten_link, Session.name) }
-    @donation_transfer = wizard_fetch(:payment_methods, nil) do
-      EltenLink::Payments.methods(elten_link, currency: donation_currency, language: Configuration.language).find do |method|
-        method.is_a?(Hash) && method["id"] == "transfer" && method["type"] == "transfer"
-      end
-    end
+    # Klangten: no donations or payments, so no transfer details are requested.
     load_program_data
-  end
-
-  def donation_currency
-    currency = LocalConfig["PremiumPackagesCurrency", "unset", type: :string] rescue "unset"
-    ["PLN", "EUR", "USD", "GBP"].include?(currency) ? currency : "PLN"
   end
 
   def load_contact_suggestions
     @blog_suggestions = []
-    @feed_suggestions = []
     return if @contacts.empty?
 
     blogs = wizard_fetch(:contact_blogs, nil) { EltenLink::Blog.list(elten_link) }
     build_blog_suggestions(blogs) if blogs != nil
 
-    followed = wizard_fetch(:feed_follows, nil) do
-      EltenLink::Feeds.followed_users(elten_link).to_h { |user| [user.to_s.downcase, true] }
-    end
-    @feed_suggestions = @contacts.reject { |user| followed[user.to_s.downcase] } if followed != nil
   end
 
   def build_blog_suggestions(blogs)
@@ -1216,7 +1108,11 @@ class Scene_WelcomeWizard
   end
 
   def load_program_data
-    @remote_apps = wizard_fetch(:programs, []) { EltenLink::Apps.list(elten_link, os: @program_platform_target) }
+    @remote_apps = if Klangten::Config.program_store_enabled?
+      wizard_fetch(:programs, []) { EltenLink::Apps.list(elten_link, os: @program_platform_target) }
+    else
+      []
+    end
     entries = defined?(Programs) ? Programs.local_entries : []
     @installed_app_ids = entries.filter_map do |entry|
       id = entry.respond_to?(:id) ? entry.id.to_s.downcase : ""
@@ -1288,10 +1184,7 @@ class Scene_WelcomeWizard
     true
   end
 
-  def latest_feed_time
-    message = @own_feed.max_by { |item| item.respond_to?(:time) ? item.time.to_i : 0 }
-    message == nil ? 0 : message.time.to_i
-  end
+
 
 
   def add_page(id, title, &builder)
@@ -1606,11 +1499,6 @@ class Scene_WelcomeWizard
       count = @state[:follow_blog_ids].to_a.size
       lines.push(np_("WelcomeWizard", "Follow %{count} blog", "Follow %{count} blogs", count) % { count: count })
     end
-    if @state[:follow_feed_users]
-      count = @state[:follow_feed_users].to_a.size
-      lines.push(np_("WelcomeWizard", "Follow %{count} person on the feed", "Follow %{count} people on the feed", count) % { count: count })
-    end
-    lines.push(p_("WelcomeWizard", "Publish a feed entry")) if @state[:feed_greeting]
     lines.push(p_("WelcomeWizard", "Change the macOS keyboard style")) if @state[:keyboard_scheme]
     lines.push(p_("WelcomeWizard", "Change character navigation behaviour")) if @state[:character_navigation]
     lines.push(p_("WelcomeWizard", "Change the Invisible Interface modifier keys")) if @state[:ii_modifiers]
@@ -1661,9 +1549,6 @@ class Scene_WelcomeWizard
       forum_introduction_history: p_("WelcomeWizard", "your posting history in introduction threads"),
       contacts: p_("WelcomeWizard", "contacts"),
       contact_blogs: p_("WelcomeWizard", "recent blogs belonging to your contacts"),
-      feed_follows: p_("WelcomeWizard", "followed feed users"),
-      own_feed: p_("WelcomeWizard", "your feed history"),
-      payment_methods: p_("WelcomeWizard", "donation transfer details"),
       programs: p_("WelcomeWizard", "programs available on the server"),
       installed_programs: p_("WelcomeWizard", "installed program status")
     }
@@ -1797,20 +1682,6 @@ class Scene_WelcomeWizard
         true
       end
     end
-    @state[:follow_feed_users].to_a.each do |user|
-      perform(p_("WelcomeWizard", "Follow %{user} on the feed") % { user: user }) do
-        EltenLink::Feeds.follow(elten_link, user, follow: true)
-        true
-      end
-    end
-    if @state[:feed_greeting]
-      perform(p_("WelcomeWizard", "Publish a feed entry")) do
-        result = EltenLink::Feeds.publish(elten_link, @state[:feed_greeting])
-        raise p_("WelcomeWizard", "The server did not accept the feed entry") if result != true
-        true
-      end
-    end
-    Session.feeds_clear if (@state[:follow_feed_users] || @state[:feed_greeting]) && Session.respond_to?(:feeds_clear)
   end
 
   def apply_program_changes

@@ -1,5 +1,6 @@
 // A part of Elten - EltenLink / Elten Network desktop client.
 // Copyright (C) 2014-2026 Dawid Pieper
+// Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 // Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 // Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 // You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
@@ -29,6 +30,10 @@
 
 #ifndef ELTEN_FORCE_DEVELOPER_MODE
 #define ELTEN_FORCE_DEVELOPER_MODE 0
+#endif
+
+#ifndef ELTEN_STAMP_SIGNATURE_AVAILABLE
+#define ELTEN_STAMP_SIGNATURE_AVAILABLE 0
 #endif
 
 #ifndef ELTEN_BUILD_ID
@@ -646,7 +651,9 @@ module EltenEmbedded
       @loaded_feature_index[name] = true
       @loaded_feature_index_size = $LOADED_FEATURES.size
     end
-
+)RUBY";
+  // Klangten: split so that no single literal exceeds MSVC 2022's 16380-character limit (C2026).
+  script += R"RUBY(
     def remove_loaded_feature(name)
       $LOADED_FEATURES.delete(name)
       @loaded_feature_index.delete(name) if @loaded_feature_index != nil
@@ -993,8 +1000,12 @@ int RunLauncher(int argc, char **argv) {
   WriteTraceLog("before RegisterEmbeddedAssets");
   RegisterEmbeddedAssets(PlatformEmbeddedApi(ruby));
   WriteTraceLog("after RegisterEmbeddedAssets");
+  // Klangten: builds without the stamp key no longer force developer mode, so
+  // get_stamp is simply not registered instead of aborting the launcher.
   if (developerMode) {
     WriteTraceLog("skipping RegisterStampFunction in developer mode");
+  } else if (!ELTEN_STAMP_SIGNATURE_AVAILABLE) {
+    WriteTraceLog("skipping RegisterStampFunction: built without stamp key");
   } else {
     WriteTraceLog("before RegisterStampFunction");
     RegisterStampFunction(PlatformStampApi(ruby));

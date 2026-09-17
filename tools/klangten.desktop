@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Klangten
+Comment=Klangten desktop client for the Klango server (based on Elten)
+Comment[de]=Klangten-Desktop-Client für den Klango-Server (basiert auf Elten)
+TryExec=/opt/klangten/elten
+Exec=/opt/klangten/elten
+Terminal=false
+Categories=Network;Chat;

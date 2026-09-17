@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
 module Log  
@@ -50,8 +51,8 @@ if dsplevel
       include EltenAPI
       def add(level,msg, tm=nil)
         if @@logfile==nil
-          path=EltenPath.join(Dirs.eltendata, "elten.log")
-          oldpath=EltenPath.join(Dirs.eltendata, "elten.old.log")
+          path=EltenPath.join(Dirs.eltendata, Klangten::Config::LOG_FILE_NAME)
+          oldpath=EltenPath.join(Dirs.eltendata, Klangten::Config::OLD_LOG_FILE_NAME)
           begin
             File.binwrite(oldpath, File.binread(path)) if File.file?(path)
             @@logfile=File.open(path, "wb")

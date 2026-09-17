@@ -1,4 +1,5 @@
 @echo off
+rem Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 setlocal EnableExtensions
 
 set "ROOT=%~dp0.."
@@ -121,7 +122,7 @@ if "%BUILD_PKG%"=="1" (
 )
 
 echo Built Windows launchers.
-if "%BUILD_PKG%"=="1" echo Built "%ROOT%\dist\windows\EltenSetup.exe"
+if "%BUILD_PKG%"=="1" echo Built "%ROOT%\dist\windows\KlangtenSetup.exe"
 popd >nul
 exit /b 0
 

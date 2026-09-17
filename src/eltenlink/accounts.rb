@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenLink
   class AutoLoginEntry
@@ -76,13 +77,20 @@ module EltenLink
   end
 
   class RegistrationResult
-    attr_reader :name
+    attr_reader :name, :tos_url
 
     def initialize(data)
       @name = data["name"].to_s
       @registered = truthy?(data["registered"])
       @activated = truthy?(data["activated"])
       @activation_required = truthy?(data["activation_required"])
+      # Klangten: whether the Klango terms were accepted with the registration.
+      @tos_accepted = truthy?(data["tos_accepted"])
+      @tos_url = data["tos_url"].to_s
+    end
+
+    def tos_accepted?
+      @tos_accepted
     end
 
     def registered?
@@ -114,8 +122,12 @@ module EltenLink
         %w[forbidden exists].include?(reason) ? reason.to_sym : :unavailable
       end
 
-      def register(client, name:, password:, mail:, stamp: nil)
+      # Klangten: verify_word is the signup word of the Klango team (required when the
+      # server answers accounts.verify_word_required); accept_tos agrees to the terms.
+      def register(client, name:, password:, mail:, stamp: nil, verify_word: nil, accept_tos: false)
         params = { "name" => name, "password" => password, "mail" => mail }
+        params["verify_word"] = verify_word.to_s if verify_word.to_s != ""
+        params["accept_tos"] = 1 if accept_tos
         if stamp != nil
           params["stamp_timestamp"] = stamp["timestamp"]
           params["stamp_key_sha256"] = stamp["key_sha256"]

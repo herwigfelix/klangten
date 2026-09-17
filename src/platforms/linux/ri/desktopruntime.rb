@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper, Arkadiusz Koziol
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module LinuxWindowNative
   PTR_SIZE = Fiddle::SIZEOF_VOIDP
@@ -80,7 +81,7 @@ module LinuxWindowNative
     # the built-in SDL message box (custom-drawn X11 window) cannot. SDL is only the
     # fallback when no desktop helper is present; it shows a single OK button, so it
     # returns the dialog's safe/closing choice (the last Windows button).
-    def message_box(text, caption = "Elten", flags = 0)
+    def message_box(text, caption = Klangten::Config::PRODUCT_NAME, flags = 0)
       flags = flags.to_i
       buttons = button_set(flags)
       cancel_id = buttons.last[1]
@@ -536,7 +537,7 @@ module EltenWindow
     attr_reader :hwnd
 
     def app_window_title
-      defined?(Elten) && Elten.respond_to?(:window_title) ? Elten.window_title : "Elten"
+      defined?(Elten) && Elten.respond_to?(:window_title) ? Elten.window_title : Klangten::Config::PRODUCT_NAME
     end
 
     def ensure_window
@@ -581,7 +582,7 @@ module EltenWindow
       true
     end
 
-    def message_box(text, caption = "Elten", flags = 0, _owner = nil)
+    def message_box(text, caption = Klangten::Config::PRODUCT_NAME, flags = 0, _owner = nil)
       ensure_window
       LinuxWindowNative.message_box(text, caption, flags.to_i)
     rescue Exception

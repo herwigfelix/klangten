@@ -1,3 +1,4 @@
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 cmake_minimum_required(VERSION 3.24)
 
 if(NOT DEFINED MODE)
@@ -488,8 +489,35 @@ function(verify_macho_tree_signatures root label)
   endforeach()
 endfunction()
 
+# Klangten: unsigned local builds rewrite install names after linking, which
+# invalidates the linker's ad-hoc signatures; Apple Silicon then refuses to
+# load those Mach-O files (SIGKILL, Code Signature Invalid). Such builds are
+# therefore signed ad hoc. This has to happen before the launcher embeds the
+# integrity hashes of the runtime files (FINALIZE_RUNTIME).
+function(adhoc_sign_macho_tree root label)
+  if(SIGN OR NOT EXISTS "${root}")
+    return()
+  endif()
+  find_program(CODESIGN_ADHOC_TOOL codesign)
+  if(NOT CODESIGN_ADHOC_TOOL)
+    message(WARNING "codesign not found; ${label} stay without a valid ad-hoc signature")
+    return()
+  endif()
+  message(STATUS "Signing ${label} in ${root} ad hoc (unsigned build)...")
+  macho_files("${root}" files)
+  list(SORT files ORDER DESCENDING)
+  foreach(path IN LISTS files)
+    run_checked("${CODESIGN_ADHOC_TOOL}" --force --sign - "${path}")
+  endforeach()
+endfunction()
+
 function(sign_app_bundle app_dir)
   if(NOT SIGN)
+    adhoc_sign_macho_tree("${app_dir}/Contents/MacOS" "launcher executable")
+    find_program(CODESIGN_ADHOC_TOOL codesign)
+    if(CODESIGN_ADHOC_TOOL)
+      run_checked("${CODESIGN_ADHOC_TOOL}" --force --sign - "${app_dir}")
+    endif()
     return()
   endif()
   message(STATUS "Signing ${app_dir}...")
@@ -528,7 +556,7 @@ function(notarize_app_bundle app_dir)
   if(NOT SIGN)
     return()
   endif()
-  set(zip_path "${DIST_DIR}/Elten.app.zip")
+  set(zip_path "${DIST_DIR}/Klangten.app.zip")
   message(STATUS "Preparing ${zip_path} for notarization...")
   file(REMOVE "${zip_path}")
   run_checked("${DITTO_TOOL}" -c -k --keepParent "${app_dir}" "${zip_path}")
@@ -550,25 +578,25 @@ function(write_info_plist plist_path)
   <key>CFBundleExecutable</key>
   <string>elten</string>
   <key>CFBundleIdentifier</key>
-  <string>link.elten.elten</string>
+  <string>online.klango.klangten</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Elten</string>
+  <string>Klangten</string>
   <key>CFBundleDisplayName</key>
-  <string>Elten</string>
+  <string>Klangten</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>3.0</string>
+  <string>0.1.0</string>
   <key>CFBundleVersion</key>
-  <string>3.0</string>
+  <string>0.1.0</string>
   <key>LSMinimumSystemVersion</key>
   <string>26.0</string>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Elten uses the microphone for voice recording and conferences.</string>
+  <string>Klangten uses the microphone for voice recording and conferences.</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
 </dict>
@@ -592,7 +620,7 @@ function(write_component_plist plist_path)
     <key>BundleOverwriteAction</key>
     <string>upgrade</string>
     <key>RootRelativeBundlePath</key>
-    <string>Applications/Elten.app</string>
+    <string>Applications/Klangten.app</string>
   </dict>
 </array>
 </plist>
@@ -603,7 +631,7 @@ function(create_app_bundle)
   require_value(RELEASE_ROOT)
   require_value(RUNTIME_DIR)
   require_value(DIST_DIR)
-  set(app_dir "${DIST_DIR}/Elten.app")
+  set(app_dir "${DIST_DIR}/Klangten.app")
   set(contents_dir "${app_dir}/Contents")
   set(macos_dir "${contents_dir}/MacOS")
   set(resources_dir "${contents_dir}/Resources")
@@ -648,10 +676,10 @@ endfunction()
 
 function(create_pkg)
   require_value(DIST_DIR)
-  set(app_dir "${DIST_DIR}/Elten.app")
-  set(pkg_path "${DIST_DIR}/Elten.pkg")
-  set(unsigned_pkg_path "${DIST_DIR}/Elten.unsigned.pkg")
-  set(component_plist "${DIST_DIR}/Elten.component.plist")
+  set(app_dir "${DIST_DIR}/Klangten.app")
+  set(pkg_path "${DIST_DIR}/Klangten.pkg")
+  set(unsigned_pkg_path "${DIST_DIR}/Klangten.unsigned.pkg")
+  set(component_plist "${DIST_DIR}/Klangten.component.plist")
   set(pkg_root "${DIST_DIR}/pkgroot")
 
   if(NOT EXISTS "${app_dir}")
@@ -671,8 +699,8 @@ function(create_pkg)
       --root "${pkg_root}"
       --component-plist "${component_plist}"
       --install-location "/"
-      --identifier "link.elten.elten"
-      --version "3.0"
+      --identifier "online.klango.klangten"
+      --version "0.1.0"
       "${unsigned_pkg_path}"
     )
     sign_pkg("${unsigned_pkg_path}" "${pkg_path}")
@@ -683,8 +711,8 @@ function(create_pkg)
       --root "${pkg_root}"
       --component-plist "${component_plist}"
       --install-location "/"
-      --identifier "link.elten.elten"
-      --version "3.0"
+      --identifier "online.klango.klangten"
+      --version "0.1.0"
       "${pkg_path}"
     )
   endif()
@@ -724,6 +752,8 @@ if(MODE_UPPER STREQUAL "FINALIZE_RUNTIME")
   normalize_macho_permissions("${RUNTIME_DIR}" "runtime dylibs and native extensions")
   if(SIGN)
     codesign_macho_tree("${RUNTIME_DIR}" "release runtime dylibs and native extensions" FALSE)
+  else()
+    adhoc_sign_macho_tree("${RUNTIME_DIR}" "release runtime dylibs and native extensions")
   endif()
 elseif(MODE_UPPER STREQUAL "CREATE_APP")
   if(SIGN)

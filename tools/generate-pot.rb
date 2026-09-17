@@ -8,7 +8,8 @@ ROOT = File.expand_path("..", __dir__)
 OUTPUT = File.join(ROOT, "locale", "elten.pot")
 
 Dir.chdir(__dir__) do
-  sources = Dir["../src/**/*.rb"]
+  # Klangten: built-in programs (src/programs) keep their own catalogues in locale/programs.
+  sources = Dir["../src/**/*.rb"].reject { |file| file.start_with?("../src/programs/") }
 
   Tempfile.create(["elten", ".pot"], ROOT) do |temporary|
     temporary.close

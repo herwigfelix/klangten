@@ -1,5 +1,6 @@
 // A part of Elten - EltenLink / Elten Network desktop client.
 // Copyright (C) 2014-2026 Dawid Pieper
+// Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 // Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 // Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 // You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
@@ -132,7 +133,7 @@ std::wstring BuildCommandLine(const fs::path &target) {
 }
 
 void ShowError(const std::wstring &message) {
-  MessageBoxW(nullptr, message.c_str(), L"Elten", MB_ICONERROR | MB_OK);
+  MessageBoxW(nullptr, message.c_str(), L"Klangten", MB_ICONERROR | MB_OK);
 }
 
 } // namespace

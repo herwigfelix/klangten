@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_Login
   AUTO_LOGIN_INVALID_PASSWORD_CODES = %w[session.invalid_credentials auth.invalid_password unauthorized].freeze
@@ -47,7 +48,8 @@ if password==nil
   $scene=Scene_Loading.new
   return
 end
-name=finduser(name) if finduser(name).upcase==name.upcase
+# Klangten: silent lookup, no error dialog when the user search is unavailable.
+name=klangten_canonical_user_name(name)
 else
         if autologin == 3
       tokenenc=-1 if autologin_key_encryption_supported? && tokenenc>0 && token.bytesize<=130
@@ -91,29 +93,34 @@ else
   password="" if autologin.to_i==2 && @skipauto!=true
   suc=false
 login_error=nil
+# Klangten: the EltenLink launcher stamp is never requested or sent.
 stamp=nil
-begin
-stamp = get_stamp(name)
-rescue Exception
-end
+# Klangten: set once the user has accepted the Klango terms (session.tos_required).
+accept_tos=false
   while suc==false
   begin
   if token!="" && @skipauto!=true
-    logintemp = EltenLink::Authentication.login(elten_link, name: name, token: token, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "list", stamp: stamp)
+    logintemp = EltenLink::Authentication.login(elten_link, name: name, token: token, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "list", stamp: stamp, accept_tos: accept_tos)
 else
-  logintemp = EltenLink::Authentication.login(elten_link, name: name, password: password, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "list", stamp: stamp)
+  logintemp = EltenLink::Authentication.login(elten_link, name: name, password: password, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "list", stamp: stamp, accept_tos: accept_tos)
 end
 suc=true
 rescue EltenLink::Error => e
 if e.code.to_s=="auth.two_factor_required"
+  if Klangten::Config.sms_two_factor_enabled?
   meth = selector([p_("Login", "Authenticate using SMS"), p_("Login", "Authenticate using backup code"), _("Cancel")], header: p_("Login", "Two-factor authentication is enabled on this account. Select an authentication method."), start_index: 0, cancel_index: 2, flags: 1)
+  else
+    # Klangten: no text-message delivery; only a code can be entered.
+    meth = selector([p_("Login", "Authenticate using backup code"), _("Cancel")], header: p_("Login", "Two-factor authentication is enabled on this account. Select an authentication method."), start_index: 0, cancel_index: 1, flags: 1)
+    meth = meth==0 ? 1 : 2
+  end
 if meth==0
   phone_error=nil
   begin
   if token!=""
-    logintemp = EltenLink::Authentication.login(elten_link, name: name, token: token, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "phone", stamp: stamp)
+    logintemp = EltenLink::Authentication.login(elten_link, name: name, token: token, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "phone", stamp: stamp, accept_tos: accept_tos)
 else
-  logintemp = EltenLink::Authentication.login(elten_link, name: name, password: password, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "phone", stamp: stamp)
+  logintemp = EltenLink::Authentication.login(elten_link, name: name, password: password, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "phone", stamp: stamp, accept_tos: accept_tos)
 end
   rescue EltenLink::Error => phone_error
   end
@@ -158,6 +165,16 @@ while tries<3
         break
     end
   end
+elsif e.code.to_s=="session.tos_required" && !accept_tos
+  # Klangten: the Klango server wants the terms accepted first. This also happens
+  # with an auto-login key; the user is asked and the same login is repeated.
+  if klangten_ask_server_terms(e.detail("url"))
+    accept_tos=true
+    suc=false
+  else
+    login_error=e
+    break
+  end
 elsif e.code.to_s=="session.account_not_activated"
   if handle_account_activation(name)
     suc=false
@@ -181,7 +198,6 @@ end
       Session.gender=logintemp.gender.to_i
       Session.languages = logintemp.languages
       Session.greeting = logintemp.greeting
-      update_premiumpackages(logintemp.premium_packages) if logintemp.premium_packages.is_a?(Array)
   end
 if logintemp != nil
 if Configuration.autologin==true && autologin.to_i!=3
@@ -254,6 +270,19 @@ else
     speech_wait
     @skipauto=true
     return main
+  when "session.tos_required", "session.too_many_attempts", "session.account_banned"
+    # Klangten: asking for the password again would not help; back to the start menu.
+    if login_error.code.to_s=="session.tos_required"
+      alert(p_("Login", "You cannot log in without accepting the terms of use of the Klango server."))
+    elsif login_error.code.to_s=="session.too_many_attempts"
+      alert(klangten_too_many_attempts_message(login_error))
+    else
+      alert(klangten_account_banned_message(login_error))
+    end
+    Session.token = nil
+    speech_wait
+    $scene = Scene_Loading.new(true)
+    return
   when "session.account_not_activated"
     alert(p_("Login", "This account has not been activated yet."))
     Session.token = nil
@@ -370,6 +399,10 @@ end
               return EltenLink::Authentication.auto_login_token(elten_link, name: name, password: password, computer: $computer, appid: $appid)
             rescue EltenLink::Error => e
               Log.warning("Auto-login token creation failed for #{name}: #{e.code}: #{e.message}")
+              if klangten_too_many_attempts?(e)
+                alert(klangten_too_many_attempts_message(e) + " " + p_("Login", "Automatic login could not be enabled. You are still logged in."))
+                return nil
+              end
               invalid_password = AUTO_LOGIN_INVALID_PASSWORD_CODES.include?(e.code.to_s)
               if invalid_password && !password_verified_by_login && retries < AUTO_LOGIN_PASSWORD_RETRIES
                 retries += 1

@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: install path /opt/klangten and package names.
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -13,8 +14,8 @@ usage() {
 Usage: tools/build-linux.sh (--pkg | --zst) [options]
 
 Options:
-  --pkg                 Create dist/linux/elten-linux.run
-  --zst                 Create dist/linux/elten-linux.tar.zst
+  --pkg                 Create dist/linux/klangten-linux.run
+  --zst                 Create dist/linux/klangten-linux.tar.zst
   --release-dir DIR     Multiarch release root (default: $RELEASE_DIR)
   --dist-dir DIR        Output directory (default: $DIST_DIR)
   -h, --help            Show this help
@@ -95,7 +96,7 @@ for architecture in arm64 x64 x86; do
   [ -d "$RELEASE_DIR/bin/linux-$architecture" ] ||
     { echo "Missing release runtime: $RELEASE_DIR/bin/linux-$architecture" >&2; exit 1; }
 done
-[ -f "$ROOT/tools/elten.desktop" ] || { echo "Missing tools/elten.desktop" >&2; exit 1; }
+[ -f "$ROOT/tools/klangten.desktop" ] || { echo "Missing tools/klangten.desktop" >&2; exit 1; }
 
 # A platform release deliberately has no unsuffixed launcher. Only a verified
 # three-architecture assembly receives the public facade.
@@ -103,9 +104,9 @@ cp "$FACADE_SOURCE" "$RELEASE_DIR/elten"
 chmod 0755 "$RELEASE_DIR/elten"
 
 mkdir -p "$DIST_DIR"
-TEMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/elten-linux-package.XXXXXX")
-RUN_TEMP="$DIST_DIR/.elten-linux.run.$$"
-ZST_TEMP="$DIST_DIR/.elten-linux.tar.zst.$$"
+TEMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/klangten-linux-package.XXXXXX")
+RUN_TEMP="$DIST_DIR/.klangten-linux.run.$$"
+ZST_TEMP="$DIST_DIR/.klangten-linux.tar.zst.$$"
 trap 'rm -rf "$TEMP_ROOT"; rm -f "$RUN_TEMP" "$ZST_TEMP"' EXIT HUP INT TERM
 
 copy_common_release_files() {
@@ -122,7 +123,7 @@ copy_common_release_files() {
 prepare_payload() {
   architecture=$1
   stage="$TEMP_ROOT/stage-$architecture"
-  app_dir="$stage/opt/elten"
+  app_dir="$stage/opt/klangten"
   payload="$TEMP_ROOT/payload-$architecture.tar.gz"
 
   mkdir -p "$app_dir/bin" "$stage/usr/share/applications"
@@ -130,7 +131,7 @@ prepare_payload() {
   cp -a "$RELEASE_DIR/bin/linux-$architecture" "$app_dir/bin/"
   cp "$RELEASE_DIR/elten-$architecture" "$app_dir/elten"
   chmod 0755 "$app_dir/elten"
-  cp "$ROOT/tools/elten.desktop" "$stage/usr/share/applications/elten.desktop"
+  cp "$ROOT/tools/klangten.desktop" "$stage/usr/share/applications/klangten.desktop"
   tar -czpf "$payload" -C "$stage" opt usr
 }
 
@@ -166,9 +167,9 @@ RUN_VALUES
 
 usage() {
   cat <<'EOF'
-Elten Linux installer
+Klangten Linux installer
 
-Usage: elten-linux.run [options]
+Usage: klangten-linux.run [options]
 
 Options:
   --install-root DIR   Install below DIR instead of / (for testing/chroots)
@@ -179,7 +180,7 @@ EOF
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
-    echo "Elten installer: $1 not found." >&2
+    echo "Klangten installer: $1 not found." >&2
     exit 1
   fi
 }
@@ -222,7 +223,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 architecture=$(uname -m 2>/dev/null) ||
-  { echo "Elten installer: cannot detect the system architecture." >&2; exit 1; }
+  { echo "Klangten installer: cannot detect the system architecture." >&2; exit 1; }
 case "$architecture" in
   aarch64|arm64)
     payload_start=$PAYLOAD_ARM64_START
@@ -243,13 +244,13 @@ case "$architecture" in
     payload_arch=x86
     ;;
   *)
-    echo "Elten installer: unsupported system architecture: $architecture" >&2
+    echo "Klangten installer: unsupported system architecture: $architecture" >&2
     exit 1
     ;;
 esac
 
 if [ "$install_root" = "/" ] && [ "$(id -u)" -ne 0 ]; then
-  if [ -d /opt/elten ] && [ -w /opt/elten ] && [ -w /usr/share/applications ]; then
+  if [ -d /opt/klangten ] && [ -w /opt/klangten ] && [ -w /usr/share/applications ]; then
     :
   elif command -v pkexec >/dev/null 2>&1; then
     if [ "$silent" -eq 1 ]; then
@@ -258,7 +259,7 @@ if [ "$install_root" = "/" ] && [ "$(id -u)" -ne 0 ]; then
       exec pkexec "$self_path" --install-root /
     fi
   else
-    echo "Elten installer: root privileges are required; run it with sudo." >&2
+    echo "Klangten installer: root privileges are required; run it with sudo." >&2
     exit 1
   fi
 fi
@@ -268,41 +269,41 @@ for command_name in tar gzip sha256sum mktemp wc tr tail head; do
 done
 
 mkdir -p "$install_root"
-payload_file=$(mktemp "${TMPDIR:-/tmp}/elten-payload.XXXXXX")
+payload_file=$(mktemp "${TMPDIR:-/tmp}/klangten-payload.XXXXXX")
 trap 'rm -f "$payload_file"' EXIT HUP INT TERM
 
 tail -c "+$payload_start" "$self_path" | head -c "$payload_size" > "$payload_file"
 actual_size=$(wc -c < "$payload_file")
 actual_size=$(printf '%s' "$actual_size" | tr -d ' ')
 if [ "$actual_size" != "$payload_size" ]; then
-  echo "Elten installer: truncated $payload_arch payload." >&2
+  echo "Klangten installer: truncated $payload_arch payload." >&2
   exit 1
 fi
 actual_sha256=$(sha256sum "$payload_file")
 actual_sha256=${actual_sha256%% *}
 if [ "$actual_sha256" != "$payload_sha256" ]; then
-  echo "Elten installer: invalid $payload_arch payload checksum." >&2
+  echo "Klangten installer: invalid $payload_arch payload checksum." >&2
   exit 1
 fi
 
-[ "$silent" -eq 1 ] || echo "Installing Elten for $payload_arch..."
+[ "$silent" -eq 1 ] || echo "Installing Klangten for $payload_arch..."
 tar -xzpf "$payload_file" -C "$install_root"
 
 for stale_arch in arm64 x64 x86; do
-  rm -f "$install_root/opt/elten/elten-$stale_arch"
+  rm -f "$install_root/opt/klangten/elten-$stale_arch"
   if [ "$stale_arch" != "$payload_arch" ]; then
-    rm -rf "$install_root/opt/elten/bin/linux-$stale_arch"
+    rm -rf "$install_root/opt/klangten/bin/linux-$stale_arch"
   fi
 done
 
-[ -x "$install_root/opt/elten/elten" ] ||
-  { echo "Elten installer: installed launcher is missing." >&2; exit 1; }
+[ -x "$install_root/opt/klangten/elten" ] ||
+  { echo "Klangten installer: installed launcher is missing." >&2; exit 1; }
 
 if [ "$install_root" = "/" ] && command -v update-desktop-database >/dev/null 2>&1; then
   update-desktop-database /usr/share/applications 2>/dev/null || true
 fi
 
-[ "$silent" -eq 1 ] || echo "Elten installed in $install_root/opt/elten."
+[ "$silent" -eq 1 ] || echo "Klangten installed in $install_root/opt/klangten."
 exit 0
 RUN_HEADER
 }
@@ -343,25 +344,25 @@ create_run() {
 
   cat "$header" "$arm64_payload" "$x64_payload" "$x86_payload" > "$RUN_TEMP"
   chmod 0755 "$RUN_TEMP"
-  mv -f "$RUN_TEMP" "$DIST_DIR/elten-linux.run"
-  echo "Built $DIST_DIR/elten-linux.run"
+  mv -f "$RUN_TEMP" "$DIST_DIR/klangten-linux.run"
+  echo "Built $DIST_DIR/klangten-linux.run"
 }
 
 create_zst() {
   stage="$TEMP_ROOT/zst-stage"
   mkdir -p "$stage/opt" "$stage/usr/share/applications"
-  cp -a "$RELEASE_DIR" "$stage/opt/elten"
-  cp "$ROOT/tools/elten.desktop" "$stage/usr/share/applications/elten.desktop"
+  cp -a "$RELEASE_DIR" "$stage/opt/klangten"
+  cp "$ROOT/tools/klangten.desktop" "$stage/usr/share/applications/klangten.desktop"
   tar --zstd -cpf "$ZST_TEMP" -C "$stage" opt usr
-  mv -f "$ZST_TEMP" "$DIST_DIR/elten-linux.tar.zst"
-  echo "Built $DIST_DIR/elten-linux.tar.zst"
+  mv -f "$ZST_TEMP" "$DIST_DIR/klangten-linux.tar.zst"
+  echo "Built $DIST_DIR/klangten-linux.tar.zst"
 }
 
 [ "$BUILD_PKG" -eq 0 ] || create_run
 [ "$BUILD_ZST" -eq 0 ] || create_zst
 
 rm -f \
-  "$DIST_DIR/elten-linux-arm64.tar.zst" \
-  "$DIST_DIR/elten-linux-x64.tar.zst" \
-  "$DIST_DIR/elten-linux-x86.tar.zst"
+  "$DIST_DIR/klangten-linux-arm64.tar.zst" \
+  "$DIST_DIR/klangten-linux-x64.tar.zst" \
+  "$DIST_DIR/klangten-linux-x86.tar.zst"
 rm -rf "$DIST_DIR/stage"

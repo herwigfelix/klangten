@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module Common
@@ -150,8 +151,8 @@ module EltenAPI
             add.call(lines, "Sound themes", safe.call("") { Dirs.soundthemes })
             add.call(lines, "Extras", safe.call("") { Dirs.extras })
             add.call(lines, "Temp", safe.call("") { Dirs.temp })
-            add.call(lines, "Log file", safe.call("") { file_info.call(EltenPath.join(Dirs.eltendata, "elten.log")) })
-            add.call(lines, "Config file", safe.call("") { file_info.call(EltenPath.join(Dirs.eltendata, "elten.ini")) })
+            add.call(lines, "Log file", safe.call("") { file_info.call(EltenPath.join(Dirs.eltendata, Klangten::Config::LOG_FILE_NAME)) })
+            add.call(lines, "Config file", safe.call("") { file_info.call(EltenPath.join(Dirs.eltendata, Klangten::Config::CONFIG_FILE_NAME)) })
 
             add_section.call(lines, "Configuration")
             add.call(lines, "Language", config.call(:language))

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: package names and launcher stamp opt-in.
 
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
   set(CMAKE_SUPPRESS_REGENERATION ON)
@@ -58,7 +59,12 @@ file(GLOB ELTEN_STAMP_PRIVATE_KEY_DIR_CONTENTS CONFIGURE_DEPENDS
   "${ELTEN_STAMP_PRIVATE_KEY_DIR}/*"
 )
 
-if(EXISTS "${ELTEN_STAMP_PRIVATE_KEY_FILE}")
+# Klangten: the launcher stamp (get_stamp) is an EltenLink registration seal and
+# is not used. It is compiled in only on explicit request, and building without
+# it no longer forces developer mode.
+option(KLANGTEN_ENABLE_LAUNCHER_STAMP "Embed the launcher stamp signing key (not used by Klangten)" OFF)
+
+if(KLANGTEN_ENABLE_LAUNCHER_STAMP AND EXISTS "${ELTEN_STAMP_PRIVATE_KEY_FILE}")
   set(ELTEN_STAMP_SIGNATURE_AVAILABLE TRUE)
   set(ELTEN_STAMP_SIGNATURE_AVAILABLE_DEFINE 1)
   set(ELTEN_FORCE_DEVELOPER_MODE_DEFINE 0)
@@ -81,8 +87,13 @@ if(EXISTS "${ELTEN_STAMP_PRIVATE_KEY_FILE}")
 else()
   set(ELTEN_STAMP_SIGNATURE_AVAILABLE FALSE)
   set(ELTEN_STAMP_SIGNATURE_AVAILABLE_DEFINE 0)
-  set(ELTEN_FORCE_DEVELOPER_MODE_DEFINE 1)
-  message(WARNING "Launcher stamp key not found at ${ELTEN_STAMP_PRIVATE_KEY_FILE}. Building without get_stamp signing and forcing developer mode.")
+  if(KLANGTEN_ENABLE_LAUNCHER_STAMP)
+    set(ELTEN_FORCE_DEVELOPER_MODE_DEFINE 1)
+    message(WARNING "Launcher stamp key not found at ${ELTEN_STAMP_PRIVATE_KEY_FILE}. Building without get_stamp signing and forcing developer mode.")
+  else()
+    set(ELTEN_FORCE_DEVELOPER_MODE_DEFINE 0)
+    message(STATUS "Klangten: building without launcher stamp signing")
+  endif()
 endif()
 
 add_custom_target(EltenBuildInfoHeader
@@ -355,7 +366,7 @@ if(APPLE)
     DEPENDS
             EltenLauncher
             "${ELTEN_RUNTIME_FINALIZED_STAMP}"
-    COMMENT "Creating dist/osx/Elten.app"
+    COMMENT "Creating dist/osx/Klangten.app"
     VERBATIM
   )
 
@@ -366,7 +377,7 @@ if(APPLE)
             "-DDIST_DIR=${ELTEN_DIST_OSX_DIR}"
             -P "${ELTEN_MACOS_BUNDLE_SCRIPT}"
     DEPENDS EltenApp
-    COMMENT "Creating dist/osx/Elten.pkg"
+    COMMENT "Creating dist/osx/Klangten.pkg"
     VERBATIM
   )
 elseif(UNIX AND NOT APPLE)
@@ -571,7 +582,7 @@ elseif(UNIX AND NOT APPLE)
             --release-dir "${ELTEN_PACKAGE_ROOT}"
             --dist-dir "${ELTEN_DIST_LINUX_DIR}"
     DEPENDS EltenApp
-    COMMENT "Creating dist/linux/elten-linux.run"
+    COMMENT "Creating dist/linux/klangten-linux.run"
     VERBATIM
   )
 else()
@@ -791,7 +802,7 @@ else()
             "-DINSTALLER_SCRIPT=${ELTEN_WINDOWS_INSTALLER_SCRIPT}"
             -P "${ELTEN_WINDOWS_BUNDLE_SCRIPT}"
     DEPENDS EltenLauncher
-    COMMENT "Creating dist/windows/Elten"
+    COMMENT "Creating dist/windows/Klangten"
     VERBATIM
   )
 
@@ -804,7 +815,7 @@ else()
             "-DINSTALLER_SCRIPT=${ELTEN_WINDOWS_INSTALLER_SCRIPT}"
             -P "${ELTEN_WINDOWS_BUNDLE_SCRIPT}"
     DEPENDS EltenApp
-    COMMENT "Creating dist/windows/EltenSetup.exe"
+    COMMENT "Creating dist/windows/KlangtenSetup.exe"
     VERBATIM
   )
 endif()

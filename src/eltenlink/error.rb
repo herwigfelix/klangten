@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenLink
   class Error < StandardError
@@ -27,6 +28,19 @@ module EltenLink
     def retry_after
       value = error_payload["retry_after"] || (details["retry_after"] if details.is_a?(Hash))
       value.nil? ? nil : value.to_f
+    end
+
+    # Klangten: one entry of error.details, e.g. detail("url") of session.tos_required.
+    def detail(key)
+      values = details
+      values.is_a?(Hash) ? values[key.to_s] : nil
+    end
+
+    # Klangten: whole minutes to wait after *.too_many_attempts (at least 1).
+    def retry_after_minutes
+      seconds = retry_after
+      return nil if seconds == nil
+      [(seconds / 60.0).ceil, 1].max
     end
 
     def status

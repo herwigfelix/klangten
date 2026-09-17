@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 module EltenBassStructs
   POINTER_SIZE = [nil].pack("p").bytesize
   POINTER_PACK = POINTER_SIZE == 8 ? "Q" : "L"
@@ -672,7 +673,7 @@ BASS_SetConfig.call(1, 100)
 BASS_SetConfig.call(11, 3000)
 BASS_SetConfig.call(12, 10000)
 BASS_SetConfig.call(15, 25)
-BASS_SetConfigPtr.call(16, "Elten")
+BASS_SetConfigPtr.call(16, Klangten::Config.user_agent)
 BASS_SetConfig.call(21, 1)
 BASS_SetConfig.call(0x20000, 0)    
 BASS_SetDevice.call(card) if card>0

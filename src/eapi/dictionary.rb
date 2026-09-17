@@ -3,11 +3,56 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 require_relative "resources" if !defined?(EltenAPI::Resources)
 
 module EltenAPI
   module Dictionary
+    # Klangten display-time branding.
+    #
+    # The gettext catalogues are shared with upstream Elten. Instead of editing
+    # hundreds of msgids, every text returned by _, n_, p_, np_, s_, ns_ and
+    # _doc is branded when it is looked up (translated or not):
+    #   "EltenLink" -> "Klango"    (the network and its server)
+    #   "Elten"     -> "Klangten"  (this client)
+    # Only whole, capitalised words are replaced. An occurrence is left alone when
+    #   * it is part of a longer word or identifier (Eltenger, EltenAPI, Elten_x),
+    #   * it is part of a URL, e-mail address, path or file name, i.e. directly
+    #     preceded by / . @ \ - _, directly followed by . / \ and a letter or
+    #     digit, or by - and a lower-case letter or digit (elten.link,
+    #     github.com/dawidpieper/elten3, Elten.exe, Elten-net); hyphenated
+    #     compounds such as "Elten-Programme" are branded,
+    #   * it is followed by a version number ("Elten 2.4", "Elten 3.0"): such
+    #     texts describe the history of upstream Elten.
+    # Common inflected forms are branded too: Eltens (de), Eltena, Eltenie,
+    # Eltenem, Eltenowi, Eltenu (pl).
+    # The documents 'rules', 'privacypolicy', 'faq' and 'changelog/...' are never
+    # branded, and texts that must name Elten or EltenLink literally (licence and
+    # fork notices) are built inside unbranded { ... }.
+    module Branding
+      PATTERN = /(?<![\p{L}\p{N}_\/.@\\-])(EltenLink|Elten)(s|a|u|em|ie|owi)?(?![\p{L}\p{N}_])(?![.\/\\][\p{L}\p{N}])(?!-[\p{Ll}\p{N}])(?!\s+\d)/
+      UNBRANDED_DOCUMENTS = /\A(?:rules|privacypolicy|faq|changelog\/.*)\z/
+      REPLACEMENTS = { "EltenLink" => "Klango", "Elten" => "Klangten" }.freeze
+
+      def self.apply(text)
+        return text unless text.is_a?(String) && text.include?("Elten")
+        return text if Thread.current[:klangten_unbranded] == true
+        text.gsub(PATTERN) { REPLACEMENTS[$1] + $2.to_s }
+      rescue ArgumentError, Encoding::CompatibilityError
+        text
+      end
+    end
+
+    # Runs the block with branding disabled for texts looked up in this thread.
+    def unbranded
+      previous = Thread.current[:klangten_unbranded]
+      Thread.current[:klangten_unbranded] = true
+      yield
+    ensure
+      Thread.current[:klangten_unbranded] = previous
+    end
+
     private
     DictCache={}
     Docs={}
@@ -137,22 +182,24 @@ end
 end
 def _doc(d)
   fallback=getlocale("en-GB")
-  locale_text(Docs[d]||(fallback!=nil ? fallback.docs[d] : nil)||"")
+  text=locale_text(Docs[d]||(fallback!=nil ? fallback.docs[d] : nil)||"")
+  return text if d.to_s =~ Branding::UNBRANDED_DOCUMENTS
+  Branding.apply(text)
   end
 def _(src)
   source = src.to_s
   context = program_translation_context
   if context != nil
     translated = translate_context(context, source)
-    return translated if translated != nil
+    return Branding.apply(translated) if translated != nil
   end
-  find(source)[0]
+  Branding.apply(find(source)[0])
 end
 def n_(*pr)
  context = program_translation_context
  if context != nil
    translated = translate_context_plural(context, *pr)
-   return translated if translated != nil
+   return Branding.apply(translated) if translated != nil
  end
  forms=[]
  n=0
@@ -164,25 +211,26 @@ def n_(*pr)
    end
  end
  f=find(*forms)
- f[pluralform(n)]||f.last
+ Branding.apply(f[pluralform(n)]||f.last)
 end
 def p_(context, src)
-  translate_context(context, src) || src.to_s
+  Branding.apply(translate_context(context, src) || src.to_s)
 end
 def s_(str)
-  s=_(str)
+  s=unbranded { _(str) }
   if s==str
-    return str[str.index("|")+1..-1]
+    return Branding.apply(str[str.index("|")+1..-1])
   else
-    return str
+    return Branding.apply(str)
     end
   end
   def np_(context, src, *params)
-  translate_context_plural(context, src, *params) || n_(src, *params)
+  translated = translate_context_plural(context, src, *params)
+  translated != nil ? Branding.apply(translated) : n_(src, *params)
 end
 def ns_(context, src, *params)
-  str=n_(context+"|"+src, *params)
-  str.sub(context+"|","")
+  str=unbranded { n_(context+"|"+src, *params) }
+  Branding.apply(str.sub(context+"|",""))
 end
 def N_(*params);end
   def Nn_(*params);end

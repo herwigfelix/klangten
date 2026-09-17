@@ -3,9 +3,14 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_Install
   def main
+    if klangten_updates_unavailable?
+      $scene = Scene_Main.new
+      return
+    end
     confirm(p_("Install", "The Elten installer will be downloaded from the server and launched after Elten closes. Continue?")) do
       begin
         if !download_verified_installer(use_waiting: true, can_cancel: false)

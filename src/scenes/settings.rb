@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_Settings
   def initialize
@@ -246,8 +247,11 @@ def make_window
           "AutoStart",
           ["disabled", "hidden", "visible"]
         ) if tray_supported?
+        # Klangten: update settings are shown only when the built-in updater is enabled.
+        if Klangten::Config.updates_enabled?
         make_setting(p_("Settings", "Check for updates at startup"), :bool, "Updates", "CheckAtStartup")
         make_setting(p_("Settings", "Updates branch"), [p_("Settings", "Auto"),p_("Settings", "Stable"), p_("Settings", "RC"), p_("Settings", "Beta")], "Updates", "Branch", ["auto","stable","rc","beta"])
+        end
         make_setting(p_("Settings", "Send Elten usage reports"), :bool, "Privacy", "RegisterActivity")
       end
       def load_interface
@@ -337,6 +341,8 @@ def make_window
             end
           }
         })
+        # Klangten: the Feed tab shows the home timeline of a connected Mastodon account.
+        make_setting(p_("Mastodon", "Mastodon account..."), :custom, Proc.new { mastodon_account_dialog })
         on_load do
           @form.fields[4].on(:move) do
             @form.fields[4].index == 1 ? @form.show(5) : @form.hide(5)
@@ -468,7 +474,6 @@ def make_window
     end
     make_setting(p_("Settings", "Output device"), @soundcards, "SoundCard", "SoundCard", @soundcardsmapping)
     make_setting(p_("Settings", "Input device"), @microphones, "SoundCard", "Microphone", @microphonesmapping)
-    make_setting(p_("Settings", "Mute the microphone in conferences while recording other content"), :bool, "Advanced", "DisableConferenceMicOnRecord")
     make_setting(p_("Settings", "Use noise reduction"), [p_("Settings", "Never"), p_("Settings", "In audio conferences only"), p_("Settings", "In audio conferences and when recording")], "Advanced", "UseDenoising", ["never", "conferences", "conferences_and_recording"])
     make_setting(p_("Settings", "Enable echo cancellation"), :bool, "Advanced", "UseEchoCancellation")
       end
@@ -494,10 +499,6 @@ def make_window
     make_setting(p_("Settings", "Use bilinear HRTF interpolation"), :bool, "Advanced", "UseBilinearHRTF")
     make_setting(p_("Settings", "Disable concurrent requests (HTTP/2)"), :bool, "Advanced", "DisableHTTP2")
     make_setting(p_("Settings", "Recover responses after request timeout"), [p_("Settings", "Disabled"), p_("Settings", "Mutating requests"), p_("Settings", "All requests")], "Advanced", "RequestResponseCacheMode", ["disabled", "mutating", "all"])
-    make_setting(p_("Settings", "Use only TCP packets in conferences"), :bool, "Advanced", "ConferencesTCPOnly")
-    make_setting(p_("Settings", "Maximum UDP packet payload size"), :number, "Advanced", "UDPMaxPacketSize")
-    make_setting(p_("Settings", "Conference audio buffer in frames"), :number, "Advanced", "ConferencesAudioBuffer")
-    make_setting(p_("Settings", "Conference buffer cut-off threshold in milliseconds"), :number, "Advanced", "ConferencesAudioBufferCutOff")
     end
     def main
         make_window

@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 require "monitor"
 
@@ -142,7 +143,7 @@ module OSXWindowNative
       false
     end
 
-    def message_box(text, caption = "Elten")
+    def message_box(text, caption = Klangten::Config::PRODUCT_NAME)
       return perform_on_app_thread(true) { message_box(text, caption) } unless app_thread?
       return false unless available?
       ensure_application
@@ -468,11 +469,11 @@ module OSXWindowNative
       @msg_void_ptr.call(main_menu, sel("addItem:"), app_menu_item)
       app_menu = new_obj("NSMenu")
       @msg_void_bool.call(app_menu, sel("setAutoenablesItems:"), 0)
-      open_menu_item = @msg_id_id_sel_id.call(alloc("NSMenuItem"), sel("initWithTitle:action:keyEquivalent:"), ns_string("Open Elten Menu (ALT)"), sel("eltenOpenMainMenu:"), ns_string(""))
+      open_menu_item = @msg_id_id_sel_id.call(alloc("NSMenuItem"), sel("initWithTitle:action:keyEquivalent:"), ns_string("Open #{Klangten::Config::PRODUCT_NAME} Menu (ALT)"), sel("eltenOpenMainMenu:"), ns_string(""))
       @msg_void_ptr.call(open_menu_item, sel("setTarget:"), @application)
       @msg_void_bool.call(open_menu_item, sel("setEnabled:"), 1)
       @msg_void_ptr.call(app_menu, sel("addItem:"), open_menu_item)
-      quit_item = @msg_id_id_sel_id.call(alloc("NSMenuItem"), sel("initWithTitle:action:keyEquivalent:"), ns_string("Quit Elten"), sel("terminate:"), ns_string("q"))
+      quit_item = @msg_id_id_sel_id.call(alloc("NSMenuItem"), sel("initWithTitle:action:keyEquivalent:"), ns_string("Quit #{Klangten::Config::PRODUCT_NAME}"), sel("terminate:"), ns_string("q"))
       @msg_void_ptr.call(quit_item, sel("setTarget:"), @application)
       @msg_void_bool.call(quit_item, sel("setEnabled:"), 1)
       @msg_void_ptr.call(app_menu, sel("addItem:"), quit_item)
@@ -603,8 +604,8 @@ module OSXWindowNative
       safe_void_bool(view, "setWantsLayer:", true)
       safe_void_bool(view, "setAccessibilityElement:", true)
       safe_void_ptr(view, "setAccessibilityRole:", ns_string("AXGroup"))
-      safe_void_ptr(view, "setAccessibilityLabel:", ns_string("Elten"))
-      safe_void_ptr(view, "setAccessibilityValue:", ns_string("Elten"))
+      safe_void_ptr(view, "setAccessibilityLabel:", ns_string(Klangten::Config::PRODUCT_NAME))
+      safe_void_ptr(view, "setAccessibilityValue:", ns_string(Klangten::Config::PRODUCT_NAME))
       safe_void_bool(view, "setAccessibilityFocused:", true)
       true
     rescue Exception => e
@@ -1770,7 +1771,7 @@ module EltenWindow
     attr_reader :hwnd
 
     def app_window_title
-      defined?(Elten) && Elten.respond_to?(:window_title) ? Elten.window_title : "Elten"
+      defined?(Elten) && Elten.respond_to?(:window_title) ? Elten.window_title : Klangten::Config::PRODUCT_NAME
     end
 
     def ensure_window
@@ -1816,7 +1817,7 @@ module EltenWindow
       true
     end
 
-    def message_box(text, caption = "Elten", _flags = 0, _owner = nil)
+    def message_box(text, caption = Klangten::Config::PRODUCT_NAME, _flags = 0, _owner = nil)
       ensure_window
       return 1 if @native_window == true && OSXWindowNative.message_box(text, caption)
       0

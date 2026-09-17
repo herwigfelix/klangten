@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 require "json"
 require "securerandom"
@@ -7,7 +8,7 @@ require "uri"
 
 module EltenLink
   class Client
-    API_BASE_URL = "https://api.elten.link".freeze
+    # Klangten: the API base URL comes from Klangten::Config (KLANGTEN_API_URL).
     DEFAULT_TIMEOUT = 15
     REQUEST_RESPONSE_CACHE_TIMEOUT = 1.0
     REQUEST_RESPONSE_CACHE_PATH = "/api/v1/system/request-responses".freeze
@@ -216,10 +217,6 @@ module EltenLink
       ::EltenAPI::HTTPClient.downloadfile(source, destination, data, cancellation_token: cancellation_token, &block)
     end
 
-    def e_server_verify
-      ::EltenAPI::HTTPClient.server_verify
-    end
-
     def self.query(params)
       if params.is_a?(Hash)
         query_hash(params).flat_map do |key, value|
@@ -307,13 +304,17 @@ module EltenLink
     end
 
     def self.api_base_url
-      API_BASE_URL
+      Klangten::Config.api_base_url
     end
 
     def self.absolute_api_url(path)
       value = path.to_s
-      value = "/api/v1/audio/messages/#{$1}" if value =~ %r{\Ahttps?://s\.elten(?:-net)?\.eu/m/([a-zA-Z0-9]+)(?:\.[a-zA-Z0-9_?=&-]+)?\z}i
-      value = "/api/v1/audio/blog-posts/#{$1}" if value =~ %r{\Ahttps?://s\.elten(?:-net)?\.eu/b/([a-zA-Z0-9]+)(?:\.[a-zA-Z0-9_?=&-]+)?\z}i
+      legacy_short_hosts = Klangten::Config::LEGACY_AUDIO_SHORT_HOSTS.map { |host| Regexp.escape(host) }
+      if legacy_short_hosts.size > 0
+        hosts = legacy_short_hosts.join("|")
+        value = "/api/v1/audio/messages/#{$1}" if value =~ %r{\Ahttps?://(?:#{hosts})/m/([a-zA-Z0-9]+)(?:\.[a-zA-Z0-9_?=&-]+)?\z}i
+        value = "/api/v1/audio/blog-posts/#{$1}" if value =~ %r{\Ahttps?://(?:#{hosts})/b/([a-zA-Z0-9]+)(?:\.[a-zA-Z0-9_?=&-]+)?\z}i
+      end
       return value if value.match?(/\Ahttps?:\/\//i)
       value = "/api/v1/audio/messages/#{$1}" if value =~ %r{\A/audiomessages/([a-zA-Z0-9]+)\z}
       value = "/api/v1/audio/forum-posts/#{$1}" if value =~ %r{\A/audioforums/posts/([a-zA-Z0-9\/]+)\z}

@@ -1,3 +1,4 @@
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 cmake_minimum_required(VERSION 3.24)
 
 if(NOT DEFINED MODE)
@@ -20,8 +21,8 @@ if(NOT DEFINED TIMESTAMP_URL OR "${TIMESTAMP_URL}" STREQUAL "")
   set(TIMESTAMP_URL "http://time.certum.pl")
 endif()
 
-set(APP_DIR "${DIST_DIR}/Elten")
-set(INSTALLER_BASENAME "EltenSetup")
+set(APP_DIR "${DIST_DIR}/Klangten")
+set(INSTALLER_BASENAME "KlangtenSetup")
 set(INSTALLER_PATH "${DIST_DIR}/${INSTALLER_BASENAME}.exe")
 
 function(run_checked)
@@ -114,11 +115,16 @@ function(require_release_file relative_path)
   endif()
 endfunction()
 
+# Klangten: the ARM64 launcher is optional. Its Ruby runtime can only be prepared on
+# an ARM64 host, and the facade (elten.exe) falls back to elten-x64.exe on ARM64
+# Windows, which runs under x64 emulation.
 function(create_dist)
   require_release_file("elten.exe")
   require_release_file("elten-x86.exe")
   require_release_file("elten-x64.exe")
-  require_release_file("elten-arm64.exe")
+  if(NOT EXISTS "${RELEASE_ROOT}/elten-arm64.exe")
+    message(STATUS "elten-arm64.exe not built; ARM64 Windows will use the x64 launcher via emulation")
+  endif()
 
   message(STATUS "Creating ${APP_DIR}...")
   file(REMOVE_RECURSE "${APP_DIR}")
@@ -129,7 +135,9 @@ function(create_dist)
   sign_file("${APP_DIR}/elten.exe")
   sign_file("${APP_DIR}/elten-x86.exe")
   sign_file("${APP_DIR}/elten-x64.exe")
-  sign_file("${APP_DIR}/elten-arm64.exe")
+  if(EXISTS "${APP_DIR}/elten-arm64.exe")
+    sign_file("${APP_DIR}/elten-arm64.exe")
+  endif()
   if(EXISTS "${APP_DIR}/bin/ext/windows/EltenSapiBridge32.exe")
     sign_file("${APP_DIR}/bin/ext/windows/EltenSapiBridge32.exe")
   endif()
@@ -139,7 +147,7 @@ function(create_dist)
 endfunction()
 
 function(create_installer)
-  if(NOT EXISTS "${APP_DIR}/elten.exe" OR NOT EXISTS "${APP_DIR}/elten-x86.exe" OR NOT EXISTS "${APP_DIR}/elten-x64.exe" OR NOT EXISTS "${APP_DIR}/elten-arm64.exe")
+  if(NOT EXISTS "${APP_DIR}/elten.exe" OR NOT EXISTS "${APP_DIR}/elten-x86.exe" OR NOT EXISTS "${APP_DIR}/elten-x64.exe")
     create_dist()
   endif()
 
