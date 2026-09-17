@@ -1,0 +1,110 @@
+# Klangten: Windows release build.
+#
+# Produces dist\windows\KlangtenSetup.exe (x64 + x86; the ARM64 launcher needs an
+# ARM64 host and is left out, the facade falls back to x64 under emulation).
+# On a tag the installer, its SHA-256 and the build id are attached to the
+# release, which is what the rolling update channel reads.
+
+name: Build Windows
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: "Build id to embed (default: derived from the run number)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    # Windows Server 2025 with Visual Studio 2026 - the generator the presets ask for.
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build id bestimmen
+        id: ident
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $input = "${{ inputs.build_id }}"
+          if ($input) {
+            $buildId = $input
+          } elseif ("${{ github.ref_type }}" -eq "tag") {
+            $buildId = $tag -replace '^v', ''
+          } else {
+            $buildId = "ci." + "${{ github.run_number }}"
+          }
+          # Erlaubt sind A-Z a-z 0-9 . _ + - (siehe docs/klangten-releases.md)
+          $buildId = $buildId -replace '[^A-Za-z0-9._+-]', '-'
+          "build_id=$buildId" >> $env:GITHUB_OUTPUT
+          Write-Host "Build id: $buildId"
+
+      # Ruby-Laufzeit und Gems werden vom Build selbst heruntergeladen und
+      # kompiliert. Das dauert beim ersten Mal sehr lange, deshalb der Cache.
+      - name: Ruby-Laufzeit aus dem Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/launcher-windows-x64/ruby
+            build/launcher-windows-x86/ruby
+          key: winruby-${{ runner.os }}-${{ hashFiles('cmake/EltenRubyRuntime.cmake', 'cmake/prepare_ruby_runtime.cmake', 'Gemfile') }}
+          restore-keys: winruby-${{ runner.os }}-
+
+      - name: Inno Setup installieren
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Launcher und Installer bauen
+        shell: cmd
+        run: |
+          call "%CD%\tools\find-cmake-2026.bat" || exit /b 1
+          echo Verwende CMake: %CMAKE_EXE%
+
+          "%CMAKE_EXE%" --preset windows-x64 -DELTEN_BUILD_ID="${{ steps.ident.outputs.build_id }}" || exit /b 1
+          "%CMAKE_EXE%" --preset windows-x86 -DELTEN_BUILD_ID="${{ steps.ident.outputs.build_id }}" || exit /b 1
+
+          "%CMAKE_EXE%" --build --preset windows-x64-release --target EltenLauncher || exit /b 1
+          "%CMAKE_EXE%" --build --preset windows-x86-release --target EltenLauncher || exit /b 1
+          rem elten.exe ist die Fassade aus dem x86-Build
+          "%CMAKE_EXE%" --build --preset windows-x86-release --target EltenLauncherFacade || exit /b 1
+          "%CMAKE_EXE%" --build --preset windows-x64-release --target EltenPkg || exit /b 1
+
+      - name: Prüfsummen und Build id schreiben
+        shell: pwsh
+        run: |
+          $installer = "dist/windows/KlangtenSetup.exe"
+          if (-not (Test-Path $installer)) { throw "Installer wurde nicht erzeugt: $installer" }
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
+          # Format von sha256sum/shasum, das der Client erwartet
+          "$hash  KlangtenSetup.exe" | Out-File -FilePath "dist/windows/KlangtenSetup.exe.sha256" -Encoding ascii -NoNewline
+          "${{ steps.ident.outputs.build_id }}" | Out-File -FilePath "dist/windows/build-id.txt" -Encoding ascii -NoNewline
+          Write-Host "SHA-256: $hash"
+          Write-Host ("Größe:   {0:N0} Bytes" -f (Get-Item $installer).Length)
+
+      - name: Artefakte hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Klangten-Windows-${{ steps.ident.outputs.build_id }}
+          path: |
+            dist/windows/KlangtenSetup.exe
+            dist/windows/KlangtenSetup.exe.sha256
+            dist/windows/build-id.txt
+          if-no-files-found: error
+
+      - name: An das Release anhängen
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/windows/KlangtenSetup.exe
+            dist/windows/KlangtenSetup.exe.sha256
+            dist/windows/build-id.txt
+          fail_on_unmatched_files: true

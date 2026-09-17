@@ -1,0 +1,179 @@
+# Klangten: macOS release build.
+#
+# Produces dist/osx/Klangten.app and dist/osx/Klangten.pkg on an Apple Silicon
+# runner. On a tag the package, its SHA-256 and the build id are attached to the
+# release, which is what the rolling update channel reads.
+#
+# Signing: the Developer ID *Application* certificate signs and notarizes the
+# app. The *package* additionally needs a Developer ID *Installer* certificate
+# (productsign); as long as the secret MACOS_INSTALLER_IDENTITY is missing, the
+# build runs unsigned and the package is only ad-hoc signed, exactly like a
+# local build. Nothing else changes, so adding that secret later is enough.
+
+name: Build macOS
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: "Build id to embed (default: derived from the run number)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    # macOS 26 on Apple Silicon: matches CMAKE_OSX_DEPLOYMENT_TARGET 26.0 and the
+    # Ruby platform include arm64-darwin25 the runtime is built with.
+    runs-on: macos-26
+    timeout-minutes: 180
+    env:
+      SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+      INSTALLER_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}
+      NOTARY_PROFILE: klangten-notary
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build id bestimmen
+        id: ident
+        run: |
+          if [ -n "${{ inputs.build_id }}" ]; then
+            build_id="${{ inputs.build_id }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            build_id="$(printf '%s' '${{ github.ref_name }}' | sed 's/^v//')"
+          else
+            build_id="ci.${{ github.run_number }}"
+          fi
+          # Erlaubt sind A-Z a-z 0-9 . _ + - (siehe docs/klangten-releases.md)
+          build_id="$(printf '%s' "$build_id" | tr -c 'A-Za-z0-9._+-' '-')"
+          echo "build_id=$build_id" >> "$GITHUB_OUTPUT"
+          echo "Build id: $build_id"
+
+      - name: Werkzeuge installieren
+        run: |
+          # ruby-install baut die Ruby-Laufzeit des Launchers aus dem Quelltext.
+          brew list ruby-install >/dev/null 2>&1 || brew install ruby-install
+          # YJIT ist Pflicht (der Launcher startet Ruby mit --yjit) und braucht rustc.
+          command -v rustc >/dev/null 2>&1 || brew install rust
+          cmake --version
+          rustc --version
+
+      # Ruby und die Gems werden aus dem Quelltext gebaut. Das dauert beim ersten
+      # Mal eine halbe Stunde, deshalb der Cache.
+      - name: Ruby-Laufzeit aus dem Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/launcher-osx-arm64/ruby
+            build/launcher-osx-arm64/ruby-bundle-osx-arm64
+          key: osxruby-${{ runner.os }}-${{ hashFiles('cmake/EltenRubyRuntime.cmake', 'cmake/prepare_ruby_runtime.cmake', 'Gemfile') }}
+          restore-keys: osxruby-${{ runner.os }}-
+
+      - name: Signierung vorbereiten
+        if: env.SIGN_IDENTITY != ''
+        env:
+          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_INSTALLER_CERT_P12_BASE64: ${{ secrets.MACOS_INSTALLER_CERT_P12_BASE64 }}
+          MACOS_INSTALLER_CERT_PASSWORD: ${{ secrets.MACOS_INSTALLER_CERT_PASSWORD }}
+          MACOS_API_KEY_BASE64: ${{ secrets.MACOS_API_KEY_BASE64 }}
+          MACOS_API_KEY_ID: ${{ secrets.MACOS_API_KEY_ID }}
+          MACOS_API_ISSUER_ID: ${{ secrets.MACOS_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/klangten.keychain-db"
+          KEYCHAIN_PW="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          # Als Standard-Schlüsselbund, damit notarytool sein Profil dort ablegt
+          # und CMake es später unter demselben Namen wiederfindet.
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s "$KEYCHAIN"
+
+          echo "$MACOS_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/app.p12"
+          security import "$RUNNER_TEMP/app.p12" -k "$KEYCHAIN" -P "$MACOS_CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/productsign
+          rm -f "$RUNNER_TEMP/app.p12"
+
+          if [ -n "${MACOS_INSTALLER_CERT_P12_BASE64:-}" ]; then
+            echo "$MACOS_INSTALLER_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/installer.p12"
+            security import "$RUNNER_TEMP/installer.p12" -k "$KEYCHAIN" -P "${MACOS_INSTALLER_CERT_PASSWORD:-}" \
+              -T /usr/bin/codesign -T /usr/bin/productsign
+            rm -f "$RUNNER_TEMP/installer.p12"
+          fi
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productsign: \
+            -s -k "$KEYCHAIN_PW" "$KEYCHAIN" >/dev/null
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          # Notarisierungs-Zugang als Schlüsselbund-Profil ablegen; cmake/macos_bundle.cmake
+          # ruft notarytool ausschließlich mit --keychain-profile auf.
+          if [ -n "${MACOS_API_KEY_BASE64:-}" ] && [ -n "${MACOS_API_ISSUER_ID:-}" ]; then
+            echo "$MACOS_API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/api_key.p8"
+            xcrun notarytool store-credentials "$NOTARY_PROFILE" \
+              --key "$RUNNER_TEMP/api_key.p8" \
+              --key-id "$MACOS_API_KEY_ID" \
+              --issuer "$MACOS_API_ISSUER_ID"
+            rm -f "$RUNNER_TEMP/api_key.p8"
+            echo "NOTARY_READY=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: App und Paket bauen
+        run: |
+          set -euo pipefail
+          # Vollständig signiert wird nur, wenn beide Zertifikate vorliegen: das
+          # Paket braucht productsign und damit eine Developer-ID-Installer-Identität.
+          if [ -n "${SIGN_IDENTITY:-}" ] && [ -n "${INSTALLER_IDENTITY:-}" ] && [ "${NOTARY_READY:-}" = "1" ]; then
+            echo "Signierter Build (App und Paket)."
+            sh tools/build-osx-arm64.sh --pkg --sign \
+              --sign-app-identity "$SIGN_IDENTITY" \
+              --sign-installer-identity "$INSTALLER_IDENTITY" \
+              --notary-profile "$NOTARY_PROFILE" \
+              --build-id "${{ steps.ident.outputs.build_id }}"
+          else
+            echo "::warning::Kein Developer-ID-Installer-Zertifikat (Secret MACOS_INSTALLER_IDENTITY) - es wird unsigniert gebaut."
+            sh tools/build-osx-arm64.sh --pkg --build-id "${{ steps.ident.outputs.build_id }}"
+          fi
+
+      - name: Signatur prüfen
+        if: env.SIGN_IDENTITY != '' && env.INSTALLER_IDENTITY != ''
+        run: |
+          codesign --verify --strict --verbose=2 dist/osx/Klangten.app
+          xcrun stapler validate dist/osx/Klangten.app || echo "::warning::App ist nicht geheftet"
+          pkgutil --check-signature dist/osx/Klangten.pkg
+          spctl -a -vvv -t install dist/osx/Klangten.pkg || true
+
+      - name: Prüfsummen und Build id schreiben
+        run: |
+          set -euo pipefail
+          test -f dist/osx/Klangten.pkg || { echo "Paket wurde nicht erzeugt"; exit 1; }
+          ( cd dist/osx && shasum -a 256 Klangten.pkg | tr -d '\n' > Klangten.pkg.sha256 )
+          printf '%s' "${{ steps.ident.outputs.build_id }}" > dist/osx/build-id.txt
+          cat dist/osx/Klangten.pkg.sha256; echo
+          ls -lh dist/osx/Klangten.pkg
+
+      - name: Artefakte hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Klangten-macOS-${{ steps.ident.outputs.build_id }}
+          path: |
+            dist/osx/Klangten.pkg
+            dist/osx/Klangten.pkg.sha256
+            dist/osx/build-id.txt
+          if-no-files-found: error
+
+      - name: An das Release anhängen
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/osx/Klangten.pkg
+            dist/osx/Klangten.pkg.sha256
+            dist/osx/build-id.txt
+          fail_on_unmatched_files: true

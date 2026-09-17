@@ -125,3 +125,39 @@ Recommended order: publish to `--branch beta`, update a test installation (Setti
 3. Start the launcher build with `KLANGTEN_API_URL=http://127.0.0.1:5100`. The start-up check offers the update, and the installer is downloaded, verified and started after exit.
 
 Server details (store layout, HTTP behaviour, deployment notes) are documented in `klango_server/KLANGTEN.md`, section "Updater".
+
+## Rolling release channel (GitHub)
+
+Besides the branches served by the Klango server, the update channel in Settings > Auto updater offers **Rolling release (GitHub)**. It reads the newest release of the public repository `herwigfelix/klangten` instead of the server, which is where the workflows in `.github/workflows` publish every tagged build.
+
+| Step | Client code | Source |
+| --- | --- | --- |
+| Start-up check | `src/scenes/loading.rb` → `github_latest_release`, `github_release_build_id` | `GET https://api.github.com/repos/herwigfelix/klangten/releases/latest`, then the asset `build-id.txt` |
+| Download | `src/eapi/network.rb` `download_github_installer` | the installer asset, verified against `<installer>.sha256` |
+| Installation after exit | unchanged (`src/main.rb`, `Klangten::Updates.install_command`) | — |
+
+- A release must publish three assets per platform: the installer under its usual name (`KlangtenSetup.exe`, `Klangten.pkg`, `klangten-linux.run`), a checksum file `<installer>.sha256` in `sha256sum`/`shasum` format, and `build-id.txt` with the build id compiled into it. A release without them is ignored.
+- The same rule as on the server decides: the build id must **differ**, so a rollback works by publishing an older build again.
+- Downloads are accepted only from `github.com` and GitHub's asset hosts (`Klangten::GitHub.trusted_url?`); size and SHA-256 must match before the file is stored, and `src/main.rb` checks the hash again immediately before the installer runs.
+- There is **no background polling** in this channel: GitHub is asked once at start-up and whenever the user triggers an update. `Configuration.checkupdates` ("Check for updates automatically") switches the automatic check off in both channels — including the 600 s server poll, which upstream did not gate.
+- `rolling` is never sent to the Klango server; `get_updatesbranch` maps it back to the branch the build was made for (`src/eapi/core/cache.rb`).
+
+## Continuous integration
+
+`.github/workflows/build-macos.yml` (runner `macos-26`) and `.github/workflows/build-windows.yml` (runner `windows-2025-vs2026`) build on a `v*` tag and on manual dispatch. Both derive the build id from the tag (`v0.1.1` → `0.1.1`) or from the run number, write `<installer>.sha256` and `build-id.txt` next to the installer, upload them as artifacts and, for a tag, attach them to the release — which is exactly what the rolling channel expects.
+
+The Ruby runtime and the gems are compiled from source by the build itself, so both jobs cache `build/launcher-*/ruby`. macOS additionally installs `ruby-install` and needs `rustc` for YJIT. The Windows job builds x64, x86 and the facade `elten.exe`, but not ARM64: that target's Ruby runtime has to run during the build and therefore needs an ARM64 host.
+
+### macOS signing in CI
+
+| Secret | Purpose |
+| --- | --- |
+| `MACOS_CERT_P12_BASE64`, `MACOS_CERT_PASSWORD` | Developer ID **Application** certificate, base64 of the `.p12` |
+| `MACOS_SIGN_IDENTITY` | identity string, e.g. `Developer ID Application: … (TEAMID)` |
+| `MACOS_TEAM_ID` | Apple Team ID |
+| `MACOS_API_KEY_BASE64`, `MACOS_API_KEY_ID`, `MACOS_API_ISSUER_ID` | App Store Connect key for notarization |
+| `MACOS_INSTALLER_CERT_P12_BASE64`, `MACOS_INSTALLER_CERT_PASSWORD`, `MACOS_INSTALLER_IDENTITY` | Developer ID **Installer** certificate — only with it can the `.pkg` be signed (`productsign`) |
+
+The workflow imports the certificates into a throw-away keychain, makes it the default one and stores the notarization credentials as the keychain profile `klangten-notary`, which `cmake/macos_bundle.cmake` uses. Without the installer certificate the build falls back to an unsigned (ad-hoc signed) package and says so in the log; nothing else changes, so adding those three secrets later is enough to get signed packages.
+
+Locally the same is done by `./compile.sh --release`, which reads `compile.sh.dat` (template: `compile.sh.dat.example`, git-ignored).

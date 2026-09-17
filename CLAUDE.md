@@ -14,7 +14,8 @@ Upstream docs stay valid for the shared parts: `docs/architecture.md` (runtime m
 
 ```sh
 bundle install
-bundle exec ruby elten.rb                      # run the full client from source
+./run.sh                                       # run from source (--dev = local server, run.bat on Windows)
+bundle exec ruby elten.rb                      # the same without the wrapper
 KLANGTEN_API_URL=http://127.0.0.1:5100 bundle exec ruby elten.rb   # against a local Klangten dev server
 ruby -c path/to/file.rb                        # syntax check (there is no test suite in this repo)
 ```
@@ -32,8 +33,10 @@ cd <klango-server-repo>/klango_server
 Packaging (build scripts are not executable in git — call them through `sh`/`bat`):
 
 ```sh
-sh tools/build-osx-arm64.sh --app              # dist/osx/Klangten.app
-tools/build-windows.bat --pkg --build-id 2026091401   # dist\windows\KlangtenSetup.exe
+./compile.sh --pkg                             # dist/osx/Klangten.pkg (--release = signed + notarized)
+compile.bat --pkg                              # dist\windows\KlangtenSetup.exe
+sh tools/build-osx-arm64.sh --app              # what compile.sh calls underneath
+tools/build-windows.bat --pkg --build-id 2026091401   # multi-arch helper, needs an ARM64 host
 ```
 
 - macOS: unsigned builds are **ad-hoc signed inside the build** (`cmake/macos_bundle.cmake`), before the launcher embeds its integrity hashes. Signing the bundle afterwards breaks the integrity check ("modified package file"); rebuild instead.
@@ -58,7 +61,8 @@ tools/build-windows.bat --pkg --build-id 2026091401   # dist\windows\KlangtenSet
 - **Built-in programs** live unpacked in `src/programs/` (youtube, filemanager, ffmpeg, mcp) and are loaded as trusted by `src/eapi/program_builtins.rb`; their translations are in `locale/programs/`.
 - **Main menu order** is Community → Media → Files → Programs → Tools. In `src/eapi/mainmenu.rb` every `@menu.submenu` call *inside* the Community block nests into it — top-level entries must be added after that block closes.
 - **Removed**: premium, payments, auctions, sponsors, calendar, tasks. `holds_premiumpackage`/`requires_premiumpackage` always return true, so former premium features are available to everyone.
-- **Coexistence with Elten** must be preserved when touching packaging or platform code: data dir `…/sixdotsIT/klangten`, `klangten.ini`/`klangten.log`, window class `KLANGTENMAINWND`, autostart value `klangten`, temp dir `<temp>/klangten`, installer AppId, bundle id `online.klango.klangten`, NVDA add-on `KLANGTEN`.
+- **Two update channels**: `stable`/`rc`/`beta` come from the Klango server, `rolling` from the public GitHub releases (`src/eltenlink/klangten_github.rb`, settings page "Auto updater"). `get_updatesbranch` never sends `rolling` to the server, and the rolling channel is checked at startup and on demand only, never polled.
+- **Coexistence with Elten** must be preserved when touching packaging or platform code: data dir `…/sixdotsIT/klangten`, `klangten.ini`/`klangten.log`, window class `KLANGTENMAINWND`, autostart value `klangten`, temp dir `<temp>/klangten`, installer AppId, bundle id `it.sixdots.klangten`, NVDA add-on `KLANGTEN`.
 - Add `Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.` to the header of every upstream file you change (GPL §5a); new files get a Klangten header.
 - **Localisation**: English source strings via `_()`/`p_()`, German in `locale/de-DE/LC_MESSAGES/elten.po` recompiled with `msgfmt --check-format`. Never regenerate `locale/elten.pot` (see `docs/contributing.md`).
 

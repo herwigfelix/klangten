@@ -1,0 +1,23 @@
+# Vorlage für compile.sh.dat - die Zugangsdaten für "./compile.sh --release".
+#
+#   cp compile.sh.dat.example compile.sh.dat && chmod 600 compile.sh.dat
+#
+# compile.sh.dat ist in .gitignore eingetragen und gehört NICHT ins Repository.
+# Dieselben Werte liegen als GitHub-Secrets im Repo, damit die Workflows in
+# .github/workflows signieren können (MACOS_SIGN_IDENTITY, MACOS_API_KEY_*, ...).
+
+# Signatur-Identität für die App, genau wie "security find-identity -v -p codesigning" sie nennt.
+SIGN_IDENTITY="Developer ID Application: Vorname Nachname (TEAMID)"
+
+# Signatur-Identität für das Installationspaket (productsign). Fehlt sie, baut
+# compile.sh nur die signierte App und kein Paket.
+INSTALLER_IDENTITY=""
+
+# App-Store-Connect-Schlüssel für die Notarisierung. Relative Pfade beziehen sich
+# auf dieses Verzeichnis; der Schlüssel selbst gehört nicht ins Repository.
+API_KEY_P8="../certs/AuthKey_XXXXXXXXXX.p8"
+API_KEY_ID="XXXXXXXXXX"
+API_ISSUER_ID="00000000-0000-0000-0000-000000000000"
+
+# Name des notarytool-Profils im Schlüsselbund (optional).
+NOTARY_PROFILE="klangten-notary"

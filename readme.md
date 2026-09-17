@@ -33,7 +33,9 @@ All Klangten-specific settings live in [`src/eltenlink/klangten_config.rb`](src/
 
 ## Releases and updates
 
-Klangten updates itself from the Klango server it is connected to: it compares its build id with the release published for its platform and branch, downloads the installer, checks size and SHA-256 and runs `KlangtenSetup.exe`, `Klangten.pkg` or `klangten-linux.run` after exiting. How to build releases with a build id and publish them for the updater is described in [Klangten releases and updates](docs/klangten-releases.md).
+Klangten updates itself from the Klango server it is connected to: it compares its build id with the release published for its platform and branch, downloads the installer, checks size and SHA-256 and runs `KlangtenSetup.exe`, `Klangten.pkg` or `klangten-linux.run` after exiting.
+
+Settings > Auto updater switches the automatic check off and chooses where updates come from. Besides the server branches (stable, RC, beta) there is **Rolling release (GitHub)**, which follows the newest release of this repository — the builds produced by `.github/workflows`. Both channels verify size and SHA-256 before anything is installed. How to build releases with a build id and publish them is described in [Klangten releases and updates](docs/klangten-releases.md).
 
 ## Where Klangten keeps its data
 
@@ -45,14 +47,14 @@ Klangten updates itself from the Klango server it is connected to: it compares i
 
 The configuration file is `klangten.ini` and the log `klangten.log`. A portable installation uses a `klangtendata` directory next to the program, enabled by `klangten.ini` in the program directory with `[Klangten]` `Portable=1`. Temporary files go to `<temp>/klangten`.
 
-Packages use their own identities: Windows installer `KlangtenSetup.exe` (own AppId, `Program Files\Klangten`), macOS `Klangten.app` (`online.klango.klangten`), Linux `/opt/klangten` with `klangten.desktop`, and the NVDA add-on `KLANGTEN`.
+Packages use their own identities: Windows installer `KlangtenSetup.exe` (own AppId, `Program Files\Klangten`), macOS `Klangten.app` (`it.sixdots.klangten`), Linux `/opt/klangten` with `klangten.desktop`, and the NVDA add-on `KLANGTEN`.
 
 ## Differences from Elten
 
 - plain JSON over TLS with certificate verification; no Elten payload encryption, server key check, realtime stream or launcher stamp;
 - no EltenLink hosts, keys or program signing root;
 - the user interface says "Klangten" and "Klango" where upstream texts say "Elten" and "EltenLink" (display-time substitution, see `src/eapi/dictionary.rb`);
-- the built-in updater installs Klangten releases published on the Klango server (see [Klangten releases and updates](docs/klangten-releases.md)).
+- the built-in updater installs Klangten releases, either from the Klango server or from this repository's GitHub releases (see [Klangten releases and updates](docs/klangten-releases.md)).
 
 ---
 

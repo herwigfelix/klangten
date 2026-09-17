@@ -2,6 +2,7 @@
 /dist/
 /CMakeUserPresets.json
 /private/
+/compile.sh.dat
 /Gemfile.lock
 /bin/ext/
 
