@@ -114,7 +114,7 @@ Configuration.saytimetype = load_configuration_choice("Clock", "SayTimeType", [:
 Configuration.registeractivity = load_configuration_value("Privacy", "RegisterActivity", { "unset" => nil, "false" => false, "true" => true }, nil)
 Configuration.checkupdates = load_configuration_boolean("Updates", "CheckAtStartup", true)
 Configuration.autoplay = load_configuration_choice("Interface", "AutoPlay", [:always, :without_transcription, :never], :always)
-Configuration.branch = load_configuration_choice("Updates", "Branch", [:auto, :stable, :rc, :beta], :auto)
+Configuration.branch = load_configuration_choice("Updates", "Branch", [:auto, :stable, :rc, :beta, :rolling], :auto)
 if tray_supported?
 Configuration.autostart=load_configuration_choice("System", "AutoStart", [:disabled, :hidden, :visible], :disabled)
 path=EltenSystemHelpers.autostart_executable_path(current_executable_path)

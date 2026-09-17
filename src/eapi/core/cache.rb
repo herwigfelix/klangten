@@ -164,11 +164,19 @@ module Cache
   end
   end
 
+  # Klangten: the rolling channel is served by the public GitHub releases, not by
+  # the Klango server. Requests that still go to the server must never carry it,
+  # so they fall back to the branch this build was made for.
   def get_updatesbranch
-    if Configuration.branch==:auto
+    if Configuration.branch==:auto or updates_rolling?
       return Elten.branch
     else
       return Configuration.branch.to_s
       end
     end
+
+  # True when updates are taken from the public GitHub releases of the fork.
+  def updates_rolling?
+    Klangten::GitHub.selected?(Configuration.branch)
+  end
 end

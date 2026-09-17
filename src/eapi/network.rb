@@ -129,7 +129,79 @@ rescue Exception => e
   false
 end
 
+# Klangten: metadata of the newest public release (rolling channel).
+def github_latest_release
+  body = read_url(Klangten::GitHub::RELEASES_API, headers: Klangten::GitHub.api_headers)
+  return nil if body.to_s == ""
+  Klangten::GitHub.parse_release(body)
+rescue Exception => e
+  Log.warning("GitHub release check failed: #{e.class}: #{e.message}")
+  nil
+end
+
+# Build id the installers of a release were compiled with, nil when the release
+# does not publish one. Such a release is never offered as an update.
+def github_release_build_id(release)
+  asset = Klangten::GitHub.build_id_asset(release)
+  return nil if asset == nil
+  Klangten::GitHub.parse_build_id(read_url(asset.url, headers: Klangten::GitHub.download_headers))
+rescue Exception => e
+  Log.warning("GitHub build id read failed: #{e.class}: #{e.message}")
+  nil
+end
+
+# Downloads the installer of the newest public release and verifies it against
+# the checksum published next to it. Same guarantees as the server path: size
+# and SHA-256 have to match before the file replaces the stored installer.
+def download_github_installer(use_waiting: true, can_cancel: false)
+  installer = platform_installer_path
+  temporary = installer + ".download"
+  $update_installer_sha256 = nil
+  File.delete(temporary) if File.file?(temporary)
+
+  release = github_latest_release
+  asset = Klangten::GitHub.installer_asset(release, platform_os)
+  if asset == nil
+    Log.error("The latest Klangten release has no installer for #{platform_os}")
+    return false
+  end
+  checksum = Klangten::GitHub.checksum_asset(release, asset)
+  if checksum == nil
+    Log.error("The latest Klangten release publishes no checksum for #{asset.name}")
+    return false
+  end
+  expected = Klangten::GitHub.parse_checksum(read_url(checksum.url, headers: Klangten::GitHub.download_headers), asset.name)
+  if expected == nil
+    Log.error("Could not read the published checksum of #{asset.name}")
+    return false
+  end
+  unless Klangten::GitHub.trusted_url?(asset.url)
+    Log.error("Installer URL outside the Klangten repository")
+    return false
+  end
+  return false unless download_file(asset.url, temporary, use_waiting: use_waiting, can_cancel: can_cancel, override: true)
+  unless File.size(temporary) == asset.size && installer_sha256_valid?(temporary, expected)
+    Log.error("Downloaded installer does not match the published release metadata")
+    return false
+  end
+
+  File.delete(installer) if File.file?(installer)
+  File.rename(temporary, installer)
+  $update_installer_sha256 = expected
+  true
+rescue Exception => e
+  Log.error("Release installer download failed: #{e.class}: #{e.message}")
+  false
+ensure
+  begin
+    File.delete(temporary) if temporary != nil && File.file?(temporary)
+  rescue Exception => e
+    Log.warning("Could not remove temporary installer: #{e.class}: #{e.message}")
+  end
+end
+
 def download_verified_installer(use_waiting: true, can_cancel: false)
+  return download_github_installer(use_waiting: use_waiting, can_cancel: can_cancel) if updates_rolling?
   installer = platform_installer_path
   temporary = installer + ".download"
   $update_installer_sha256 = nil

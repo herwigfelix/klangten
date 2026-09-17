@@ -49,6 +49,7 @@ src/eltenlink/activities.rb
 src/eapi/mastodon/client.rb
 src/eapi/mastodon/service.rb
 src/eltenlink/system.rb
+src/eltenlink/klangten_github.rb
 src/eltenlink/notifications.rb
 src/eltenlink/monitors.rb
 src/eltenlink/honors.rb

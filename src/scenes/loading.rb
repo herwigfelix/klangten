@@ -258,10 +258,20 @@ Log.info("NVDA Version: "+NVDA.getnvdaversion.to_s) if defined?(NVDA) && NVDA.ch
 alert(startmessage) if $silentstart != true
             $speech_wait = true if $silentstart != true
             if Klangten::Config.updates_enabled? && Configuration.checkupdates==true && launched_by_launcher?
+            # Klangten: the rolling channel reads the public GitHub releases of the
+            # fork, every other channel asks the Klango server.
+            if updates_rolling?
+              release=github_latest_release
+              bid=github_release_build_id(release)
+              update_available=(bid!=nil)
+              $update_version_string=release.version_string if release!=nil && release.version_string.to_s!=""
+            else
             build_info=EltenLink::System.build_info(elten_link, branch: get_updatesbranch, os: platform_os, arch: Klangten::Updates.arch, current_build_id: Elten.build_id)
             bid=build_info.build_id
+            update_available=build_info.present?
             $update_version_string=build_info.version_string if build_info.version_string.to_s!=""
-                    if Elten.build_id.to_s!="" and Elten.build_id.to_s!=bid.to_s and build_info.present? and $denyupdate != true
+            end
+                    if Elten.build_id.to_s!="" and Elten.build_id.to_s!=bid.to_s and update_available and $denyupdate != true
                       Log.info("New update available (BuildID: #{bid.to_s}, Version: #{$update_version_string.to_s})")
 if $portable != 1
               $scene = Scene_Update_Confirmation.new

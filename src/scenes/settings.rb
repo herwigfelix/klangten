@@ -247,12 +247,22 @@ def make_window
           "AutoStart",
           ["disabled", "hidden", "visible"]
         ) if tray_supported?
-        # Klangten: update settings are shown only when the built-in updater is enabled.
-        if Klangten::Config.updates_enabled?
-        make_setting(p_("Settings", "Check for updates at startup"), :bool, "Updates", "CheckAtStartup")
-        make_setting(p_("Settings", "Updates branch"), [p_("Settings", "Auto"),p_("Settings", "Stable"), p_("Settings", "RC"), p_("Settings", "Beta")], "Updates", "Branch", ["auto","stable","rc","beta"])
-        end
         make_setting(p_("Settings", "Send Elten usage reports"), :bool, "Privacy", "RegisterActivity")
+      end
+      # Klangten: the updater has its own page, because the fork can take updates
+      # from two different places - the Klango server or the public releases of
+      # the fork on GitHub.
+      def load_auto_updater
+        return if !Klangten::Config.updates_enabled?
+        setting_category(p_("Settings", "Auto updater"))
+        make_setting(p_("Settings", "Check for updates automatically"), :bool, "Updates", "CheckAtStartup")
+        make_setting(
+          p_("Settings", "Update channel"),
+          [p_("Settings", "Auto"), p_("Settings", "Stable"), p_("Settings", "RC"), p_("Settings", "Beta"), p_("Settings", "Rolling release (GitHub)")],
+          "Updates",
+          "Branch",
+          ["auto", "stable", "rc", "beta", "rolling"]
+        )
       end
       def load_interface
         setting_category(p_("Settings", "Interface"))
@@ -509,6 +519,7 @@ def make_window
         load_clock
         load_soundcards
         load_ii
+        load_auto_updater
         load_advanced
         Programs::Extensions.render_settings(self) if defined?(Programs::Extensions)
         @form.focus

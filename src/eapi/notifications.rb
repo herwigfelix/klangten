@@ -237,7 +237,10 @@ module EltenAPI
                 request_status(key)
               end
               if now >= (@next_virtual_update_check_at || 0) && @virtual_update_request_pending != true
-                if launched_by_launcher? && Klangten::Config.updates_enabled?
+                # Klangten: this is the periodic check the auto updater setting switches
+                # off. The rolling channel is deliberately not polled - GitHub is asked
+                # once at startup and whenever the user looks for updates.
+                if launched_by_launcher? && Klangten::Config.updates_enabled? && Configuration.checkupdates == true && !updates_rolling?
                   request_virtual_updates(key, now)
                 else
                   @next_virtual_update_check_at = now + VIRTUAL_UPDATE_CHECK_INTERVAL
