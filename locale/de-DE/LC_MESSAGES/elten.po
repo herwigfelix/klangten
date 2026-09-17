@@ -13479,6 +13479,26 @@ msgctxt "Settings"
 msgid "Updates branch"
 msgstr "Updatekanal"
 
+#: src/scenes/settings.rb:258
+msgctxt "Settings"
+msgid "Auto updater"
+msgstr "Auto-Updater"
+
+#: src/scenes/settings.rb:259
+msgctxt "Settings"
+msgid "Check for updates automatically"
+msgstr "Automatisch nach Updates suchen"
+
+#: src/scenes/settings.rb:261
+msgctxt "Settings"
+msgid "Update channel"
+msgstr "Updatekanal"
+
+#: src/scenes/settings.rb:262
+msgctxt "Settings"
+msgid "Rolling release (GitHub)"
+msgstr "Rolling Release (GitHub)"
+
 #: src/scenes/settings.rb:251
 msgctxt "Settings"
 msgid "Send Elten usage reports"
