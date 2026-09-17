@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
 
 module EltenAPI
   module Common
@@ -77,7 +78,6 @@ module EltenAPI
       has_blog = user_info.has_blog
       has_honors = user_info.honors > 0
       callable = user_info.callable
-      feed_followed = user_info.feed_followed
       monitored = user_info.monitored
       actions = []
 
@@ -91,34 +91,23 @@ module EltenAPI
         visitingcard(user)
       end
 
+      # Klangten: audio avatars (voice greetings shared with Klango).
+      if user_info.has_avatar
+        actions << user_menu_action(p_("Klangten", "Play audio avatar"), close_all: false) do
+          play_audio_avatar(user)
+        end
+      end
+
       if has_blog
         actions << user_menu_action(p_("EAPI_Common", "Show user blogs")) do
           insert_scene(Scene_Blog_List.new(user, Scene_Main.new), true)
         end
       end
 
-      actions << user_menu_action(p_("EAPI_Common", "Show feed")) do
-        insert_scene(Scene_FeedViewer.new(user))
-      end
+      # Klangten: the feed is a Mastodon timeline; Klango users have no feed to show or follow.
 
-      unless guest
-        follow_label = if feed_followed
-          p_("EAPI_Common", "Unfollow feed")
-        else
-          p_("EAPI_Common", "Follow feed")
-        end
-        actions << user_menu_action(follow_label) do
-          if set_feed_follow(user, follow: !feed_followed)
-            if feed_followed
-              alert(p_("EAPI_Common", "You are no longer following this feed"))
-            else
-              alert(p_("EAPI_Common", "Feed followed"))
-            end
-          end
-        end
-      end
-
-      if !guest && callable
+      # Klangten: every Klango user can be called over TeamConference.
+      if !guest && Conference.available?
         actions << user_menu_action(p_("EAPI_Common", "Call this user"), close_all: false) do
           voicecall(nil, nil, [user])
         end
@@ -134,7 +123,7 @@ module EltenAPI
           if ringtone
             set_ringtone(user, nil)
             alert(p_("EAPI_Common", "Ringtone removed"))
-          elsif requires_premiumpackage("audiophile")
+          else
             file = get_file(
               p_("EAPI_Common", "Select ringtone for user %{user}") % { user: user },
               path: EltenPath.with_separator(Dirs.documents),

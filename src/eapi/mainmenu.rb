@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module GlobalMenu
   def self.developer_mode?
@@ -65,9 +66,9 @@ module GlobalMenu
             if Session.logged?
             m.scene(p_("MainMenu", "Notification hi&story"), Scene_Notifications)
         m.scene(p_("MainMenu", "No&tes"), Scene_Notes)
-        m.scene(p_("MainMenu", "Calenda&r"), Scene_Calendar)
-        m.scene(p_("MainMenu", "Tas&ks"), Scene_Tasks)
     m.scene(p_("MainMenu", "Po&lls"), Scene_Polls)
+    # Klangten: timelines of the connected Mastodon account (the Feed tab shows the home timeline).
+    m.scene(p_("Mastodon", "Mastodon t&imelines"), Scene_MastodonTimeline) if Session.logged?
     end
     @menu.submenu(p_("MainMenu", "&Users")) {|m|
     if Session.logged?
@@ -81,15 +82,24 @@ module GlobalMenu
     m.scene(p_("MainMenu", "User searc&h"), Scene_UserSearch)
     m.scene(p_("MainMenu", "Recently &active users"), Scene_Users_RecentlyActived)
     m.scene(p_("MainMenu", "Recently &registered users"), Scene_Users_RecentlyRegistered)
-    m.scene(p_("MainMenu", "&Sponsors"), Scene_Users_Sponsors)
     }
     if Session.logged?
             @menu.scene(p_("MainMenu", "Call &history"), Scene_CallHistory)
-      @menu.scene(p_("MainMenu", "Premium packa&ges"), Scene_PremiumPackages)
             @menu.scene(p_("MainMenu", "Manage my &account"), Scene_Account)
       end
     }
     end
+    # Klangten: Media and Files menus (as in old Elten) with the Klango media catalog
+    # and the built-in former Elten programs (src/eapi/program_builtins.rb). They sit
+    # on the top level right after Community: Community, Media, Files, Programs, Tools.
+    @menu.submenu(p_("Klangten", "&Media")) {|m|
+    m.scene(p_("Klangten", "Media &catalog"), Scene_MediaCatalog)
+    klangten_builtin_entry(m, :youtube, p_("Klangten", "&YouTube"))
+    }
+    @menu.submenu(p_("Klangten", "&Files")) {|m|
+    klangten_builtin_entry(m, :filemanager, p_("Klangten", "File &manager"))
+    klangten_builtin_entry(m, :ffmpeg, p_("Klangten", "FFmpeg &encoders"))
+    }
     @menu.submenu(p_("MainMenu", "&Programs")) {|m|
     list=Programs.list.reject{|program|program.hidden?}.sort_by {|program| EltenSystemHelpers.locale_sort_key((program.menu_label||program.name||program.to_s).to_s.delete("&"))}
     for prg in list
@@ -101,7 +111,7 @@ module GlobalMenu
     m.scene(p_("MainMenu", "Program &settings"), Scene_Settings)
     m.scene(p_("MainMenu", "Sound &themes"), Scene_SoundThemes)
     m.scene(p_("MainMenu", "Speed &test"), Scene_SpeedTest)
-    m.scene(p_("MainMenu", "&Install Elten"), Scene_Install)
+    m.scene(p_("MainMenu", "&Install Elten"), Scene_Install) if Klangten::Config.updates_enabled?
     m.scene(p_("MainMenu", "&Log viewer"), Scene_Log)
     m.scene(p_("MainMenu", "&Console"), Scene_Console) if developer_mode?
     if developer_mode?
@@ -122,9 +132,8 @@ module GlobalMenu
     m.scene(p_("MainMenu", "Sounds &guide"), Scene_Sounds)
       m.scene(p_("MainMenu", "&Read me"), Scene_Documentation, "readme")
    m.scene(p_("MainMenu", "&Licence agreement"), Scene_Documentation, "license")
-   m.scene(p_("MainMenu", "&Terms and conditions"), Scene_Documentation, "rules")
-   m.scene(p_("MainMenu", "&Privacy policy"), Scene_Documentation, "privacypolicy")
-   m.scene(p_("MainMenu", "Infor&mation about migration to Elten version 2.4"), Scene_Documentation, "migration24")
+   # Klangten: EltenLink's terms, privacy policy and the Elten 2.4 migration notice do not apply.
+   m.scene(p_("Klangten", "&Terms of the Klango server"), Scene_Documentation, "rules")
    m.scene(p_("MainMenu", "List of &Invisible Interface keyboard shortcuts"), Scene_IIKeys)
    m.submenu(p_("MainMenu", "Welcome &wizards")) {|m|
        m.scene(p_("MainMenu", "&First run wizard"), Scene_WelcomeWizard, true, true)
@@ -214,6 +223,15 @@ Log.info("Switching to thread #{i+1}")
   end
     def opened?
       @currentmenu!=nil&&@currentmenu.opened?
+    end
+    # Klangten: menu entry for a built-in program, or a notice when it is not loaded here.
+    def klangten_builtin_entry(menu, key, label)
+      program = defined?(Programs::BuiltIns) ? Programs::BuiltIns.program_class(key) : nil
+      if program != nil
+        menu.scene(label, program)
+      else
+        menu.option(label) { alert(p_("Klangten", "This feature is not available on this system.")) }
+      end
     end
     def scenes
       construct(:defaults)
