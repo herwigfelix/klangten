@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages, feed statistics and the SMS two-factor setup entry removed.
 
 class Scene_Account
   WHATSNEW_DISABLE_LIST = 1
@@ -250,6 +251,8 @@ end
 def load_visitingcard
   setting_category(p_("Account", "Visiting card"))
   make_setting(p_("Account", "Visiting card"), :longtext, 'visitingcard')
+  # Klangten: audio avatar (record, upload, play, remove).
+  make_setting(p_("Klangten", "Audio avatar"), :custom, Proc.new{insert_scene(Scene_Account_AudioAvatar.new)})
 end
 def load_languages
   setting_category(p_("Account", "Languages"))
@@ -308,14 +311,14 @@ def load_notifications_settings
     make_setting(p_("Account", "Change e-mail"), :custom, Proc.new{insert_scene(Scene_Account_Mail.new)})
     make_setting(p_("Account", "Change password"), :custom, Proc.new{insert_scene(Scene_Account_Password.new)})
     make_setting(p_("Account", "Forgot password"), :custom, Proc.new { insert_scene(Scene_ForgotPassword.new) })
-    make_setting(p_("Account", "Manage Two-Factor authentication"), :custom, Proc.new{insert_scene(Scene_Authentication.new)})
+    # Klangten: the setup screen configures EltenLink's SMS based two-factor authentication.
+    make_setting(p_("Account", "Manage Two-Factor authentication"), :custom, Proc.new{insert_scene(Scene_Authentication.new)}) if Klangten::Config.sms_two_factor_enabled?
     make_setting(p_("Account", "Manage mail events-reporting"), :custom, Proc.new{insert_scene(Scene_Account_MailEvents.new)})
     make_setting(p_("Account", "Manage auto-login tokens"), :custom, Proc.new{insert_scene(Scene_Account_AutoLogins.new)})
     make_setting(p_("Account", "Show last logins"), :custom, Proc.new{insert_scene(Scene_Account_Logins.new)})
   end
   def load_others
     setting_category(p_("Account", "Others"))
-    make_setting(p_("Account", "Premium packages"), :custom, Proc.new{insert_scene(Scene_PremiumPackages.new)})
     make_setting(p_("Account", "Activity statistics"), :custom, Proc.new{insert_scene(Scene_Account_Statistics.new)})
     make_setting(p_("Account", "Export user data"), :custom, Proc.new{insert_scene(Scene_Account_Export.new)})
     make_setting(p_("Account", "Archive this account"), :custom, Proc.new{insert_scene(Scene_Account_Archive.new)})
@@ -631,7 +634,8 @@ class Scene_Account_Statistics
     end
 
     if @statistics.empty?
-      alert(p_("AccountStatistics", "Your activity statistics are being prepared. They should be available within an hour."))
+      # Klangten: the Klango server may not provide statistics, so do not promise them within an hour.
+      alert(p_("Klangten", "No activity statistics are available for your account at the moment."))
       return $scene = Scene_Main.new
     end
 
@@ -683,9 +687,7 @@ class Scene_Account_Statistics
       [p_("AccountStatistics", "Time in conferences"), ["conferences", "seconds"], :duration],
       [p_("AccountStatistics", "Time in private calls"), ["conferences", "private_seconds"], :duration],
       [p_("AccountStatistics", "Logins"), ["logins", "count"], :number],
-      [p_("AccountStatistics", "Feed posts"), ["feed", "posts"], :number],
-      [p_("AccountStatistics", "Feed responses"), ["feed", "responses"], :number],
-      [p_("AccountStatistics", "Mentions on the feed"), ["feed", "mentions_received"], :number],
+      # Klangten: EltenLink's feed statistics are gone; the feed is a Mastodon timeline.
       [p_("AccountStatistics", "Forum mentions sent"), ["mentions", "sent"], :number],
       [p_("AccountStatistics", "Forum mentions received"), ["mentions", "received"], :number]
     ]

@@ -1,7 +1,9 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: sponsors removed.
 
 module EltenLink
+  # Klangten: sponsor is always false; the member stays so programs reading it keep working.
   UserStatus = Struct.new(:text, :online, :sponsor, keyword_init: true)
   UserInfo = Struct.new(
     :name,
@@ -29,14 +31,14 @@ module EltenLink
     @status_users = []
     @status_texts = []
     @online = []
-    @sponsors = []
 
     class << self
-      def status(client, name, online: true, sponsor: true)
-        status_info(client, name, online: online, sponsor: sponsor).text
+      # Klangten: there are no sponsors; the sponsor keyword is accepted and ignored for compatibility.
+      def status(client, name, online: true, sponsor: false)
+        status_info(client, name, online: online).text
       end
 
-      def status_info(client, name, online: true, sponsor: true)
+      def status_info(client, name, online: true, sponsor: false)
         refresh_status_cache(client) if Time.now.to_i - 15 > @status_time
         return UserStatus.new(text: "", online: false, sponsor: false) if @status_users == nil || @online == nil
         text = ""
@@ -46,7 +48,7 @@ module EltenLink
         UserStatus.new(
           text: text,
           online: online && @online.include?(name),
-          sponsor: sponsor && @sponsors.include?(name)
+          sponsor: false
         )
       end
 
@@ -140,10 +142,8 @@ module EltenLink
         @status_time = Time.now.to_i
         statuses = client.api_data("GET", "/api/v1/users/statuses")["statuses"].to_a
         online = client.api_data("GET", "/api/v1/users/online")["users"].to_a
-        sponsors = client.api_data("GET", "/api/v1/admins", { "category" => "sponsors" })["users"].to_a
 
         @online = online.map(&:to_s).select { |line| line.size > 0 }
-        @sponsors = sponsors.map(&:to_s)
         @status_users = []
         @status_texts = []
         statuses.each_with_index do |row, index|

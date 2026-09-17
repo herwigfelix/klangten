@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
 
 class Scene_Messages
     def utf8(value)
@@ -831,7 +832,6 @@ if @sel_messages.index<@messages.size and @messages[@sel_messages.index].receive
   s=p_("Messages", "Protect")
 s=p_("Messages", "Unprotect") if @messages[@sel_messages.index].protected==1  
 menu.option(s, nil, "c") {
-if @messages[@sel_messages.index].protected==1   || requires_premiumpackage("courier")
   if @messages[@sel_messages.index].protected==0
     begin
       EltenLink::Messages.set_protected(elten_link, @messages[@sel_messages.index].id, true)
@@ -852,7 +852,6 @@ rescue EltenLink::Error
       end
       end
         @form_messages.focus
-end
         }
 end
 if @messages.size>0 and @sel_messages.index<@messages.size and @messages_user[0..0]!="["
@@ -917,11 +916,7 @@ rescue EltenLink::Error
   message.attachments_names
 end
 def audiolimit
-  if holds_premiumpackage("audiophile")
-    return 0
-  else
-    return 120
-    end
+  return 0
   end
                
   end
@@ -962,8 +957,7 @@ def audiolimit
                               loc=get_file(p_("Messages", "Select a file to attach"), path: EltenPath.with_separator(Dirs.documents), save: false)
                  if loc!=nil
                    size=File.size(loc)
-                   atsize=4*1024**2
-                   atsize=32*1024**2 if holds_premiumpackage("courier")
+                   atsize=32*1024**2
                                       if size>atsize
                      alert(p_("Messages", "The file is too large."))
                      else
@@ -989,7 +983,6 @@ def audiolimit
            @fields[6].bind_context{|menu|
            if @polls.size<3
              menu.option(p_("Messages", "Attach a poll"), nil, "n") {
-             if requires_premiumpackage("courier")
         begin
           polls = EltenLink::Polls.by_me(elten_link)
         rescue EltenLink::Error
@@ -1013,7 +1006,6 @@ def audiolimit
           else
             alert(p_("Messages", "You haven't created any polls yet."))
           end
-        end
         end
              }
            end
@@ -1142,18 +1134,10 @@ def message_send_error(error)
   end
 end
 def audiolimit
-  if holds_premiumpackage("audiophile")
-    return 0
-  else
-    return 120
-    end
+  return 0
   end
   def bitratelimit
-  if holds_premiumpackage("audiophile")
-    return 128
-  else
-    return 32
-    end
+  return 128
   end   
   
        end

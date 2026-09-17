@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: empty honors lists handled.
 
 class Scene_Honors
   def initialize(user = nil, toscene = nil, honor = nil)
@@ -20,6 +21,11 @@ class Scene_Honors
 
     if @user != nil && @honors.empty?
       alert(p_("Honors", "The user has not been awarded any honors."))
+      $scene = @toscene || Scene_Main.new
+      return
+    elsif @honors.empty?
+      # Klangten: the server may not offer any honors at all.
+      alert(p_("Honors", "No honors are available."))
       $scene = @toscene || Scene_Main.new
       return
     end

@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium, auctions, sponsors, calendar and tasks removed.
 
 module EltenAPI
   module QuickActions
@@ -11,6 +12,7 @@ module EltenAPI
         @@addprocs = []
     EMPTY_HOTKEY_ACTIONS = [].freeze
     HOTKEY_KEYS = (1..11).flat_map { |key| [key, -key, key + 12, -(key + 12)] }.freeze
+    REMOVED_SCENES = ["Scene_PremiumPackages", "Scene_Auctions", "Scene_Users_Sponsors", "Scene_Calendar", "Scene_Tasks", "Scene_Tasks_Projects"].freeze
     class QuickAction
       attr_accessor :label, :key, :show
       attr_reader :action, :params
@@ -168,15 +170,6 @@ module EltenAPI
       speak(p_("EAPI_Common", "Microphone unmuted"))
       end
     end
-  when :conference_pushtotalk
-    if Conference.opened?
-      Conference.pushtotalk=!Conference.pushtotalk
-  LocalConfig["ConferencePushToTalk"] = Conference.pushtotalk
-      end
-    when :conference_diceroll
-      Conference.diceroll(6)
-      when :conference_dicerollcustom
-      Scene_Conference.custom_diceroll
 else
   g = QuickActions.get_proc(action)
 if g!=nil
@@ -298,7 +291,6 @@ end
             [Scene_Forum, p_("EAPI_QuickActions", "Forum")],
       [Scene_Blog, p_("EAPI_QuickActions", "Blogs")],
       [Scene_Conference, p_("EAPI_QuickActions", "Conferences")],
-      [Scene_PremiumPackages, p_("EAPI_QuickActions", "Premium packages")],
       ]+predefined_procs(true)
     end
     def whatsnew_action(key=0, show=false)
@@ -339,9 +331,6 @@ end
 [:conference_streaming, p_("EAPI_QuickActions", "Conferences: stream audio file"), [], 0, false],
 [:conference_setvolumes, p_("EAPI_QuickActions", "Conferences: set volumes"), [], 0, false],
 [:conference_mutemic, p_("EAPI_QuickActions", "Conferences: mute microphone"), [], 0, false],
-[:conference_pushtotalk, p_("EAPI_QuickActions", "Conferences: switch push-to-talk"), [], 0, false],
-[:conference_diceroll, p_("EAPI_QuickActions", "Conferences: roll a 6-sided die"), [], 0, false],
-[:conference_dicerollcustom, p_("EAPI_QuickActions", "Conferences: roll a custom die"), [], 0, false],
 [:alarm, p_("EAPI_QuickActions", "Add alarm"), [], 0, false],
         ]
         for ac in @@addprocs
@@ -541,6 +530,8 @@ end
         show=false if key==10
       end
       return nil if action==nil
+      # Klangten: saved actions for removed sections (premium, auctions, sponsors, calendar, tasks) are dropped.
+      return nil if REMOVED_SCENES.include?(action.to_s)
       [action, label, params, key, show]
     end
     def legacy_whatsnew_record?(record)

@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
  
 module ForumSceneClient
   def forum_fetch(default = nil, error_message = _("Error"))
@@ -377,8 +378,7 @@ end
       @lastll=ll
     end
     knownlanguages = (Session.languages||"").split(",").map{|lg|lg.upcase}
-    pinned=[]
-        pinned=LocalConfig["ForumGroupsPinned", [], type: :array_of_numerics] if holds_premiumpackage("courier")
+    pinned=LocalConfig["ForumGroupsPinned", [], type: :array_of_numerics]
     case type
     when 0
       @grpindex.delete_at(-1) while @grpindex.size > 1
@@ -399,7 +399,9 @@ end
         end
       end
             @sgroups += spgroups
-            sorts=(0..@groups.map{|g|g.id}.max||0).to_a.map{0}
+            # Klangten: group ids can be large (the Klango server maps global forums and
+            # personal boards to synthetic ids above 10^9), so no array indexed by id.
+            sorts=Hash.new(0)
       for t in @threads
         g=t.forum.group.id
         sorts[g]=t.lastupdate if sorts[g]<t.lastupdate
@@ -464,7 +466,6 @@ end
       grpselt[2] = [nil] if fmt==0
       grpselt[@grpheadindex + @sgroups.size + 3] = [nil] if groupsinvitedcnt == 0
       grpselt[@grpheadindex + @sgroups.size + 4] = [nil] if groupsmoderatedcnt == 0
-      grpselt[@grpheadindex + @sgroups.size + 9] = [nil] if !holds_premiumpackage("courier")
       grpselt[@grpheadindex + @sgroups.size + 10] = [nil] if ofs==0
       grpselh = [nil, p_("Forum", "Forums"), p_("Forum", "Threads"), p_("Forum", "posts"), p_("Forum", "Unread")]
       @grpindex[0] = @grpheadindex + @sgroups.size + ll - 1 if ll > 0
@@ -477,7 +478,7 @@ end
           @sgroups.push(g)
         end
       end
-      sorts=(0..@groups.map{|g|g.id}.max||0).to_a.map{0}
+      sorts=Hash.new(0) # Klangten: synthetic group ids above 10^9, see groupsload
       for t in @threads
         g=t.forum.group.id
         sorts[g]=t.lastupdate if sorts[g]<t.lastupdate
@@ -761,7 +762,6 @@ return result
           end
         end
       end
-      if holds_premiumpackage("courier")
         pinned=LocalConfig["ForumGroupsPinned", [], type: :array_of_numerics]
           s=p_("Forum", "Pin this group")
           s=p_("Forum", "Unpin this group") if pinned.include?(g.id)
@@ -778,7 +778,6 @@ return result
             alert(p_("Forum", "Group has been unpinned"))
             end
           }
-        end
         menu.option(p_("Forum", "Search"), nil, "f") {
         @query=searcher_getquery(@sgroups[@grpsel.index - @grpheadindex])
         if @query != nil
@@ -1653,9 +1652,6 @@ loop do
         lst_phrasein.selected[0]=true
     lst_threadin.selected[0]=true
     lst_threadin.selected[1]=true
-chk_transcriptions.on(:change) {
-chk_transcriptions.checked=false if !requires_premiumpackage("courier")
-}
     form.accept_button = btn_search
     form.cancel_button = btn_cancel
     result=nil
@@ -1908,7 +1904,6 @@ form.focus
             s = p_("Forum", "Follow this forum")
       s = p_("Forum", "Unfollow this forum") if @sforums.size > 0 and @sforums[@frmsel.index].followed == true
       menu.option(s, nil, "l") {
-      if @sforums[@frmsel.index].followed || @sforums[@frmsel.index].group.role==2 || requires_premiumpackage("courier")
         if @sforums[@frmsel.index].followed == false
           if forum_attempt(nil) {
             EltenLink::Forum.follow_forum(elten_link, forumid: @sforums[@frmsel.index].id)
@@ -1926,7 +1921,6 @@ form.focus
         end
         if @group == -5
           forumsmain(@group)
-        end
         end
       }
       if @group != -5
@@ -2386,7 +2380,6 @@ threadopen(@thrsel.index)
             s = p_("Forum", "Mark this thread")
       s = p_("Forum", "Unmark this thread") if @sthreads[@thrsel.index].marked== true
       menu.option(s, nil, "h") {
-      if requires_premiumpackage("courier")
       m=0
       m=1 if @sthreads[@thrsel.index].marked== false
           if forum_attempt(nil) {
@@ -2401,7 +2394,6 @@ threadopen(@thrsel.index)
             if @forum == -10
               threadsmain(@forum)
             end
-          end
           end
       }
             s = p_("Forum", "Follow this thread")
@@ -2789,9 +2781,6 @@ form.wait
     fields = [EditBox.new(p_("Forum", "Thread name"), type: 0, text: "", quiet: true)]
     if type == 0
       fields[1..6] = [EditBox.new(p_("Forum", "Post content"), type: EditBox::Flags::MultiLine, text: "", quiet: true), CheckBox.new(p_("Forum", "Use Markdown in this post")), nil, Button.new(p_("Forum", "Attach a poll")), nil, Button.new(p_("Forum", "Attach a file"))]
-    fields[2].on(:change) {
-    fields[2].checked=false if !requires_premiumpackage("courier")
-    }
       else
       fields[1..6] = [OpusRecordButton.new(p_("Forum", "Audio post"), EltenPath.join(Dirs.temp, "audiopost.opus"), max_bitrate: 96, bitrate: 48), nil, nil, nil, nil, nil]
     end
@@ -3299,11 +3288,6 @@ loop do
     lastindex=@form.index if @form!=nil
     index=-1
     getcache
-    begin
-      @sponsors = EltenLink::Admins.users(elten_link, "sponsors")
-    rescue EltenLink::Error
-      @sponsors = []
-    end
     @fields = []
     @closed_thread_reply_button = nil
     return if @posts == nil
@@ -3325,9 +3309,6 @@ loop do
       update_post_field(post_field, post, signature_mode)
       post_field.audio_url = post.audio_url if post.respond_to?(:audio_url) && post.audio_url.to_s != ""
       @fields += [post_field, nil, nil]
-if @sponsors.include?(post.author)
-  @fields[-3].add_sound("user_sponsor")
-end
       @fields[-1] = ListBox.new(name_attachments(post.attachments), header: p_("Forum", "Attachments")) if post.attachments.size > 0
       if post.polls.size > 0
         names = []
@@ -3363,9 +3344,6 @@ end
     end
     @textfields = [EditBox.new(p_("Forum", "Your reply"), type: EditBox::Flags::MultiLine, text: pretext, quiet: true), nil, nil, nil, nil, nil, Button.new(p_("Forum", "Attach a file"))]
       @textfields[3] = CheckBox.new(p_("Forum", "Use Markdown in this post"))
-      @textfields[3].on(:change) {
-      @textfields[3].checked=false if !requires_premiumpackage("courier")
-      }
         @audiofields = [OpusRecordButton.new(p_("Forum", "Audio post"), EltenPath.join(Dirs.temp, "audiopost.opus"), max_bitrate: 96, bitrate: 48, time_limit: @threadclass.forum.group.audiolimit), nil, nil, nil, nil, nil, nil]
     if @noteditable == false
       case @posttype
@@ -3405,7 +3383,6 @@ end
 
   def effective_forum_signature_mode
     mode = forum_signature_mode
-    return SIGNATURE_MODE_NONE if mode == SIGNATURE_MODE_HIDDEN && !holds_premiumpackage("courier")
     return SIGNATURE_MODE_TEXT if mode == SIGNATURE_MODE_SOUND && !speech_indexes_supported?
     mode
   end
@@ -3627,9 +3604,7 @@ if post.edited && !post.locked
         )
       }
     m.option(p_("Forum", "Bookmarks"), nil, "b") {
-    if requires_premiumpackage("courier")
     showbookmarks
-    end
     }
       m.option(p_("Forum", "Go to post"), nil, "j") {
         selt = []
@@ -3736,7 +3711,6 @@ if post.edited && !post.locked
         s = p_("Forum", "Mark this thread")
       s = p_("Forum", "Unmark this thread") if @threadclass.marked== true
             menu.option(s, nil, "h") {
-            if requires_premiumpackage("courier")
                   m=0
       m=1 if @threadclass.marked== false
                 if forum_attempt(nil) {
@@ -3748,7 +3722,6 @@ if post.edited && !post.locked
             alert(p_("Forum", "Thread marked"))
             end
             @threadclass.marked = !@threadclass.marked
-          end
           end
             }
     s = p_("Forum", "Follow this thread")
@@ -3780,10 +3753,8 @@ if post.edited && !post.locked
       )
       if selected != nil && selected >= 0
         mode = SIGNATURE_MODES[selected]
-        if mode != SIGNATURE_MODE_HIDDEN || requires_premiumpackage("courier")
-          LocalConfig[FORUM_SIGNATURE_MODE_KEY] = mode
-          refresh
-        end
+        LocalConfig[FORUM_SIGNATURE_MODE_KEY] = mode
+        refresh
       end
     }
     if @form.index < @postscount * 3 && (((Session.moderator == 1 && @threadclass.forum.group.recommended) || (@threadclass != nil && @threadclass.forum.group.role == 2)) || (@posts[@form.index / 3].author == Session.name && @threadclass.forum.group.role==1))
@@ -3904,7 +3875,6 @@ if post.edited && !post.locked
   end
 
   def reply_to_mention(mention, select_type=false)
-    return if !requires_premiumpackage("courier")
     to=mention.author
     subj="RE: "+@threadclass.name
     text="\r\n-- (#{to}):\r\n#{mention.message}\r\n--\r\n"
@@ -4334,9 +4304,6 @@ form.wait
       end
       form = Form.new([EditBox.new(p_("Forum", "edit your post here"), type: EditBox::Flags::MultiLine, text: post.post), ListBox.new(atts.map{|a|a[2]}, header: p_("Forum", "Attachments")), CheckBox.new(p_("Forum", "Use Markdown in this post")), Button.new(_("Save")), Button.new(_("Cancel"))])
       form.fields[2].checked=post.format
-      form.fields[2].on(:change) {
-      form.fields[2].checked=post.format if !requires_premiumpackage("courier")
-      }
       form.hide(1) if @threadclass.forum.group.preventattachments
       form.fields[1].bind_context{|menu|
       if atts.size<3
@@ -5456,7 +5423,6 @@ dialog_close
 })
 make_setting(p_("Forum", "Prevent globally banned users from posting in this group"), :bool, "applyglobalbans")
   end
-if holds_premiumpackage("scribe")
   make_setting(p_("Forum", "Change group blog"), :custom, Proc.new{
 blogids=[]
 blognames=[]
@@ -5474,10 +5440,7 @@ setcurrentconfig("blog", blogids[ls-1])
 end
 end
   })
-  end
-if holds_premiumpackage("audiophile")
   make_setting(p_("Forum", "Create group channel in conferences"), :bool, "conference_channel")
-  end
   on_load {
 if currentconfig("recommended").to_i==0
 @form.fields[4].on(:move) {

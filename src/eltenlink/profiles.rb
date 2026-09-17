@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
 
 module EltenLink
   UserProfileBirthdate = Struct.new(:year, :month, :day, keyword_init: true) do
@@ -50,7 +51,7 @@ module EltenLink
           status: UserStatus.new(
             text: status["text"].to_s,
             online: Client.truthy?(status["online"]),
-            sponsor: Client.truthy?(status["sponsor"])
+            sponsor: false
           ),
           main_honor: Honors.parse(main_honor, klass: UserCardHonor),
           ban: ban == nil ? nil : BanInfo.new(

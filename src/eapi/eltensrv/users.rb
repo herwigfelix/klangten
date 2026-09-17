@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
 
 module EltenAPI
   module EltenSRV
@@ -30,7 +31,6 @@ module EltenAPI
       info=getstatusinfo(name, onl, spn)
       parts=[(label || name).to_s, separator.to_s]
       parts << SpeechCommands::SoundCommand.new("user_online", " "+p_("EAPI_Speech", "Online")+" ", "(online: ", immediate: true) if onl && info.online
-      parts << SpeechCommands::SoundCommand.new("user_sponsor", " "+p_("EAPI_Speech", "Sponsor")+" ", "(sponsor!)", immediate: true) if spn && info.sponsor
       parts << info.text.to_s if info.text.to_s!=""
       SpeechSequence.new(parts)
     end
@@ -39,7 +39,6 @@ module EltenAPI
       info = user_or_info.is_a?(EltenLink::UserStatus) ? user_or_info : getstatusinfo(user_or_info, onl, spn)
       states = []
       states << EltenAPI::Controls::ListBox.item_status("user_online", p_("EAPI_Speech", "Online"), p_("EAPI_Speech", "Online")) if info.online
-      states << EltenAPI::Controls::ListBox.item_status("user_sponsor", p_("EAPI_Speech", "Sponsor"), p_("EAPI_Speech", "Sponsor")) if info.sponsor
       states
     end
 

@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
 
 class Scene_Blog
   def initialize(index=0)
@@ -62,13 +63,9 @@ class Scene_Blog
                         $scene = Scene_Blog_List.new(5, self, r)
                       end
         when 7
-          if requires_premiumpackage("courier")
           $scene = Scene_Blog_Posts.new(Session.name,"FOLLOWED")
-          end
           when 8
-          if requires_premiumpackage("courier")
             $scene = Scene_Blog_Posts.new(Session.name,"MENTIONED")
-            end
           when 9
             $bloglistindex=0        
         $scene = Scene_Blog_List.new(8, nil, :library)
@@ -517,7 +514,6 @@ else
   if Session.logged? && (post.followed==true || !post.owner.to_s.start_with?("[*"))
     opt=post.followed==true ? p_("Blog", "Unfollow this post") : p_("Blog", "Follow this post")
     menu.option(opt, nil, "l") {
-      next if post.followed==false && !requires_premiumpackage("courier")
       begin
         if post.followed==true
           EltenLink::Blog.unfollow_post(elten_link, blog: post.owner, post_id: post.id)
@@ -778,7 +774,6 @@ def context(menu)
     if Session.logged? && (@post.followed==true || (@iseltenblog && @post.followed==false))
       opt=@post.followed==true ? p_("Blog", "Unfollow this post") : p_("Blog", "Follow this post")
       menu.option(opt, nil, "l") {
-        next if @post.followed==false && !requires_premiumpackage("courier")
         begin
           if @post.followed==true
             EltenLink::Blog.unfollow_post(elten_link, blog: @post.owner, post_id: @post.id)
@@ -1276,22 +1271,8 @@ confirm(p_("Blog", "All posts on this blog will be marked as read. Do you want t
 end
 end
 menu.option(p_("Blog", "Create new blog"), nil, "n") {
-can=true
-begin
-b=EltenLink::Blog.managed(elten_link)
-rescue EltenLink::Error
-      alert(_("Error"))
-      $scene=Scene_Main.new
-      can=false
-    else
-      can=false if b.size>0 && !requires_premiumpackage("scribe")
-    end
-    if can==true
 $bloglistindex = @sel.index
 $scene=Scene_Blog_Create.new(true, $scene)
-else
-  alert(p_("Blog", "You cannot create more blogs"))
-  end
 }
 if !@type.is_a?(String)
 if Session.languages.size>0
@@ -1768,7 +1749,6 @@ make_setting(p_("Blog", "First day of the week"), days, "start_of_week")
 end
 def load_others
   setting_category(p_("Blog", "Others"))
-  if holds_premiumpackage("scribe")
   blogs=get_blogs
   b=[p_("Blog", "Do not set")]
   bm=[""]
@@ -1784,7 +1764,6 @@ def load_others
     bm.push(u)
     end
   make_setting(p_("Blog", "If you want to redirect all browsers visiting this blog to another site, select it here"), b, "blog_redirect", bm)
-  end
   make_setting(p_("Blog", "My WordPress account"), :custom, Proc.new{insert_scene(Scene_Blog_Profile.new)})
   make_setting(p_("Blog", "Open WordPress admin panel in my browser"), :custom, Proc.new{
 begin
@@ -2148,7 +2127,6 @@ if lst_editor.index==0
     }
 @form = Form.new(@fields)
 @form.hide(btn_scheduledate) if !chk_schedule.checked
-@form.hide(chk_schedule) if !chk_schedule.checked && !holds_premiumpackage("scribe")
 chk_schedule.on(:change) {
 if chk_schedule.checked
   @form.show(btn_scheduledate)
@@ -2479,7 +2457,6 @@ end
     p_("Blog", "Shared Elten blog domain (selectedname.s.elten.blog)"),
     p_("Blog", "External domain")
     ], header: p_("Blog", "Domain type"))
-    @lst_domaintype.disable_item(2) if !holds_premiumpackage("scribe")
     @txt_domaininstructions = @form.fields[3] = EditBox.new(p_("Blog", "Buying your own domain"), type: EditBox::Flags::ReadOnly, text: p_("Blog", "To continue, you should point your domain to Elten Blogging server.\nYou can buy your own domain from domain providers, such as ovh.com, domain.com, godaddy.com or bluehost.com."), quiet: true)
         @edt_domain = @form.fields[4] = EditBox.new("", type: 0, text: "", quiet: true)
     @txt_fulldomain = @form.fields[5] = EditBox.new(p_("Blog", "Final new blog address"), type: EditBox::Flags::ReadOnly, text: "", quiet: true)

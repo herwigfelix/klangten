@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
 
 module EltenAPI
   module Controls
@@ -478,24 +479,17 @@ def context(menu, submenu=false)
   if (@flags&Flags::Formattable)>0
     menu.submenu(p_("EAPI_Form", "Format")) {|m|
     m.option(p_("EAPI_Form", "Bold"), nil, "b") {
-    if requires_premiumpackage("scribe")
     setformatting(Element::Bold)
-    end
     }
     m.option(p_("EAPI_Form", "Italic"), nil, "i") {
-    if requires_premiumpackage("scribe")
     setformatting(Element::Italic)
-    end
     }
     m.option(p_("EAPI_Form", "Underline"), nil, "u") {
-    if requires_premiumpackage("scribe")
     setformatting(Element::Underline)
-    end
     }
     m.submenu(p_("EAPI_Form", "Heading")) {|n|
         for i in 1..6
       n.option(p_("EAPI_Form", "Heading level %{level}")%{:level=>i}, i, i.to_s) {|level|
-      if requires_premiumpackage("scribe")
       a=line_beginning(@vindex, true)
       b=line_ending(@vindex, true)
       del=[]
@@ -514,14 +508,12 @@ def context(menu, submenu=false)
     elsif s==true
       play_sound("editbox_delete")
       end
-      end
       }
       end
     }
     }
     menu.submenu(p_("EAPI_Form", "Insert")) {|m|
     m.option(p_("EAPI_Form", "Link")) {
-      if requires_premiumpackage("scribe")
     form=Form.new([
     EditBox.new(p_("EAPI_Form", "URL"), type: 0, text: "", quiet: true),
     EditBox.new(p_("EAPI_Form", "Label"), type: 0, text: "", quiet: true),
@@ -544,7 +536,6 @@ def context(menu, submenu=false)
     end
     loop_update
     speak(text_range(line_beginning,line_ending))
-    end
     }
     }
   end
@@ -577,9 +568,7 @@ eredo
   }
   if defined?(SpellCheck) && (!SpellCheck.respond_to?(:available?) || SpellCheck.available?)
     menu.option(p_("EAPI_Form", "Spell check"), nil, "S") {
-    if requires_premiumpackage("scribe")
   espellcheck
-  end
   }
   end
   menu.submenu(p_("EAPI_Form", "Load last text")) {|m|
@@ -599,14 +588,10 @@ search
     }
   end
   menu.option(p_("EAPI_Form", "Quick translation"), nil, "t") {
-  if requires_premiumpackage("scribe")
   espeech(translatetext(0,Configuration.language,get_check_or_all))
-  end
   }
     menu.option(p_("EAPI_Form", "Translate"), nil, "T") {
-    if requires_premiumpackage("scribe")
   translator(get_check_or_all)
-  end
   }
   for a in @@customactions
       menu.option(a[0]) {

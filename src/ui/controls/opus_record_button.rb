@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
 
 module EltenAPI
   module Controls
@@ -81,7 +82,7 @@ end
     @recorder=nil
     @status = 2
     @form.show(@btn_record)
-    @form.show(@btn_tags) if holds_premiumpackage("audiophile")
+    @form.show(@btn_tags)
     @form.show(@btn_play)
     @form.hide(@btn_encodeplay)
     @form.hide(@btn_pause)
@@ -432,7 +433,7 @@ form.resume
         @btn_stop.press if @recorder!=nil
                 @status=2
         @current_filename = file
-        @form.show(@btn_tags) if holds_premiumpackage("audiophile")
+        @form.show(@btn_tags)
         @form.show(@btn_play)
         if file[0..4]=="http:" or file[0..5]=="https:"
         @form.hide(@btn_encodeplay)

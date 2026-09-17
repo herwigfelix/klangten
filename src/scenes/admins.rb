@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; council of elders and developers lists removed.
 
 class Scene_Admins
   def main(cat=0, subcat=0)
@@ -13,14 +14,10 @@ class Scene_Admins
     begin
         case cat
     when 0
-        @selt=[p_("Admins", "Council of elders"), p_("Admins", "Developers"), p_("Admins", "Translators"), p_("Admins", "Community Administrators"), p_("Admins", "Moderators of recommended groups"), p_("Admins", "Sponsors")]
+        # Klangten: the Klango server has no council of elders and no developers list,
+        # so the categories start at 3 (translators).
+        @selt=[p_("Admins", "Translators"), p_("Admins", "Community Administrators"), p_("Admins", "Moderators of recommended groups")]
     @users=[]
-    when 1
-      @users = EltenLink::Admins.users(elten_link, "elders")
-    @selt=@users.deep_dup
-    when 2
-@users = EltenLink::Admins.users(elten_link, "developers")
-    @selt=@users.deep_dup
     when 3
       if subcat==0
         ld=loadedlanguages
@@ -58,9 +55,6 @@ class Scene_Admins
         @users=@groups[subcat]
         @selt=@users.deep_dup
       end
-      when 6
-        @users = EltenLink::Admins.users(elten_link, "sponsors")
-    @selt=@users.deep_dup
       end
     rescue EltenLink::Error => e
       Log.warning("Admins list failed: #{e.message}")
@@ -84,7 +78,7 @@ class Scene_Admins
       if @sel.selected? or (@sel.expanded? and @sel.index>=@users.size && @sel.options.size>0) or (key_pressed?(:key_alt) and @sel.index<@users.size)
         if cat==0
           @indexes={0=>@sel.index}
-          return main(@sel.index+1)
+          return main(@sel.index+3)
           else
         if @sel.index>=@users.size
           @indexes[cat]=@sel.index
