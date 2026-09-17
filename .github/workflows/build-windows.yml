@@ -99,10 +99,28 @@ jobs:
             dist/windows/build-id.txt
           if-no-files-found: error
 
+      # Der Text des Releases ist der Changelog-Eintrag dieser Version, denselben
+      # zeigt der Client unter "Changelog" an.
+      - name: Release-Text vorbereiten
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}" -replace '^v', ''
+          $kandidaten = @(($v -replace '\.', '_'), (($v -replace '\.[^.]+$', '') -replace '\.', '_'))
+          $quelle = $kandidaten | ForEach-Object { "locale/en-GB/changelog/$_.md" } | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if ($quelle) {
+            Copy-Item $quelle release-notes.md
+            Write-Host "Release-Text aus $quelle"
+          } else {
+            "Klangten $v" | Out-File release-notes.md -Encoding utf8
+            Write-Host "::warning::Kein Changelog-Eintrag für $v gefunden"
+          }
+
       - name: An das Release anhängen
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          body_path: release-notes.md
           files: |
             dist/windows/KlangtenSetup.exe
             dist/windows/KlangtenSetup.exe.sha256

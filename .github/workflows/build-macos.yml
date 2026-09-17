@@ -153,10 +153,32 @@ jobs:
             dist/osx/build-id.txt
           if-no-files-found: error
 
+      # Der Text des Releases ist der Changelog-Eintrag dieser Version, denselben
+      # zeigt der Client unter "Changelog" an.
+      - name: Release-Text vorbereiten
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -eu
+          v="${GITHUB_REF_NAME#v}"
+          rm -f release-notes.md
+          for kandidat in "$(printf '%s' "$v" | tr '.' '_')" "$(printf '%s' "${v%.*}" | tr '.' '_')"; do
+            quelle="locale/en-GB/changelog/$kandidat.md"
+            if [ -f "$quelle" ]; then
+              cp "$quelle" release-notes.md
+              echo "Release-Text aus $quelle"
+              break
+            fi
+          done
+          if [ ! -f release-notes.md ]; then
+            printf 'Klangten %s\n' "$v" > release-notes.md
+            echo "::warning::Kein Changelog-Eintrag für $v gefunden"
+          fi
+
       - name: An das Release anhängen
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          body_path: release-notes.md
           files: |
             dist/osx/Klangten.dmg
             dist/osx/Klangten.dmg.sha256

@@ -2,7 +2,8 @@
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
-# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the fork's own versions.
 
 class Scene_Changes
   def main
@@ -135,20 +136,22 @@ class Scene_Changes
 ["3.01", "2026-08-27"],
 ["3.02", "2026-09-02"],
 ["3.03", "2026-09-08"],
+# Klangten: everything above is the history of upstream Elten and keeps its
+# name; the fork's own versions carry theirs, given as the third element.
+["0.1", "2026-09-17", Klangten::Config::PRODUCT_NAME],
 ]
-verstring="Elten"
 @changes=versions.map{|v|
 verdots=v[0].delete(".").split("").join(".")
-"#{verstring} #{verdots}:
+"#{v[2]||"Elten"} #{verdots}:
 #{_doc("changelog/"+verdots.gsub(".","_"))}
 
 #{v[1]}"
 }
 @changes.reverse!
-@selt = []
-for i in 0..@changes.size - 1
-  @selt.push((@changes[i]).split("\n")[0].delete(":").sub(verstring+" ",""))
-  end
+# The list shows the bare version; it comes from the table instead of being
+# parsed back out of the text, which only worked while every entry shared one
+# product name.
+@selt=versions.reverse.map{|v|v[0].delete(".").split("").join(".")}
 @sel = ListBox.new(@selt,header: p_("Changes", "Changelog"), index: 0, flags: 0, quiet: false)
 loop do
   loop_update
