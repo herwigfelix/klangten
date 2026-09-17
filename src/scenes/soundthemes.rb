@@ -174,7 +174,7 @@ menu.option(p_("SoundThemes", "Download")) {
      else
        size=(((st.size/1048576.0)*10.0).round/10.0).to_s+"MB"
        end
-     confirm(p_("SoundThemes", "Do you want to download the theme %{name}? You will need to download %{size} of data.")%{:name=>st.name, :size=>size}) {
+     confirm(p_("SoundThemes", "Do you want to download the theme %{name}? You will need to download %{size} of data.")%{:name=>st.name, :size=>size}, default_yes: true) {
           downloadtheme(st)
           rfr.call
           sel.rows=sts
@@ -214,7 +214,7 @@ break
      else
        size=(((st.size/1048576.0)*10.0).round/10.0).to_s+"MB"
        end
-     confirm(p_("SoundThemes", "Do you want to download the theme %{name}? You will need to download %{size} of data.")%{:name=>st.name, :size=>size}) {
+     confirm(p_("SoundThemes", "Do you want to download the theme %{name}? You will need to download %{size} of data.")%{:name=>st.name, :size=>size}, default_yes: true) {
           downloadtheme(st)
           rfr.call
           sel.rows=sts

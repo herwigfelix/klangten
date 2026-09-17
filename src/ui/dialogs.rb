@@ -11,10 +11,12 @@ module EltenAPI
 #
 # @param text [String] a question to ask
 # @return [Boolean] returns true if user selected yes, otherwise false.
-def confirm(text="")
+# Klangten: default_yes focuses "Yes" for confirmations of actions the user has
+# just explicitly chosen (e.g. downloading a sound theme); destructive prompts keep "No".
+def confirm(text="", default_yes: false)
   text.gsub!("jesteĹ› pewien","jesteĹ› pewna") if Configuration.language=="pl-PL" and Session.gender==0
   dialog_open
-  sel = ListBox.new([_("No"),_("Yes")],header: text,index: 0,flags: ListBox::Flags::AnyDir, quiet: false)
+  sel = ListBox.new([_("No"),_("Yes")],header: text,index: (default_yes ? 1 : 0),flags: ListBox::Flags::AnyDir, quiet: false)
   tab_held_since = nil
   easter_egg = false
   loop do
