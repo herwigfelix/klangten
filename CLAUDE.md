@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-**Klangten**, a GPLv3 fork of Elten 3 (Dawid Pieper) on branch `klangten`. Klangten keeps Elten's self-voicing, keyboard-driven UI but talks to a **Klango** server (`https://ten.klango.online`) instead of EltenLink, and installs side by side with a normal Elten. `readme.md` documents the fork and keeps the upstream README below "Original Elten README"; `NOTICE.md` and `THIRD-PARTY-NOTICES.md` carry the GPL §5a statements.
+**Klangten**, a GPLv3 fork of Elten 3 (Dawid Pieper). Development happens on `main`; `upstream-main` keeps the untouched upstream state this fork started from. Klangten keeps Elten's self-voicing, keyboard-driven UI but talks to a **Klango** server (`https://ten.klango.online`) instead of EltenLink, and installs side by side with a normal Elten. `readme.md` documents the fork and keeps the upstream README below "Original Elten README"; `NOTICE.md` and `THIRD-PARTY-NOTICES.md` carry the GPL §5a statements.
 
 Upstream docs stay valid for the shared parts: `docs/architecture.md` (runtime model, `$scene`, interaction ownership), `docs/building.md`, `docs/contributing.md`, `docs/eltenapps.md`. Klangten-specific: `docs/klangten-releases.md`.
 
