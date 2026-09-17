@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module NotificationService
@@ -43,15 +44,10 @@ module EltenAPI
         @thread != nil && @thread.alive? && @stopped != true
       end
 
+      # Klangten: the feed is a Mastodon timeline polled by Klangten::Mastodon::Service.
       def reset_feeds
         ensure_state
-        @feed_request_pending = false
-        @ag_feed = 0
-        @ag_feedtime = 0
-        @feedstime = 0
-        @notificationtime = 0
-        @lastfeeds = nil
-        $feeds = {}
+        Klangten::Mastodon::Service.refresh if defined?(Klangten::Mastodon::Service)
       end
 
       def drain_events(limit=50)
@@ -184,12 +180,9 @@ module EltenAPI
         @realtime_cursor = nil
         @realtime_cursor_request_id = 0
         @inflight_requests = {}
-        @feed_request_pending = false
         @virtual_update_request_pending = false
         @next_virtual_update_check_at = 0.0
-        @feedstime = 0
         @notificationtime = 0
-        $feeds = {}
         @next_request_at = monotonic_time
         @stream_generation = 0
         @stream_supported = nil
@@ -215,6 +208,7 @@ module EltenAPI
             key = session_key
             if key == nil
               reset_session(nil)
+              poll_mastodon(nil)
               clear_responses
               clear_background_responses
               cancel_status_requests
@@ -230,7 +224,7 @@ module EltenAPI
               drain_stream_controls
               drain_background_responses
               clear_stale_requests(now)
-              @feed_request_pending = false if @feed_request_pending == true && now - (@feed_request_started_at || 0) > 30
+              poll_mastodon(key)
               @virtual_update_request_pending = false if @virtual_update_request_pending == true && now - (@virtual_update_request_started_at || 0) > REQUEST_STALE_AFTER
               refresh_ticket = pending_runtime_state_refresh(key)
               if refresh_ticket != nil && @inflight_requests.size < MAX_INFLIGHT_REQUESTS
@@ -243,7 +237,7 @@ module EltenAPI
                 request_status(key)
               end
               if now >= (@next_virtual_update_check_at || 0) && @virtual_update_request_pending != true
-                if launched_by_launcher?
+                if launched_by_launcher? && Klangten::Config.updates_enabled?
                   request_virtual_updates(key, now)
                 else
                   @next_virtual_update_check_at = now + VIRTUAL_UPDATE_CHECK_INTERVAL
@@ -273,15 +267,10 @@ module EltenAPI
         clear_events
         clear_responses
         clear_background_responses
-        enqueue_event("func" => "call_stop", "call_id" => @call_id, "caller" => @call_caller) if @ringingplaying == true || @call_id != nil
         @session_key = key
         @wnlasttime = nil
         @ag_msg = nil
-        @ag_feed = 0
-        @ag_feedtime = 0
-        @feedstime = 0
         @notificationtime = 0
-        @lastfeeds = nil
         @sigids = []
         @stream_supported = nil
         @stream_capability_request_id = 0
@@ -305,14 +294,8 @@ module EltenAPI
         @notification_apps = installed_notification_apps
         @stream_control_pending = false
         @stream_last_shown = nil
-        @premiumpackages = []
-        @auctions = nil
-        @call_id = nil
-        @call_caller = nil
-        @ringingplaying = false
         cancel_status_requests
         @inflight_requests.clear
-        @feed_request_pending = false
         @virtual_update_request_pending = false
         @next_virtual_update_check_at = 0.0
         @notification_ids.clear
@@ -389,7 +372,7 @@ module EltenAPI
           "cancellation" => cancellation
         }
         params = notification_request_params(name, token, lasttime, shown)
-        params["stream_capability"] = 1
+        # Klangten: stream_capability is never announced; realtime state uses the long-poll only.
         cursor = realtime_cursor
         params["wait_ms"] = refresh_ticket == nil ? LONG_POLL_WAIT_MS : 0
         params["realtime_cursor"] = cursor unless cursor.empty?
@@ -714,7 +697,8 @@ module EltenAPI
         cursor = response["realtime_cursor"].to_s
         accept_realtime_cursor(cursor, request_id)
         if request_id.to_i >= @stream_capability_request_id.to_i
-          @stream_supported = response["realtime_stream"].to_i == 1
+          # Klangten: the realtime stream is never used, whatever the server announces.
+          @stream_supported = false
           @stream_capability_request_id = request_id.to_i
         end
         handle_status_data(response, key, calibrating, request_id, refresh_ticket, stream: false)
@@ -735,19 +719,16 @@ module EltenAPI
 
       def handle_status_data(response, key, calibrating=false, request_id=0, refresh_ticket=nil, stream: false)
         return if key != @session_key
-        handle_auctions(response)
         if response["time"].is_a?(Integer)
           server_time = response["time"].to_i
           @wnlasttime = @wnlasttime == nil ? server_time : [@wnlasttime.to_i, server_time].max
         end
         handle_message_counter(response)
-        handle_feed_counter(response, key)
         handle_active_notifications(response, request_id)
         handle_notification_counter(response, calibrating)
         handle_signals(response, acknowledge: stream) if calibrating != true
         EltenAPI::LiveSessions.receive(response["live_sessions"]) if defined?(EltenAPI::LiveSessions)
-        handle_premium_packages(response)
-        handle_call(response, key)
+        # Klangten: calls arrive over TeamConference (src/eapi/conference.rb), not in the realtime "call" field.
         if @notifications_primed != true
           @notifications_primed = prime_window_notifications(response)
         else
@@ -758,28 +739,12 @@ module EltenAPI
         Log.error("Notification response error: #{$!.class}: #{$!.message}")
       end
 
-      def handle_auctions(response)
-        active = response["auctions"] == true
-        return if @auctions == active
-        @auctions = active
-        enqueue_event("func" => "auctions", "auctions" => active)
-      end
-
       def handle_message_counter(response)
         count = response["msg"].to_i
         @ag_msg ||= count
         return if @ag_msg >= count
         @ag_msg = count
         enqueue_event("func" => "msg", "msgs" => @ag_msg)
-      end
-
-      def handle_feed_counter(response, key)
-        feed = response["feed"].to_i
-        feedtime = response["feedtime"].to_i
-        return if @feed_request_pending == true
-        return if @lastfeeds != nil && @ag_feed == feed && @ag_feedtime >= feedtime
-
-        fetch_feeds(key, feed: feed, feedtime: feedtime)
       end
 
       def handle_notification_counter(response, calibrating=false)
@@ -829,39 +794,6 @@ module EltenAPI
             "id" => id
           )
           @pending_signal_acks[id.to_i] = true if acknowledge && id.to_i.positive?
-        end
-      end
-
-      def handle_premium_packages(response)
-        packages = response["premiumpackages"]
-        return if !packages.is_a?(Array) || @premiumpackages == packages
-        enqueue_event("func" => "notif", "sound" => "signal") if @premiumpackages.is_a?(Array) && @premiumpackages.size > 0
-        @premiumpackages = packages
-        enqueue_event("func" => "premiumpackages", "premiumpackages" => packages.join(","))
-      end
-
-      def handle_call(response, key)
-        call = response["call"]
-        if call.is_a?(Hash)
-          return if call["id"] == @call_id
-          @call_id = call["id"]
-          @call_caller = call["caller"]
-          @ringingplaying = true
-          enqueue_event(
-            "func" => "call_start",
-            "call_id" => call["id"],
-            "caller" => call["caller"],
-            "channel" => call["channel"].to_i,
-            "password" => call["channel_password"],
-            "ringtone" => ringtone_for(call["caller"])
-          )
-        elsif @ringingplaying == true || @call_id != nil
-          call_id = @call_id
-          caller = @call_caller
-          @ringingplaying = false
-          @call_id = nil
-          @call_caller = nil
-          enqueue_event("func" => "call_stop", "call_id" => call_id, "caller" => caller)
         end
       end
 
@@ -916,26 +848,26 @@ module EltenAPI
         true
       end
 
-      def fetch_feeds(key, feed: nil, feedtime: nil)
-        return if @feed_request_pending == true
-        name, token = key
-        @feed_request_pending = true
-        @feed_request_started_at = monotonic_time
-        params = {
-          "name" => name,
-          "token" => token,
-          "time" => (@feedstime || 0),
-          "limit" => 1500
-        }
-        path = EltenLink::Client.append_query("/api/v1/feeds/followed", params)
-        request_data = { "session_key" => key, "feed" => feed.to_i, "feedtime" => feedtime.to_i }
-        elten_link.e_json_request("GET", path, {}, request_data) do |answer, data|
-          @background_responses << ["feeds", answer, data]
-        rescue Exception
-          Log.error("Notification feed callback error: #{$!.class}: #{$!.message}")
+      # Klangten: replaces Elten's fetch of /feeds/followed. The connected Mastodon
+      # account is polled in the background; new home statuses play feed_update,
+      # new mentions feed_mention (see Klangten::Mastodon::Service).
+      def poll_mastodon(key)
+        return unless defined?(Klangten::Mastodon::Service)
+        name = key == nil ? nil : key[0]
+        Klangten::Mastodon::Service.tick(name).each do |event|
+          next if event["func"] == "notif" && !mastodon_sound_allowed?(event)
+          enqueue_event(event)
         end
+      rescue Exception
+        Log.error("Mastodon poll: #{$!.class}: #{$!.message}")
       end
-
+      
+      def mastodon_sound_allowed?(event)
+        return false if $donotdisturb == true
+        return false if event["mastodon"] == "home" && Configuration.disablefeednotifications == true
+        true
+      end
+      
       def request_virtual_updates(key, now=monotonic_time)
         return if @virtual_update_request_pending == true
 
@@ -946,6 +878,7 @@ module EltenAPI
         params = {
           "branch" => get_updatesbranch,
           "os" => platform_os,
+          "arch" => Klangten::Updates.arch,
           "current_build_id" => Elten.build_id.to_s,
           "name" => name,
           "apps" => NotificationGroups.installed_program_update_payload
@@ -1002,58 +935,6 @@ module EltenAPI
           apps: app_updates
         )
       end
-      def handle_feeds_response(answer, request_data)
-        key = request_data.is_a?(Hash) ? request_data["session_key"] : request_data
-        return if key != @session_key || !answer.is_a?(String)
-        body = answer.dup.force_encoding("UTF-8").encode("UTF-8", invalid: :replace, undef: :replace)
-        payload = JSON.load(body)
-        return unless payload.is_a?(Hash) && payload["success"] == true
-
-        response_data = payload["data"].is_a?(Hash) ? payload["data"] : {}
-        rows = response_data["messages"].is_a?(Array) ? response_data["messages"] : []
-        feeds = rows.each_with_object({}) do |row, result|
-          feed = EltenLink::Feeds.message_from_row(row, feed_message_class)
-          result[feed.id] = feed if feed.id > 0
-        end
-        current_feeds = @lastfeeds == nil ? feeds : @lastfeeds.dup
-        changed = []
-        played = false
-        feeds.each do |id, current|
-          previous = @lastfeeds == nil ? nil : @lastfeeds[id]
-          next if previous != nil && previous.message == current.message && previous.responses == current.responses && previous.likes == current.likes && previous.liked == current.liked && previous.audio_url == current.audio_url
-          if previous == nil && @lastfeeds != nil && current.message != "" && mention?(current.message)
-            enqueue_event("func" => "notif", "sound" => "feed_mention") if $donotdisturb != true
-          end
-          if played == false && previous == nil && @lastfeeds != nil && current.message != ""
-            played = true
-            enqueue_event("func" => "notif", "sound" => "feed_update") if $donotdisturb != true && Configuration.disablefeednotifications != true
-          end
-          changed << current
-          current_feeds[id] = current
-        end
-        @feedstime = [@feedstime.to_i, response_data["feedtime"].to_i, @ag_feedtime.to_i].max
-        @ag_feed = request_data["feed"].to_i if request_data.is_a?(Hash)
-        @ag_feedtime = [@ag_feedtime.to_i, request_data.is_a?(Hash) ? request_data["feedtime"].to_i : 0, @feedstime.to_i].max
-        $feeds = current_feeds
-        enqueue_event("func" => "feeds", "changed" => changed.map { |feed| feed.to_h }) if changed.size > 0
-        @lastfeeds = current_feeds
-      rescue Exception
-        Log.error("Notification feed error: #{$!.class}: #{$!.message}")
-      end
-
-      def request_missed_call_status(key, call_id, caller)
-        return if call_id == nil
-        Thread.new do
-          Thread.current.report_on_exception = false
-          begin
-            active = EltenLink::Calls.active?(elten_link, call_id, absolute: true)
-            @background_responses << ["missed_call", active, [key, caller]]
-          rescue Exception
-            Log.error("Missed call status request error: #{$!.class}: #{$!.message}")
-          end
-        end
-      end
-
       def drain_background_responses(limit=10)
         count = 0
         while count < limit
@@ -1063,14 +944,6 @@ module EltenAPI
             break
           end
           case type
-          when "feeds"
-            begin
-              handle_feeds_response(answer, data)
-            ensure
-              @feed_request_pending = false
-            end
-          when "missed_call"
-            handle_missed_call_response(answer, data)
           when "virtual_updates"
             begin
               handle_virtual_updates_response(answer, data)
@@ -1080,14 +953,6 @@ module EltenAPI
           end
           count += 1
         end
-      end
-
-      def handle_missed_call_response(answer, data)
-        request_key, request_caller = data
-        return if request_key != @session_key
-        enqueue_event("func" => "missed_call", "caller" => request_caller) if answer == true
-      rescue Exception
-        Log.error("Missed call status error: #{$!.class}: #{$!.message}")
       end
 
       def remember_notification(id=nil)
@@ -1183,12 +1048,6 @@ module EltenAPI
         @realtime_mode_reported = true
         Log.info("Session realtime mode: #{description}")
         true
-      end
-
-      def feed_message_class
-        return ::FeedMessage if defined?(::FeedMessage)
-        return EltenAPI::Common::FeedMessage if defined?(EltenAPI::Common::FeedMessage)
-        FeedMessage
       end
 
       def configuration_string(name, default="")
@@ -1302,22 +1161,6 @@ module EltenAPI
         payload
       end
 
-      def mention?(text)
-        name = @session_key == nil ? nil : @session_key[0]
-        return false if name == nil || name == ""
-        (/\@#{Regexp.escape(name)}([^a-zA-Z0-9\.\-\_]|$)/i =~ text.to_s) != nil
-      end
-
-      def ringtone_for(caller)
-        return "ringing" if !@premiumpackages.is_a?(Array) || !@premiumpackages.include?("audiophile")
-        file = EltenPath.join(Dirs.eltendata, "ringtones.json")
-        return "ringing" if !FileTest.exist?(file)
-        json = JSON.load(IO.binread(file))
-        candidate = json[caller]
-        candidate != nil && FileTest.exist?(candidate) ? candidate : "ringing"
-      rescue Exception
-        "ringing"
-      end
     end
   end
 end

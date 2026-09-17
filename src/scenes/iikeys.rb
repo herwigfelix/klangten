@@ -2,7 +2,8 @@
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
-# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: feed shortcuts describe the Mastodon feed.
 
 class Scene_IIKeys
   def main
@@ -15,9 +16,9 @@ class Scene_IIKeys
     add("Backspace", p_("IIKeys", "Cancel speech and stop the audio that is currently playing"))
     add("Space", p_("IIKeys", "Repeat the currently selected item"))
 add("R", p_("IIKeys", "Reply"))
-add("K", p_("IIKeys", "Like or dislike a feed message"))
+add("K", p_("Klangten", "Add the selected Mastodon post to your favourites or remove it"))
     add("M", p_("IIKeys", "Write a new message"))
-    add("F", p_("IIKeys", "Post on a feed"))
+    add("F", p_("Klangten", "Publish a post on Mastodon"))
 show    
 loop {
 loop_update

@@ -283,7 +283,8 @@ module NotificationGroups
   end
 
   def collect_virtual_notification_groups
-    NotificationGroups.virtual_notification_groups
+    # Klangten: unread mentions of the connected Mastodon account are shown as a virtual group.
+    NotificationGroups.virtual_notification_groups + mastodon_notification_groups
   end
 
   def installed_program_update_payload

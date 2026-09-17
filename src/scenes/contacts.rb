@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_Contacts
   def initialize(type=0)
@@ -78,9 +79,6 @@ loop_update
           end
         if key_pressed?(:key_enter) and @contact.size > 0
                     usermenu(@contact[@sel.index],false)
-          end
-        if key_pressed?(:key_tab) and @contact.size > 0
-                    insert_scene(Scene_FeedViewer.new(@contact[@sel.index]))
           end
         end
             

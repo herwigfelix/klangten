@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the feed tab shows the home timeline of a connected Mastodon account.
 
 class Scene_Main
   include NotificationGroups
@@ -12,7 +13,7 @@ class Scene_Main
   @@acselindex=nil
   @@notification_index=0
   @@notifications_last_visible_time=0
-  @@feed_id=-1
+  @@feed_id=nil
   @@focus=:actions
   @@specials=[]
 
@@ -22,8 +23,8 @@ class Scene_Main
   end
 
   def main
-    if @@feed_id==-1
-      @@feed_id = LocalConfig['MainFeedId', type: :numeric]
+    if @@feed_id==nil
+      @@feed_id = LocalConfig['MainMastodonStatusId', "", type: :string]
     end
     if !Session.logged? && $preinitialized!=true
       $scene=Scene_Loading.new
@@ -114,8 +115,8 @@ class Scene_Main
     end
     @@notification_index=@notifications_sel.index if @notifications_sel!=nil
     @@acselindex=@acsel.index if @acsel!=nil
-    @@feed_id = @feeds[@feedsel.index].id if @feeds.size>0
-    LocalConfig['MainFeedId'] = @@feed_id
+    @@feed_id = @feeds[@feedsel.index].id.to_s if @feeds.is_a?(Array) && @feeds.size>0 && @feedsel!=nil && @feeds_placeholder==nil
+    LocalConfig['MainMastodonStatusId'] = @@feed_id.to_s
   end
 def self.register_specialaction(id, name, &proc)
   unregister_specialaction(id)
@@ -475,15 +476,20 @@ def quick_actions_update
 end
 
 def feed_update
-  if @feeds.size>0
+  if @feeds_placeholder!=nil
     if @feedsel.selected?
-      feedshow(@feeds[@feedsel.index])
+      mastodon_account_dialog
+      feeds_load(true)
+    end
+  elsif @feeds.size>0
+    if @feedsel.selected?
+      mastodon_show_status(@feeds[@feedsel.index])
       loop_update
     end
-    if @feedsel.expanded?
+    if $scene==self && @feedsel.expanded?
       feed=@feeds[@feedsel.index]
-      if feed.responses>0
-        $scene = Scene_FeedViewer.new(feed, Scene_Main.new(notification_focus: :keep_current), false)
+      if feed.responses>0 || feed.response.to_s!=""
+        $scene = Scene_MastodonTimeline.new(:thread, feed, Scene_Main.new(notification_focus: :keep_current))
       end
     end
   end
@@ -675,45 +681,39 @@ def action_add
   @acsel.focus
   end
 end
+# Klangten: the feed tab lists the home timeline of the connected Mastodon
+# account, cached by Klangten::Mastodon::Service.
 def feeds_load(fc=false)
-  @@feed_id = @feeds[@feedsel.index].id if @feeds.is_a?(Array) && @feeds.size>0 && @feedsel!=nil
+  @@feed_id = @feeds[@feedsel.index].id.to_s if @feeds.is_a?(Array) && @feeds.size>0 && @feedsel!=nil && @feeds_placeholder==nil
   @feeds=[]
-  ind=-1
-  for f in Session.feeds.keys.sort.reverse
-    feed=Session.feeds[f]
-    @feeds.push(feed) if feed!=nil && feed.message!=""
-    ind=@feeds.size-1 if ind==-1 && @@feed_id>0 && feed.id<=@@feed_id
+  @feeds_placeholder=nil
+  service=Klangten::Mastodon::Service
+  if mastodon_account==nil
+    @feeds_placeholder=:connect
+    selt=[p_("Mastodon", "No Mastodon account is connected. Press Enter to connect one.")]
+  elsif service.status==:unauthorized
+    @feeds_placeholder=:reconnect
+    selt=[p_("Mastodon", "The Mastodon server no longer accepts the connection to your account. Press Enter to connect the account again.")]
+  else
+    @feeds=service.home_statuses
+    selt=@feeds.map{|status|mastodon_status_speech(status)}
   end
-  ind=0 if ind==-1
-selt=@feeds.map{|f|
-parts=[utf8(f.user)]
-parts << EltenAPI::SpeechCommands::SoundCommand.new("listbox_itemliked", " "+p_("EAPI_Speech", "Liked")+": ", "(like)", immediate: true) if f.liked
-parts << ": "+utf8(f.message)+" "
-parts << "("+utf8(np_("Main", "%{count} user likes it", "%{count} users like it", f.likes)%{:count=>f.likes})+") " if f.likes>0
-begin
-parts << utf8(format_date(Time.at(f.time)))
-rescue Exception
-  end
-parts << EltenAPI::SpeechCommands::SoundCommand.new("listbox_itemcontaining", " "+p_("EAPI_Speech", "Containing")+": ", "->", immediate: true) if f.responses>0
-EltenAPI::SpeechSequence.new(parts)
-}
+  ind=@feeds.index{|status|status.id.to_s==@@feed_id.to_s} || 0
+  empty_label=service.primed? ? p_("Mastodon", "The home timeline is empty.") : p_("Mastodon", "Loading the home timeline...")
   if @feedsel==nil
-  @feedsel = ListBox.new(selt, header: p_("Main", "Feed"), index: ind)
-  @feedsel.bind_context{|menu|feeds_context(menu)}
-  @feedsel.on(:move) {
-  if @feeds.size>0
-  feed=@feeds[@feedsel.index]
-  if feed!=nil
-    EltenAPI::InvisibleInterface.set_feed_id(feed.id) if defined?(EltenAPI::InvisibleInterface)
-  end
-  end
-  }
-else
-  @feedsel.options = selt
+    @feedsel = ListBox.new(selt, header: p_("Mastodon", "Home timeline"), index: ind, empty_label: empty_label)
+    @feedsel.bind_context{|menu|feeds_context(menu)}
+    @feedsel.on(:move) {
+      feed=@feeds_placeholder==nil ? @feeds[@feedsel.index] : nil
+      EltenAPI::InvisibleInterface.set_feed_id(feed.id) if feed!=nil && defined?(EltenAPI::InvisibleInterface)
+    }
+  else
+    @feedsel.empty_label = empty_label
+    @feedsel.options = selt
     @feedsel.index = ind
-end
-configure_feed_list_audio(@feedsel, @feeds)
-@feedsel.focus if fc
+  end
+  configure_feed_list_audio(@feedsel, @feeds)
+  @feedsel.focus if fc
 end
 
 def utf8(value)
@@ -722,92 +722,26 @@ def utf8(value)
   str.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
 end
 def feeds_context(menu)
-  if @feeds.size>0
-    feed=@feeds[@feedsel.index]
-    menu.useroption(feed.user)
-    if feed.responses>0
-      menu.option(p_("Main", "Show responses"), nil, "d") {
-      $scene = Scene_FeedViewer.new(feed)
-      }
-      elsif feed.response>0
-      menu.option(p_("Main", "Show conversation"), nil, "d") {
-      $scene = Scene_FeedViewer.new(feed, nil, false)
-      }
-    end
-    if feed.likes>0
-    menu.option(p_("Main", "Show likes"), nil, "K") {
-  likes=[]
-  begin
-    likes=EltenLink::Feeds.likes(elten_link, feed.id)
-  rescue EltenLink::Error => e
-    Log.warning("Feed likes failed: #{e.message}")
+  if @feeds_placeholder==nil && @feeds.size>0
+    mastodon_status_menu(menu, @feeds[@feedsel.index])
   end
-users=likes
-dialog_open
-lst=ListBox.new(users, header: p_("Main", "Users who like this post"), index: 0, flags: 0, quiet: false)
-loop do
- loop_update
- lst.update
- break if key_pressed?(:key_escape)
- if (key_pressed?(:key_alt) or key_pressed?(:key_enter)) and users.size>0
-   usermenu(users[lst.index])
-   end
+  if @feeds_placeholder==nil && mastodon_account!=nil
+    menu.option(_("Refresh")) {
+      Klangten::Mastodon::Service.refresh
+      alert(p_("Mastodon", "The home timeline is being refreshed."))
+    }
+  end
+  mastodon_general_menu(menu)
 end
-dialog_close
-    }
-    end
-    if Session.logged?
-      menu.option(p_("Main", "Reply"), nil, "r") {
-    users=[feed.user]
-    users+=feed.message.scan(/\@([a-zA-Z0-9\.\-\_]+)/).map{|r|r[0]}
-    todel=[]
-    for u in users
-      todel.push(u) if u.downcase==Session.name.downcase
-    end
-    for i in 1...users.size
-      todel.push(users[i]) if users[0...i].map{|u|u.downcase}.include?(users[i].downcase)
-      end
-    todel.each{|u|users.delete(u)}
-    response=feed.id
-    response=feed.response if feed.response>0
-    feed_new(users.uniq, response)
-    }
-    s=p_("Main", "Like this message")
-    s=p_("Main", "Dislike this message") if feed.liked
-    menu.option(s, nil, "k") {
-    begin
-      EltenLink::Feeds.set_liked(elten_link, feed.id, !feed.liked)
-    rescue EltenLink::Error => e
-      Log.warning("Feed like toggle failed: #{e.message}")
-    alert(_("Error"))
-  else
-    st=(feed.liked)?(p_("Main", "Message disliked")):(p_("Main", "Message liked"))
-    feed.liked=!feed.liked
-    alert(st)
-    end
-    }
-    if feed.user==Session.name
-    menu.option(_("Delete"), nil, :del) {
-    confirm(p_("Main", "Are you sure you want to delete this post?")) {
-    delete_feed(feed.id)
-    }
-    play_sound("editbox_delete")
-    }
-    end
-  end
-  menu.option(p_("Main", "Publish to a feed"), nil, "n") {feed_new}
-  end
-  end
 def feed_new(users=[], response=0)
   compose_feed(users, response)
 end
 def feed_id=(f)
-  for i in 0...@feeds.size
-    @feedsel.index=i if @feeds[i].id>=f
-    end
-  end
+  index=@feeds.to_a.index{|status|status.id.to_s==f.to_s}
+  @feedsel.index=index if index!=nil && @feedsel!=nil
+end
 def self.feed_id=(f)
-  @@feed_id=f
+  @@feed_id=f.to_s
   $scene.feed_id=f if $scene.is_a?(Scene_Main)
-  end
+end
 end
