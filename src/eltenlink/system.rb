@@ -1,5 +1,7 @@
 ﻿# A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: architecture in update requests,
+# installer downloads only from the configured Klangten API.
 
 module EltenLink
   ClientStateProfile = Struct.new(:fullname, :gender, keyword_init: true)
@@ -65,14 +67,15 @@ module EltenLink
         end
       end
 
-      def build_id(client, branch: nil, os: nil, current_build_id: nil, timeout: Client::DEFAULT_TIMEOUT)
-        build_info(client, branch: branch, os: os, current_build_id: current_build_id, timeout: timeout).build_id
+      def build_id(client, branch: nil, os: nil, arch: nil, current_build_id: nil, timeout: Client::DEFAULT_TIMEOUT)
+        build_info(client, branch: branch, os: os, arch: arch, current_build_id: current_build_id, timeout: timeout).build_id
       end
 
-      def build_info(client, branch: nil, os: nil, current_build_id: nil, timeout: Client::DEFAULT_TIMEOUT)
+      def build_info(client, branch: nil, os: nil, arch: nil, current_build_id: nil, timeout: Client::DEFAULT_TIMEOUT)
         params = {}
         params["branch"] = branch if branch != nil
         params["os"] = os if os != nil
+        params["arch"] = arch if arch != nil
         params["build_id"] = normalize_build_id(current_build_id) if normalize_build_id(current_build_id) != nil
         data = client.api_data("GET", "/api/v1/system/build-id", params, timeout: timeout)
         BuildInfo.new(build_id: normalize_build_id(data["build_id"]), version_string: data["version_string"].to_s)
@@ -81,10 +84,11 @@ module EltenLink
         BuildInfo.new(build_id: nil, version_string: "")
       end
 
-      def updates(client, branch: nil, os: nil, current_build_id: nil, apps: [])
+      def updates(client, branch: nil, os: nil, arch: nil, current_build_id: nil, apps: [])
         params = {}
         params["branch"] = branch if branch != nil
         params["os"] = os if os != nil
+        params["arch"] = arch if arch != nil
         params["current_build_id"] = normalize_build_id(current_build_id) if normalize_build_id(current_build_id) != nil
         session_params = Client.session_auth_params
         params["name"] = session_params["name"] if session_params["name"].to_s != ""
@@ -134,23 +138,26 @@ module EltenLink
         text
       end
 
-      def installer_module(branch:, os:)
+      def installer_module(branch:, os:, arch: nil)
         params = {
           "branch" => branch.to_s,
           "os" => os.to_s
         }
+        params["arch"] = arch.to_s if arch != nil
         "api/v1/system/installer/download?" + params.map { |key, value| "#{query_escape(key)}=#{query_escape(value)}" }.join("&")
       end
 
-      def installer_url(base_url = nil, branch:, os:)
-        Client.absolute_api_url("/#{installer_module(branch: branch, os: os)}")
+      def installer_url(base_url = nil, branch:, os:, arch: nil)
+        Client.absolute_api_url("/#{installer_module(branch: branch, os: os, arch: arch)}")
       end
 
-      def installer(client, branch:, os:)
-        data = client.api_data("GET", "/api/v1/system/installer", {
+      def installer(client, branch:, os:, arch: nil)
+        params = {
           "branch" => branch.to_s,
           "os" => os.to_s
-        })
+        }
+        params["arch"] = arch.to_s if arch != nil
+        data = client.api_data("GET", "/api/v1/system/installer", params)
         url = data["url"].to_s
         info = InstallerInfo.new(
           filename: data["filename"].to_s,
@@ -160,6 +167,10 @@ module EltenLink
         )
         unless info.valid?
           raise Error.new("Invalid installer metadata", code: "system.invalid_installer_metadata", module_name: "/api/v1/system/installer")
+        end
+        # Klangten: the installer is only ever taken from the configured Klangten server.
+        unless Klangten::Updates.trusted_url?(info.url)
+          raise Error.new("Installer URL outside the Klangten server", code: "system.untrusted_installer_url", module_name: "/api/v1/system/installer")
         end
         info
       end

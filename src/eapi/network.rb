@@ -2,7 +2,8 @@
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
-# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: architecture in the installer request.
 
 require "digest"
 
@@ -134,7 +135,7 @@ def download_verified_installer(use_waiting: true, can_cancel: false)
   $update_installer_sha256 = nil
   File.delete(temporary) if File.file?(temporary)
 
-  metadata = EltenLink::System.installer(elten_link, branch: get_updatesbranch, os: platform_os)
+  metadata = EltenLink::System.installer(elten_link, branch: get_updatesbranch, os: platform_os, arch: Klangten::Updates.arch)
   return false unless download_file(metadata.url, temporary, use_waiting: use_waiting, can_cancel: can_cancel, override: true)
   unless File.size(temporary) == metadata.size && installer_sha256_valid?(temporary, metadata.sha256)
     Log.error("Downloaded installer does not match server metadata")
