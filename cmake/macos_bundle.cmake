@@ -578,7 +578,7 @@ function(write_info_plist plist_path)
   <key>CFBundleExecutable</key>
   <string>elten</string>
   <key>CFBundleIdentifier</key>
-  <string>online.klango.klangten</string>
+  <string>it.sixdots.klangten</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
@@ -699,7 +699,7 @@ function(create_pkg)
       --root "${pkg_root}"
       --component-plist "${component_plist}"
       --install-location "/"
-      --identifier "online.klango.klangten"
+      --identifier "it.sixdots.klangten"
       --version "0.1.0"
       "${unsigned_pkg_path}"
     )
@@ -711,7 +711,7 @@ function(create_pkg)
       --root "${pkg_root}"
       --component-plist "${component_plist}"
       --install-location "/"
-      --identifier "online.klango.klangten"
+      --identifier "it.sixdots.klangten"
       --version "0.1.0"
       "${pkg_path}"
     )
