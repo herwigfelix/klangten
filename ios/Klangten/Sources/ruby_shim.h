@@ -1,5 +1,6 @@
-// A part of Elten - EltenLink / Elten Network desktop client.
-// Copyright (C) 2026 Dawid Pieper
+// A part of Klangten, a modified version of Elten - EltenLink / Elten Network desktop client.
+// Elten: Copyright (C) 2014-2026 Dawid Pieper
+// Klangten modifications: Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT)
 // Elten is free software: GNU General Public License v3.
 #ifndef ELTEN_RUBY_SHIM_H
 #define ELTEN_RUBY_SHIM_H

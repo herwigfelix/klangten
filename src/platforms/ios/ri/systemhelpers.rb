@@ -1,5 +1,6 @@
-# A part of Elten - EltenLink / Elten Network desktop client.
-# Copyright (C) 2026 Dawid Pieper
+# A part of Klangten, a modified version of Elten - EltenLink / Elten Network desktop client.
+# Elten: Copyright (C) 2014-2026 Dawid Pieper
+# Klangten modifications: Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT)
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
 # iOS system helpers. Same public contract as the Windows/macOS versions, but
