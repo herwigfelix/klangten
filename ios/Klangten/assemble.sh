@@ -38,6 +38,21 @@ for item in elten.rb filelist src resources locale patchs audio; do
   [ -e "$REPO/$item" ] && rsync -a --exclude '.git' --exclude bin "$REPO/$item" "$RES/eltencore/"
 done
 
+# TLS: im Launcher-Bau bettet cmake/prepare_ruby_runtime.cmake das
+# Zertifikatsbuendel als Ressource ssl/cert.pem ein. Auf iOS gibt es keinen
+# Launcher, also wird es hier gestaged. Fehlt es, faellt EltenAPI::TLS auf
+# OpenSSLs einkompilierten Vorgabepfad zurueck - den es auf dem Geraet nicht
+# gibt, womit jede Verbindung scheitert und die App wie offline wirkt.
+echo "==> Staging TLS-Zertifikate"
+CA_SOURCE="${CA_SOURCE:-$(ruby -ropenssl -e 'print OpenSSL::X509::DEFAULT_CERT_FILE' 2>/dev/null)}"
+if [ ! -s "${CA_SOURCE:-}" ]; then
+  echo "!! Kein CA-Buendel gefunden (${CA_SOURCE:-leer}). Setze CA_SOURCE=<pfad zu cert.pem>."
+  exit 1
+fi
+mkdir -p "$RES/eltencore/resources/ssl"
+cp "$CA_SOURCE" "$RES/eltencore/resources/ssl/cert.pem"
+echo "    $(grep -c 'BEGIN CERTIFICATE' "$RES/eltencore/resources/ssl/cert.pem") Zertifikate aus $CA_SOURCE"
+
 echo "==> Staging CRuby stdlib"
 cp -R "$CRUBY/lib/ruby" "$RES/stdlib"
 
