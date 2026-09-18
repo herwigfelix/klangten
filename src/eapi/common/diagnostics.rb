@@ -129,7 +129,7 @@ module EltenAPI
             add.call(lines, "ARGV", ARGV.inspect)
             add.call(lines, "Threads", Thread.list.size)
 
-            add_section.call(lines, "Elten")
+            add_section.call(lines, Klangten::Config::PRODUCT_NAME)
             add.call(lines, "Version", safe.call("") { defined?(Elten) ? Elten.version : "" })
             add.call(lines, "Build ID", safe.call("") { defined?(Elten) ? Elten.build_id : "" })
             add.call(lines, "Build date", safe.call("") { defined?(Elten) ? Elten.build_date : "" })

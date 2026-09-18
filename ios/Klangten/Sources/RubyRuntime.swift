@@ -27,11 +27,12 @@ final class RubyRuntime {
         guard let appRoot = Bundle.main.resourcePath else { return }
 
         setenv("ELTEN_LAUNCHER_PLATFORM", "ios", 1)
-        let documents = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first
-            ?? NSTemporaryDirectory()
-        let dataDir = (documents as NSString).appendingPathComponent("Elten")
-        try? FileManager.default.createDirectory(atPath: dataDir, withIntermediateDirectories: true)
-        setenv("ELTEN_DATA_DIR", dataDir, 1)
+        // No data directory is created here. Klangten keeps its data where every
+        // platform keeps it - Klangten::Config.data_dir below Application Support,
+        // i.e. sixdotsIT/klangten - and nothing ever read the variable this used to
+        // set. The folder it created was empty, sat in Documents and was therefore
+        // the first thing the user saw in the Files app and in the file manager,
+        // named after the wrong program.
         if let frameworks = Bundle.main.privateFrameworksPath {
             setenv("ELTEN_IOS_FRAMEWORKS", frameworks, 1)
         }

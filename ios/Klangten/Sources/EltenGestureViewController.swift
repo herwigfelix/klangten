@@ -28,7 +28,7 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
         view.backgroundColor = .black
         view.isAccessibilityElement = true
         view.accessibilityTraits = [.allowsDirectInteraction]
-        view.accessibilityLabel = "Elten"
+        view.accessibilityLabel = "Klangten"
         installGestures()
         installTextEntryField()
         NotificationCenter.default.addObserver(self, selector: #selector(didBecomeActive),

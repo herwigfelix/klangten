@@ -388,12 +388,12 @@ module EltenWindow
       true
     end
 
-    def message_box(text, caption = "Elten", _flags = 0, _owner = nil)
+    def message_box(text, caption = Klangten::Config::PRODUCT_NAME, _flags = 0, _owner = nil)
       ensure_window
       if defined?(IOSHostBridge) && IOSHostBridge.respond_to?(:message_box) && IOSHostBridge.message_box(text.to_s, caption.to_s)
         return 1
       end
-      Log.info("Elten dialog [#{caption}]: #{text}") if defined?(Log)
+      Log.info("#{Klangten::Config::PRODUCT_NAME} dialog [#{caption}]: #{text}") if defined?(Log)
       0
     rescue Exception
       0

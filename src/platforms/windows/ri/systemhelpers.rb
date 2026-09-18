@@ -317,14 +317,18 @@ module EltenSystemHelpers
     end
 
     def legacy_installation_files
-      ["ffmpeg.exe", "avcodec58.dll", "avdevice58.dll", "avformat58.dll", "openal32.dll", "rar.exe"]
+      # Klangten: nothing to detect. These are leftovers of Elten installations of
+      # beta 59 and earlier; Klangten installs into its own directory under its own
+      # AppId and never shipped them, so the check could only ever misfire - and it
+      # loops until the user deletes files a Klangten installation does not have.
+      []
     end
 
+    # Klangten: no warning. The check above never fires for us (see there), and the
+    # text told the user to delete an "Elten" directory - the wrong product and a
+    # history Klangten never had. macOS, Linux and iOS return the same empty pair.
     def legacy_installation_warning
-      [
-        "Previous installation detected",
-        "Elten detected files created by old installation, beta 59 or earlier.\r\nPlease remove the program and reinstall it again to delete those files.\r\nIf you don't want to remove your configuration, you can just delete Elten directory in \"Program files\"."
-      ]
+      ["", ""]
     end
 
     def bass_abi(architecture)

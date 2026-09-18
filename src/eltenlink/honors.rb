@@ -1,5 +1,8 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the honour texts
+# are shown verbatim and never pass through the translation layer, so the display
+# time branding cannot reach them - they name Klangten directly.
 
 require "date"
 
@@ -8,11 +11,11 @@ module EltenLink
     STARTED_ON = Date.new(2014, 8, 24)
 
     DEFINITIONS = [
-      [1, "Developer", "Has left fingerprints in Elten's source code—and the pull request survived review.", [
-        "Have 1 pull request accepted into Elten.",
-        "Have 5 pull requests accepted into Elten.",
-        "Have 20 pull requests accepted into Elten.",
-        "Have 50 pull requests accepted into Elten."
+      [1, "Developer", "Has left fingerprints in Klangten's source code—and the pull request survived review.", [
+        "Have 1 pull request accepted into Klangten.",
+        "Have 5 pull requests accepted into Klangten.",
+        "Have 20 pull requests accepted into Klangten.",
+        "Have 50 pull requests accepted into Klangten."
       ]],
       [2, "Leader", "Can turn a handful of users, a forum and a plan into a group people actually want to follow.", [
         "Lead a group with at least 20 members and 150 forum posts.",
@@ -26,7 +29,7 @@ module EltenLink
         "Write 100 blog posts and receive comments from at least 20 different users.",
         "Write 200 blog posts and receive comments from at least 50 different users."
       ]],
-      [4, "Sound Designer", "Built an Elten sound theme that at least three users chose to keep in their ears at the same time.", [
+      [4, "Sound Designer", "Built a Klangten sound theme that at least three users chose to keep in their ears at the same time.", [
         "Create a sound theme used by at least 3 active users at the same time."
       ]],
       [5, "Speaker", "Has yet to meet a recommended-group thread that could not use one more post.", [
@@ -35,12 +38,12 @@ module EltenLink
         "Write 1,000 posts in at least 100 different threads in recommended groups.",
         "Write 3,000 posts in at least 300 different threads in recommended groups."
       ]],
-      [6, "Veteran", "Has been around Elten long enough to remember when some classics were still new.", nil],
-      [7, "Debugger", "Helped a beta misbehave in private so a stable Elten release could behave in public.", [
-        "Take part in testing an Elten beta that becomes a stable release, starting with version 3.0."
+      [6, "Veteran", "Has been around Klangten long enough to remember when some classics were still new.", nil],
+      [7, "Debugger", "Helped a beta misbehave in private so a stable Klangten release could behave in public.", [
+        "Take part in testing a Klangten beta that becomes a stable release, starting with version 3.0."
       ]],
-      [8, "Promoter", "Packed Elten into an article, podcast or presentation and took it beyond Elten.", [
-        "Publish an article, podcast or another presentation about Elten outside Elten."
+      [8, "Promoter", "Packed Klangten into an article, podcast or presentation and took it beyond Klangten.", [
+        "Publish an article, podcast or another presentation about Klangten outside Klangten."
       ]],
       [9, "Audiophile", "Treats the microphone less like a device and more like a natural extension.", [
         "Create 50 audio posts in the forum.",
@@ -72,11 +75,11 @@ module EltenLink
         "Publish 100 feed posts that each receive likes from at least 3 different users.",
         "Publish 500 feed posts that each receive likes from at least 3 different users."
       ]],
-      [14, "Conference Regular", "Has spent enough time in Elten conferences to know which chair squeaks.", [
-        "Spend 8 hours in Elten conferences.",
-        "Spend 24 hours in Elten conferences.",
-        "Spend 120 hours in Elten conferences.",
-        "Spend 600 hours in Elten conferences."
+      [14, "Conference Regular", "Has spent enough time in Klangten conferences to know which chair squeaks.", [
+        "Spend 8 hours in Klangten conferences.",
+        "Spend 24 hours in Klangten conferences.",
+        "Spend 120 hours in Klangten conferences.",
+        "Spend 600 hours in Klangten conferences."
       ]],
       [15, "Talk of the Town", "Has been summoned into so many forum and blog conversations that appearing should probably come with a puff of smoke.", [
         "Receive 50 mentions in forum and blog conversations.",
@@ -112,7 +115,7 @@ module EltenLink
       years = today.year - STARTED_ON.year
       years -= 1 if ([today.month, today.day] <=> [STARTED_ON.month, STARTED_ON.day]) == -1
       (1..[years, 0].max).map do |year|
-        "Be registered on Elten for #{year == 1 ? '1 year' : "#{year} years"}."
+        "Be registered on Klangten for #{year == 1 ? '1 year' : "#{year} years"}."
       end
     end
 
