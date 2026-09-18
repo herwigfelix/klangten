@@ -89,17 +89,17 @@ module GlobalMenu
       end
     }
     end
-    # Klangten: Media and Files menus (as in old Elten) with the Klango media catalog
-    # and the built-in former Elten programs (src/eapi/program_builtins.rb). They sit
-    # on the top level right after Community: Community, Media, Files, Programs, Tools.
-    @menu.submenu(p_("Klangten", "&Media")) {|m|
-    m.scene(p_("Klangten", "Media &catalog"), Scene_MediaCatalog)
-    klangten_builtin_entry(m, :youtube, p_("Klangten", "&YouTube"))
-    }
-    @menu.submenu(p_("Klangten", "&Files")) {|m|
-    klangten_builtin_entry(m, :filemanager, p_("Klangten", "File &manager"))
-    klangten_builtin_entry(m, :ffmpeg, p_("Klangten", "FFmpeg &encoders"))
-    }
+    # Klangten: Media and Files (as in old Elten) with the Klango media catalog and
+    # the built-in former Elten programs (src/eapi/program_builtins.rb). They sit on
+    # the top level right after Community: Community, Media, Files, Programs, Tools.
+    klangten_group(p_("Klangten", "&Media"), [
+      [p_("Klangten", "Media &catalog"), Scene_MediaCatalog],
+      klangten_builtin_item(:youtube, p_("Klangten", "&YouTube"))
+    ])
+    klangten_group(p_("Klangten", "&Files"), [
+      klangten_builtin_item(:filemanager, p_("Klangten", "File &manager")),
+      klangten_builtin_item(:ffmpeg, p_("Klangten", "FFmpeg &encoders"))
+    ])
     # The program system is omitted on iOS (App Store policy forbids downloading
     # and running third-party code), so its menu is hidden there entirely.
     unless defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios)
@@ -228,13 +228,26 @@ Log.info("Switching to thread #{i+1}")
     def opened?
       @currentmenu!=nil&&@currentmenu.opened?
     end
-    # Klangten: menu entry for a built-in program. A program that does not run on
-    # this platform (its manifest says so, as with YouTube and the FFmpeg encoders
-    # on iOS) gets no entry at all - an entry that only announces its own absence
-    # is worse than none. A load failure is logged by Programs.load_builtin.
-    def klangten_builtin_entry(menu, key, label)
+    # Klangten: [label, scene] for a built-in program, or nil when it does not run
+    # here. A program excluded by its own manifest (YouTube and the FFmpeg encoders
+    # on iOS) gets no entry at all - an entry that only announces its own absence is
+    # worse than none. A genuine load failure is logged by Programs.load_builtin.
+    def klangten_builtin_item(key, label)
       program = defined?(Programs::BuiltIns) ? Programs::BuiltIns.program_class(key) : nil
-      menu.scene(label, program) if program != nil
+      program == nil ? nil : [label, program]
+    end
+
+    # Klangten: a submenu holding a single entry is noise - on iOS "Media" would be
+    # nothing but the catalogue and "Files" nothing but the file manager, because
+    # the other programs do not run there. So the entries are collected first: a
+    # lone survivor moves up to the top level under its own name, several get their
+    # submenu, and none at all disappears. Anything added later (Spotify under
+    # Files) therefore lands in the right shape on every platform by itself.
+    def klangten_group(label, entries)
+      entries = entries.compact
+      return if entries.empty?
+      return @menu.scene(entries[0][0], entries[0][1]) if entries.size == 1
+      @menu.submenu(label) { |m| entries.each { |entry| m.scene(entry[0], entry[1]) } }
     end
     def scenes
       construct(:defaults)
