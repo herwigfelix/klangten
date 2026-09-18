@@ -14,7 +14,7 @@
   "main_language": "en",
   "supported_languages": ["en", "pl"],
   "main_class": "ProgramFFMPEG",
-  "platforms": ["all"],
+  "platforms": ["windows", "osx", "linux"],
   "execution": { "backend": "box" },
   "menu": {
     "hidden": true

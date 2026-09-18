@@ -218,7 +218,7 @@ class Scene_MediaCatalog
     actions = {}
     actions[:play] = p_("MediaCatalog", "Play") if item.stream?
     actions[:episodes] = p_("MediaCatalog", "Episodes") if item.feed?
-    actions[:youtube] = p_("MediaCatalog", "Open in YouTube") if item.type == "youtube" && item.url.to_s != ""
+    actions[:youtube] = p_("MediaCatalog", "Open in YouTube") if item.type == "youtube" && item.url.to_s != "" && youtube_available?
     actions[:open] = p_("MediaCatalog", "Open in the web browser") if item.type == "webpage" && item.url.to_s != ""
     if Session.logged?
       actions[:favorite] = item.favorite ? p_("MediaCatalog", "Remove from favourites") : p_("MediaCatalog", "Add to favourites")
@@ -295,6 +295,15 @@ class Scene_MediaCatalog
       end
     end
     player(url, label: item.title)
+  end
+
+  # Klangten: the YouTube program does not run everywhere - its manifest excludes
+  # iOS, where neither yt-dlp nor its JavaScript runtime can be executed. There
+  # the action is left out of the item menu entirely instead of offering an entry
+  # that only announces its own absence.
+  def youtube_available?
+    program = defined?(Programs::BuiltIns) ? Programs::BuiltIns.program_class(:youtube) : nil
+    program != nil && program.respond_to?(:yplayer)
   end
 
   def open_youtube(item)

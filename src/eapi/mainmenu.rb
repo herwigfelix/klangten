@@ -228,14 +228,13 @@ Log.info("Switching to thread #{i+1}")
     def opened?
       @currentmenu!=nil&&@currentmenu.opened?
     end
-    # Klangten: menu entry for a built-in program, or a notice when it is not loaded here.
+    # Klangten: menu entry for a built-in program. A program that does not run on
+    # this platform (its manifest says so, as with YouTube and the FFmpeg encoders
+    # on iOS) gets no entry at all - an entry that only announces its own absence
+    # is worse than none. A load failure is logged by Programs.load_builtin.
     def klangten_builtin_entry(menu, key, label)
       program = defined?(Programs::BuiltIns) ? Programs::BuiltIns.program_class(key) : nil
-      if program != nil
-        menu.scene(label, program)
-      else
-        menu.option(label) { alert(p_("Klangten", "This feature is not available on this system.")) }
-      end
+      menu.scene(label, program) if program != nil
     end
     def scenes
       construct(:defaults)

@@ -10,7 +10,7 @@
   "main_language": "en",
   "supported_languages": ["en"],
   "main_class": "ProgramMCP",
-  "platforms": ["all"],
+  "platforms": ["windows", "osx", "linux"],
   "menu": {
     "hidden": true
   },

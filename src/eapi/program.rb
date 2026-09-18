@@ -2443,13 +2443,15 @@ module Programs
     end
 
     def load_all
-      # The program system (installing and running third-party Elten apps) is
-      # omitted on iOS: the App Store forbids downloading and executing code, and
-      # the feature is intentionally left out of the iOS build.
-      return if ios_platform?
       Log.info("Loading programs")
       # Klangten: former Elten programs are built in (src/eapi/program_builtins.rb).
+      # They are part of the client, not downloaded code, so they load on every
+      # platform - including iOS. Which of them runs where is decided by each
+      # program's own manifest ("platforms"), not here.
       BuiltIns.load_all if defined?(BuiltIns)
+      # Installing and running third-party Elten apps stays off on iOS: that is
+      # the part the App Store forbids.
+      return if ios_platform?
       apps_registry["apps"].each do |storage_id, record|
         next if !record.is_a?(Hash) || record["loaded"] != true
         next if defined?(BuiltIns) && BuiltIns.uuid?(record["uuid"])
@@ -2949,7 +2951,10 @@ module Programs
     end
 
     def list
-      return [] if ios_platform?
+      # Klangten: on iOS this holds the built-in programs only - the apps registry
+      # is never loaded there (see load_all) and the Programs menu stays hidden.
+      # Returning an empty list would also hide the built-ins, because
+      # Programs::BuiltIns.program_class resolves through here.
       @@programs
     end
 

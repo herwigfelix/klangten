@@ -26,10 +26,14 @@ module EltenSystemHelpers
       ""
     end
 
+    # The file manager browses this. Documents is the one directory iOS shows in
+    # the Files app (UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace),
+    # so it is the only sensible root: everything the user can reach from outside
+    # the app is here, and nothing above it is writable anyway.
     def logical_drives
-      [container_root]
+      [documents_dir]
     rescue Exception
-      ["/"]
+      [container_root]
     end
 
     def appdata_dir

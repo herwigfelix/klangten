@@ -109,6 +109,10 @@ targets:
         CFBundleShortVersionString: \$(MARKETING_VERSION)
         CFBundleVersion: \$(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
+        # Der Datenordner der App erscheint dadurch in der Dateien-App unter
+        # "Auf meinem iPhone"; der Dateimanager arbeitet genau darin.
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
         UIBackgroundModes: [audio]
         NSMicrophoneUsageDescription: Klangten uses the microphone for voice messages and conferences.
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
