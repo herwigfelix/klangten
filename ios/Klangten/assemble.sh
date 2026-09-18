@@ -89,6 +89,10 @@ targets:
       path: Sources/Info.plist
       properties:
         CFBundleDisplayName: Klangten
+        # Ohne diese beiden Zeilen schreibt xcodegen seine Vorgaben 1.0 und 1 in
+        # die Info.plist, statt die Fassung aus MARKETING_VERSION zu uebernehmen.
+        CFBundleShortVersionString: \$(MARKETING_VERSION)
+        CFBundleVersion: \$(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UIBackgroundModes: [audio]
         NSMicrophoneUsageDescription: Klangten uses the microphone for voice messages and conferences.
