@@ -256,6 +256,7 @@ end
     elsif $errcou!=nil
       $errcou=nil
           end
+speech_stream_update if respond_to?(:speech_stream_update, true)
 if (seq=current_speechsequence)!=nil
 ind, indid = speech_getindex
 if seq.id==indid

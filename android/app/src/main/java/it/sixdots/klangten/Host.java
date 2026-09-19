@@ -109,7 +109,7 @@ final class Host {
     static void speechSpeak(String text, String voiceId, int rate, int volume, int pitch, boolean interrupt) {
         if (tts == null || text == null || text.isEmpty()) return;
         // What Klangten says, for tests on the emulator: adb logcat -s Klangten-speech
-        if (debug) Log.d(TAG + "-speech", text);
+        if (debug) Log.d(TAG + "-speech", "[" + text.length() + "] " + text);
         if (!ttsReady) waitForSpeech();
         if (!voiceId.isEmpty() && tts.getVoices() != null) {
             for (Voice voice : tts.getVoices()) {

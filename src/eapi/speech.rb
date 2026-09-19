@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: long texts are spoken in parts.
 
 module EltenAPI
   module Speech
@@ -89,6 +90,45 @@ module EltenAPI
       def current_speechsequence
         return @@current_speechsequence
         end
+
+      # Long texts (documents, the licence) are spoken part by part instead of
+      # in one call: Android's engine drops anything past 4000 characters, and
+      # every engine keeps the user waiting while it renders tens of thousands
+      # at once. speech_stream_update feeds the next part once the voice is
+      # done with the previous one.
+      SPEECH_STREAM_CHUNK = 2000
+      @@speech_stream_parts = []
+
+      def speech_stream_pending?
+        @@speech_stream_parts.size > 0
+      end
+
+      def speech_stream_cancel
+        @@speech_stream_parts = []
+      end
+
+      # Only where the output can say whether it is still speaking; NVDA and
+      # other screen readers keep their own queue and handle long text fine.
+      def speech_stream_supported?(output = speech_output)
+        return false if output == nil
+        return false unless output.respond_to?(:speaking?)
+        output.method(:speaking?).owner != SpeechOutput
+      rescue Exception
+        false
+      end
+
+      # Called once per frame from the main loop.
+      def speech_stream_update
+        return if @@speech_stream_parts.empty?
+        output = speech_output
+        return if output == nil
+        return if output.speaking?
+        part = @@speech_stream_parts.shift
+        speak_sequence_part(part)
+      rescue Exception => e
+        @@speech_stream_parts = []
+        Log.warning("Speech streaming stopped: #{e.class}: #{e.message}") if defined?(Log)
+      end
       
       # Says a text
   #
@@ -161,7 +201,15 @@ if nvda != nil && output == nvda && !nvda.check && spelling && use_dictionary
     text_d = get_character_name(text_d)
     spelling=false
 end
-output.speak_text(text_d, method: method, spelling: spelling, interrupt: stop && !swait, pitch: Configuration.voicepitch)
+speech_stream_cancel if stop
+if text_d.length > SPEECH_STREAM_CHUNK && speech_stream_supported?(output)
+  # Same reason as for sequences: hand the voice one part at a time.
+  parts = SpeechSequence.speech_fragments(text_d, SPEECH_STREAM_CHUNK)
+  output.speak_text(parts.shift, method: method, spelling: spelling, interrupt: stop && !swait, pitch: Configuration.voicepitch)
+  @@speech_stream_parts = parts.map { |part| SpeechSequence.new([part]) }
+else
+  output.speak_text(text_d, method: method, spelling: spelling, interrupt: stop && !swait, pitch: Configuration.voicepitch)
+end
 $speech_lasttext = text_d
 end
 text_d = text if text_d == nil
@@ -170,6 +218,14 @@ end
 
 def speak_sequence(seq, pan: 50, limit: nil)
   seq=limit_speech_sequence(seq, limit)
+  speech_stream_cancel
+  if speech_stream_supported? && seq.respond_to?(:split_for_speech) && seq.text.length > SPEECH_STREAM_CHUNK
+    parts=seq.split_for_speech(SPEECH_STREAM_CHUNK)
+    if parts.size > 1
+      @@speech_stream_parts = parts[1..-1]
+      return speak_sequence_part(parts[0], pan: pan)
+    end
+  end
   $speechid=seq.id if seq.respond_to?(:id)
   output=speech_output
   nvda = nvda_output
@@ -192,7 +248,20 @@ output.speak_sequence(seq)
 end
   end
 
-                             def speech_getindex
+                             # Speaks one part of a streamed sequence; the parts after the first are only
+# sent once the voice has finished the one before, so nothing is cut off.
+def speak_sequence_part(seq, pan: 50)
+  $speechid=seq.id if seq.respond_to?(:id)
+  output=speech_output
+  nvda = nvda_output
+  seq.reset
+  seq.start(pan)
+  output.speak_sequence(seq)
+  @@current_speechsequence=seq
+  nil
+end
+
+def speech_getindex
                                speech_output.index
                                end
 
@@ -218,6 +287,7 @@ def speech_actived(ignoreaudio=false)
   def speech_stop(audio=true)
     Programs.emit_event(:speech_stop)
         $speech_wait=false
+    speech_stream_cancel
     @@current_speechsequence=nil
       speech_output.stop
   
@@ -527,6 +597,59 @@ class SpeechSequence
     end
     changed=true if limited_commands.size!=@commands.size
     changed ? SpeechSequence.new(limited_commands) : self
+  end
+
+  # Splits the sequence into parts of at most max_chars characters, cutting at
+  # paragraph, sentence or word boundaries. Long documents are spoken part by
+  # part instead of handed to the voice as one huge string: Android's engine
+  # rejects anything past 4000 characters, and every engine takes a long time
+  # before the first word when it has to render tens of thousands at once.
+  def split_for_speech(max_chars)
+    max_chars=max_chars.to_i
+    return [self] if max_chars<=0 || text.length<=max_chars
+    parts=[]
+    current=[]
+    length=0
+    flush=lambda do
+      parts.push(SpeechSequence.new(current)) if current.size>0
+      current=[]
+      length=0
+    end
+    @commands.each do |command|
+      piece=command.to_s
+      if piece.length==0 || !command.is_a?(String)
+        current.push(command)
+        next
+      end
+      SpeechSequence.speech_fragments(piece, max_chars).each do |fragment|
+        flush.call if length>0 && length+fragment.length>max_chars
+        current.push(fragment)
+        length+=fragment.length
+      end
+    end
+    flush.call
+    parts.size>0 ? parts : [self]
+  end
+
+  # Cuts a string into pieces of at most max_chars, preferring paragraph, then
+  # sentence, then word boundaries; a single word longer than the limit is cut.
+  def self.speech_fragments(text, max_chars)
+    text=text.to_s
+    return [text] if text.length<=max_chars
+    fragments=[]
+    rest=text
+    while rest.length>max_chars
+      window=rest[0, max_chars]
+      cut=window.rindex("\n\n")
+      cut=window.rindex(/[.!?][\s"')\]]/) if cut==nil || cut<max_chars/4
+      cut=window.rindex("\n") if cut==nil || cut<max_chars/4
+      cut=window.rindex(" ") if cut==nil || cut<max_chars/4
+      cut=max_chars-1 if cut==nil || cut<max_chars/4
+      fragments.push(rest[0..cut])
+      rest=rest[(cut+1)..-1].to_s
+    end
+    fragments.push(rest) if rest!=""
+    fragments
   end
 
   def execute(index, pos=nil)

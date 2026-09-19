@@ -9,6 +9,10 @@
 # the app.
 
 ENV["ELTEN_LAUNCHER_PLATFORM"] = "android"
+# stdout goes into a pipe that the host forwards to logcat; without this Ruby
+# buffers it and diagnostic output only shows up much later, or not at all.
+STDOUT.sync = true
+STDERR.sync = true
 require "rbconfig" rescue nil
 require "rubygems" rescue nil
 
