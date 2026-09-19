@@ -150,7 +150,13 @@ module IOSHostBridge
           $VERBOSE = verbose
         end
       end
-      @image = Fiddle.dlopen(nil)
+      # iOS links the entry points into the app executable; on Android they
+      # live in libklangten.so, which the global handle does not search.
+      @image = if defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:android)
+        Fiddle.dlopen("libklangten.so")
+      else
+        Fiddle.dlopen(nil)
+      end
       # Presence of the speech entry point means a host is attached.
       @available = symbol?("elten_host_speech_available")
     rescue Exception

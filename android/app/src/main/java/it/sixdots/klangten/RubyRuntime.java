@@ -36,6 +36,9 @@ final class RubyRuntime {
 
     private RubyRuntime() {}
 
+    /** Loads the native libraries (the static block above) if nothing has yet. */
+    static void load() {}
+
     /** Copies assets/ruby to files/ruby when the APK changed since the last copy. */
     static File prepare(Context context) throws IOException {
         File root = new File(context.getFilesDir(), "ruby");

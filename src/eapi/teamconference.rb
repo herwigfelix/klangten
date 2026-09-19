@@ -110,6 +110,7 @@ module TeamConference
     # Stands for "the running process" in a candidate list: on iOS the library
     # is linked statically into the app, so its symbols are looked up there.
     PROCESS = :process
+    ANDROID_NAME = "libteamconference_core.so".freeze
 
     # Library file name for a platform, nil where no file is shipped.
     # Shipped builds: Windows x64 and macOS arm64 as files, iOS linked into the
@@ -126,12 +127,14 @@ module TeamConference
       end
     end
 
-    # Candidate paths: $KLANGTEN_TCLIB, bin/<runtime>/, bin/; on iOS the app itself.
+    # Candidate paths: $KLANGTEN_TCLIB, bin/<runtime>/, bin/; on iOS the app
+    # itself, on Android the bare library name (it stays inside the APK).
     def self.candidates(root:, platform:, runtime_dir:)
       list = []
       env = ENV[ENV_PATH].to_s
       list << env if env != ""
       list << PROCESS if platform.to_s == "ios"
+      list << ANDROID_NAME if platform.to_s == "android"
       name = file_name(platform, runtime_dir)
       if name != nil
         list << File.join(root, "bin", runtime_dir.to_s, name)
@@ -142,7 +145,7 @@ module TeamConference
 
     # Returns [library, nil] or [nil, "reason"].
     def self.open(candidates)
-      path = candidates.find { |candidate| candidate == PROCESS || File.file?(candidate) }
+      path = candidates.find { |candidate| candidate == PROCESS || candidate == ANDROID_NAME || File.file?(candidate) }
       return [nil, "TeamConference library not available for this platform"] if path == nil
       library = new(path)
       return [nil, "tc_create failed: #{library.last_error}"] unless library.create

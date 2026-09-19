@@ -17,12 +17,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <ruby.h>
 
 extern void ruby_init_ext(const char *name, void (*init)(void));
 extern void Init_fiddle(void);
+extern void Init_bigdecimal(void);
+extern void Init_zstdruby(void);
+extern void Init_nokogiri(void);
 
 #define LOG_TAG "Klangten-ruby"
 
@@ -76,10 +80,14 @@ static char *join(const char *a, const char *b) {
     return s;
 }
 
-// fiddle is a bundled gem, so Init_ext does not know it; register it by hand.
-static VALUE register_fiddle(VALUE unused) {
+// Gem extensions (build-runtime.sh / build-gems.sh) are not part of Init_ext;
+// register them by hand under the names their Ruby code requires.
+static VALUE register_gem_extensions(VALUE unused) {
     (void)unused;
     ruby_init_ext("fiddle.so", Init_fiddle);
+    ruby_init_ext("bigdecimal.so", Init_bigdecimal);
+    ruby_init_ext("zstd-ruby/zstdruby.so", Init_zstdruby);
+    ruby_init_ext("nokogiri/nokogiri.so", Init_nokogiri);
     return Qnil;
 }
 
@@ -98,14 +106,17 @@ Java_it_sixdots_klangten_RubyRuntime_boot(JNIEnv *env, jclass cls, jstring jroot
 
     forward_output();
     setenv("HOME", files, 1);
-    setenv("TMPDIR", join(files, "/tmp"), 1);
+    char *tmp = join(files, "/tmp");
+    mkdir(tmp, 0700);
+    setenv("TMPDIR", tmp, 1);
     setenv("LANG", "C.UTF-8", 1);
     setenv("KLANGTEN_NATIVE_LIB_DIR", libdir, 1);
     setenv("KLANGTEN_RUBY_ROOT", root, 1);
 
     char *stdlib = join(root, "/stdlib");
+    char *gemlibs = join(root, "/gemlibs");
     char *app = join(root, "/app");
-    char *argv[] = { "klangten", "-I", stdlib, "-I", app, "-E", "UTF-8:UTF-8", entry, NULL };
+    char *argv[] = { "klangten", "-I", stdlib, "-I", gemlibs, "-I", app, "-E", "UTF-8:UTF-8", entry, NULL };
     int argc = (int)(sizeof(argv) / sizeof(argv[0])) - 1;
     char **pargv = argv;
 
@@ -114,7 +125,7 @@ Java_it_sixdots_klangten_RubyRuntime_boot(JNIEnv *env, jclass cls, jstring jroot
         RUBY_INIT_STACK;
         ruby_init();
         int state = 0;
-        rb_protect(register_fiddle, Qnil, &state);
+        rb_protect(register_gem_extensions, Qnil, &state);
         void *node = ruby_options(argc, pargv);
         int status = ruby_run_node(node);
         fflush(stdout);

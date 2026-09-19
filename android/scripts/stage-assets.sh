@@ -6,7 +6,9 @@
 #
 # Stages the Ruby files the APK carries as assets into android/build/assets/ruby:
 #   stdlib/    Ruby standard library (from vendor/<abi>/stdlib)
-#   app/       the probe (later: the Klangten core)
+#   gemlibs/   Ruby parts of the gems (from build-gems.sh)
+#   app/eltencore/  the Klangten core (elten.rb, filelist, src, resources, locale, ...)
+#   android_boot.rb, probe.rb
 # and the TeamConference library into vendor/jnilibs when it is available.
 set -euo pipefail
 
@@ -20,7 +22,13 @@ rm -rf "$OUT" && mkdir -p "$OUT/app"
 cp -R "$STDLIB" "$OUT/stdlib"
 # Not needed at run time on the device.
 rm -rf "$OUT/stdlib/bundler" "$OUT/stdlib/rdoc" "$OUT/stdlib/ruby_vm/rjit" 2>/dev/null || true
-cp "$ANDROID_DIR/app/ruby/probe.rb" "$OUT/probe.rb"
+[ -d "$ANDROID_DIR/vendor/$ABI/gemlibs" ] && cp -R "$ANDROID_DIR/vendor/$ABI/gemlibs" "$OUT/gemlibs"
+cp "$ANDROID_DIR/app/ruby/probe.rb" "$ANDROID_DIR/app/ruby/android_boot.rb" "$OUT/"
+REPO="$(cd "$ANDROID_DIR/.." && pwd)"
+mkdir -p "$OUT/app/eltencore"
+for item in elten.rb filelist src resources locale patchs audio; do
+  [ -e "$REPO/$item" ] && rsync -a --exclude .git --exclude bin --exclude '*.po' "$REPO/$item" "$OUT/app/eltencore/"
+done
 
 TC="${TEAMCONFERENCE_JNILIBS:-$ANDROID_DIR/../../projekte/teamconference/dist/mobile/android/jniLibs}"
 if [ -f "$TC/$ABI/libteamconference_core.so" ]; then

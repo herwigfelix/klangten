@@ -106,15 +106,22 @@ module EltenSystemHelpers
     end
 
     def platform_os
-      "ios"
+      android? ? "android" : "ios"
     end
 
     def platform_target
-      "ios-#{architecture}"
+      "#{platform_os}-#{architecture}"
     end
 
     def runtime_directory_name(_architecture)
-      "ios"
+      platform_os
+    end
+
+    # Android shares this layer; see EltenBoot.platform_tags.
+    def android?
+      defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:android)
+    rescue Exception
+      false
     end
 
     # Native libraries live inside the signed app bundle (Frameworks / bin/ios),
@@ -170,6 +177,14 @@ module EltenSystemHelpers
       # An explicit, existing path wins (rare on iOS).
       return open.call(file) if file.to_s != "" && File.file?(file.to_s)
 
+      # Android keeps native libraries inside the APK: there is no file to
+      # point at, but the app's linker namespace finds them by name.
+      if android?
+        stem = File.basename(name.to_s.tr("\\", "/")).sub(/\.(dll|dylib|so)\z/i, "")
+        stem = "lib#{stem}" unless stem.start_with?("lib")
+        return open.call("#{stem}.so")
+      end
+
       # Embedded framework: <PrivateFrameworks>/<name>.framework/<name>.
       base = File.basename(name.to_s.tr("\\", "/")).sub(/\.(dll|dylib|so)\z/i, "")
       base = base[3..-1] if base.start_with?("lib") && base != "lib"
@@ -189,7 +204,7 @@ module EltenSystemHelpers
     end
 
     def native_extension
-      ".dylib"
+      android? ? ".so" : ".dylib"
     end
 
     def opus_library_name

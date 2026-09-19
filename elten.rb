@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: product identity, data directory and window class.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: product identity, data directory and window class; Android reuses the iOS layer.
 
 root = File.expand_path(__dir__)
 Dir.chdir(root)
@@ -79,6 +79,9 @@ module EltenBoot
       platform = "linux" if platform == "" && RUBY_PLATFORM =~ /linux/i
       platform = "osx" if platform == "" && RUBY_PLATFORM =~ /darwin/i
       tags = platform == "" ? [] : [platform.to_sym]
+      # Android runs the iOS platform layer (touch, host bridge, speech) with a
+      # few Android branches, so every :ios file loads there as well.
+      tags << :ios if platform == "android"
       arch = platform_architecture(platform)
       tags << "#{platform}-#{arch}".to_sym if platform != "" && arch != ""
       @platform_tags = tags.uniq
