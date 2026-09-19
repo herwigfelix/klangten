@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module UI
@@ -175,6 +176,16 @@ Bass::BASS_ChannelSetAttribute.call(stream, 2, volume.to_f/100.0)
 
     def main_modifier_name
       EltenAPI::KeyboardScheme.modifier_name
+    end
+
+    # True where Klangten is driven by touch gestures instead of a keyboard
+    # (iOS and Android, which carries the :ios tag as well). Texts and menu
+    # entries that only make sense with a keyboard are dropped or reworded
+    # there; see src/platforms/ios/ui/touchinput.rb for the gestures.
+    def touch_ui?
+      defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios)
+    rescue Exception
+      false
     end
 
     def keyboard_action_label(action)

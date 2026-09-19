@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module Controls
@@ -104,7 +105,9 @@ class Menu
         inds.push(nil)
         o=c
         o=c[0] if c.is_a?(Array)
-        if c.is_a?(Array) and c[3]!="" and c[3]!=nil
+        # The key of an entry is appended to its label ("Settings (Ctrl+S)").
+        # On a touch device there is no such key, so it is left out.
+        if c.is_a?(Array) and c[3]!="" and c[3]!=nil and !touch_ui?
           if c[3].is_a?(EltenAPI::KeyboardScheme::Action)
             o+=" ("+keyboard_action_label(c[3].name)+")"
           else

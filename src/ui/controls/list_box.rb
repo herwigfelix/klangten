@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module Controls
@@ -612,7 +613,9 @@ def speak_item_option(id=self.index, base=nil, prefix="", include_selection=true
     text=speech_value_append(text, "\r\n\r\n(#{text_utf8(p_("EAPI_Common", "Ticked"))})") if @selected[id] == true
     text=speech_value_append(text, "\r\n\r\n(#{text_utf8(p_("EAPI_Common", "Unticked"))})") if @selected[id] == false && @multi==true
   end
-  if include_hotkey
+  # The accelerator letter of a menu entry ("Media catalog (C)") is worth
+  # nothing without a keyboard, so it is not announced on touch devices.
+  if include_hotkey && !touch_ui?
     ss=false
     for k in @hotkeys.keys
       ss = k if @hotkeys[k] == id
@@ -1093,8 +1096,10 @@ end
                 b += "\r\n\r\n(#{text_utf8(p_("EAPI_Common", "Checked"))})" if @selected[self.index] == true
                 b += "\r\n\r\n(#{text_utf8(p_("EAPI_Common", "Unchecked"))})" if @selected[self.index] == false && @multi==true
                 ss = false
+                unless touch_ui?
                 for k in @hotkeys.keys
                   ss = k if @hotkeys[k] == self.index
+                end
                 end
                 o=speech_value_append(o, " ("+text_utf8([ss.to_i & 0xff].pack("C"))+")") if ss.is_a?(Integer)
                 b += " ("+text_utf8([ss.to_i & 0xff].pack("C"))+")" if ss.is_a?(Integer)
@@ -1202,6 +1207,8 @@ def key_processed(k)
   end
   def tips
     tps=[]
+    # Selecting, filtering and the item-number keys have no gesture yet.
+    return tps if touch_ui?
         if @multi
       tps.push(p_("EAPI_Form", "Press Space to select or deselect items"))
       end

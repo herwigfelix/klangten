@@ -21112,10 +21112,6 @@ msgstr "Um sich zu registrieren, müssen Sie den Nutzungsbedingungen des Klango-
 #~ "Möchten Sie Informationen über den Status dieses Berichts an seinen "
 #~ "Verfasser senden?"
 
-#~ msgctxt "Forum"
-#~ msgid "Show older"
-#~ msgstr "Älteres zeigen"
-
 #~ msgctxt "Notifications"
 #~ msgid "No subject"
 #~ msgstr "Kein Betreff"
@@ -24370,3 +24366,227 @@ msgstr "Um sich zu registrieren, müssen Sie den Nutzungsbedingungen des Klango-
 #~ msgctxt "Sounds"
 #~ msgid "Select file to use"
 #~ msgstr "Wählen Sie die zu nutzende Datei"
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Swipe right and left with three fingers to move between the fields and "
+"buttons on a page, double tap to activate the one you hear, and use the "
+"Next and Back buttons to move between pages; skip anything that does not"
+" interest you. Nothing is applied until you choose Finish on the last "
+"page, and you can leave at any time by swiping left with two fingers."
+msgstr ""
+"Mit drei Fingern nach rechts oder links wischen Sie zwischen den Feldern"
+" und Schaltflächen einer Seite, mit einem Doppeltippen aktivieren Sie "
+"das, was Sie gerade hören, mit Weiter und Zurück wechseln Sie zwischen "
+"den Seiten. Alles, was Sie nicht interessiert, können Sie überspringen. "
+"Es wird nichts übernommen, bevor Sie auf der letzten Seite Fertig "
+"stellen wählen, und Sie können den Assistenten jederzeit mit einem Wisch"
+" nach links mit zwei Fingern verlassen."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Voice messages, audio blog posts and other recordings all share the same"
+" player. Swipe left or right to skip backwards or forwards, swipe up or "
+"down to change the volume, and swipe up or down with two fingers to "
+"change the pitch. Press and hold to open the player menu, which plays "
+"and pauses and reads the position, the duration and the chapters."
+msgstr ""
+"Sprachnachrichten, Audiobeiträge im Blog und andere Aufnahmen verwenden "
+"denselben Player. Mit einem Wisch nach links oder rechts springen Sie "
+"zurück oder vor, mit einem Wisch nach oben oder unten ändern Sie die "
+"Lautstärke, und mit zwei Fingern nach oben oder unten die Tonhöhe. "
+"Halten Sie den Finger gedrückt, um das Player-Menü zu öffnen: Dort "
+"finden Sie Wiedergabe und Pause und lassen sich Position, Dauer und "
+"Kapitel ansagen."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Nearly everything in Elten starts from one of two menus. Double tap with"
+" two fingers on most screens to open the main menu; it leads to the "
+"community areas, your account, programs, settings and help. The context "
+"menu is different: it lists the actions available for whatever currently"
+" has focus, such as a message, a forum post or a list entry."
+msgstr ""
+"Fast alles in Elten beginnt in einem von zwei Menüs. Mit einem "
+"Doppeltippen mit zwei Fingern öffnen Sie auf den meisten Bildschirmen "
+"das Hauptmenü; es führt zu den Community-Bereichen, Ihrem Konto, den "
+"Programmen, den Einstellungen und der Hilfe. Das Kontextmenü ist etwas "
+"anderes: Es zeigt die Aktionen, die für das gerade Fokussierte verfügbar"
+" sind, etwa eine Nachricht, einen Forenbeitrag oder einen Listeneintrag."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Open it by swiping up with two fingers, or by pressing and holding."
+msgstr ""
+"Sie öffnen es mit einem Wisch nach oben mit zwei Fingern oder indem Sie "
+"den Finger gedrückt halten."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"The context menu can also be placed as the first item of the main menu, "
+"so both menus are available after a two-finger double tap."
+msgstr ""
+"Das Kontextmenü kann auch als erster Eintrag im Hauptmenü angezeigt "
+"werden, sodass nach einem Doppeltippen mit zwei Fingern beide Menüs "
+"verfügbar sind."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Use the checkbox below to choose whether it should appear there; you can"
+" change this later in the program settings. Whenever an option seems to "
+"be missing, check the context menu first; that is usually where it "
+"lives."
+msgstr ""
+"Mit dem Kontrollkästchen unten können Sie festlegen, ob es dort "
+"erscheinen soll; dies lässt sich später in den Programmeinstellungen "
+"ändern. Wenn eine Option zu fehlen scheint, sehen Sie zuerst im "
+"Kontextmenü nach – meistens ist sie dort zu finden."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Use Back to review a page, Finish to apply the selections above, or "
+"swipe left with two fingers to leave without applying them."
+msgstr ""
+"Mit Zurück sehen Sie sich eine Seite noch einmal an, mit Fertig stellen "
+"übernehmen Sie die Auswahl oben, und mit einem Wisch nach links mit zwei"
+" Fingern verlassen Sie den Assistenten, ohne etwas zu übernehmen."
+
+#: src/ui/controls/player.rb
+msgctxt "EAPI_Form"
+msgid "Swipe left or right to seek"
+msgstr "Mit einem Wisch nach links oder rechts spulen Sie."
+
+#: src/ui/controls/player.rb
+msgctxt "EAPI_Form"
+msgid "Swipe up or down to change playback volume"
+msgstr "Mit einem Wisch nach oben oder unten ändern Sie die Lautstärke."
+
+#: src/ui/controls/player.rb
+msgctxt "EAPI_Form"
+msgid "Swipe up or down with two fingers to change pitch"
+msgstr "Mit zwei Fingern nach oben oder unten ändern Sie die Tonhöhe."
+
+#: src/ui/controls/player.rb
+msgctxt "EAPI_Form"
+msgid ""
+"Press and hold for the player menu: play or pause, position, duration, "
+"chapters"
+msgstr ""
+"Halten Sie den Finger gedrückt für das Player-Menü: Wiedergabe und "
+"Pause, Position, Dauer, Kapitel."
+
+#: src/scenes/main.rb
+msgctxt "Mastodon"
+msgid "No Mastodon account is connected. Double tap to connect one."
+msgstr ""
+"Es ist kein Mastodon-Konto verbunden. Tippen Sie doppelt, um eines zu "
+"verbinden."
+
+#: src/scenes/main.rb
+msgctxt "Mastodon"
+msgid ""
+"The Mastodon server no longer accepts the connection to your account. "
+"Double tap to connect the account again."
+msgstr ""
+"Der Mastodon-Server akzeptiert die Verbindung zu Ihrem Konto nicht mehr."
+" Tippen Sie doppelt, um das Konto erneut zu verbinden."
+
+#: src/eapi/eltensrv/feeds.rb
+msgctxt "Mastodon"
+msgid "Content hidden, double tap to read it"
+msgstr "Inhalt ausgeblendet, zum Lesen doppelt tippen"
+
+#: src/scenes/sounds.rb
+msgctxt "Sounds"
+msgid "Sound guide; use the Play button"
+msgstr "Klangführer; verwenden Sie die Schaltfläche Abspielen"
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "Klangten"
+msgid ""
+"The main window greets you with a list of Quick Actions: entries that "
+"take you straight to the places and commands you use most, such as "
+"opening Messages, publishing a post on Mastodon or opening the "
+"conference rooms. The default set covers the essentials, but all of it "
+"is yours to change: choose below which actions should be visible in your"
+" Quick Actions list. You can also use a Quick Action's context menu at "
+"any time to move, rename, hide or delete it, add further actions or "
+"restore the defaults."
+msgstr ""
+"Das Hauptfenster begrüßt Sie mit einer Liste von Schnellaktionen: "
+"Einträgen, die Sie direkt zu den Orten und Befehlen bringen, die Sie am "
+"häufigsten nutzen, etwa zu den Nachrichten, zum Veröffentlichen eines "
+"Beitrags auf Mastodon oder zu den Konferenzräumen. Die Voreinstellung "
+"deckt das Wichtigste ab, lässt sich aber vollständig ändern: Wählen Sie "
+"unten, welche Aktionen in Ihrer Liste der Schnellaktionen sichtbar sein "
+"sollen. Über das Kontextmenü einer Schnellaktion können Sie sie "
+"jederzeit verschieben, umbenennen, ausblenden oder löschen, weitere "
+"Aktionen hinzufügen oder die Voreinstellung wiederherstellen."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Welcome to Elten, and thank you for joining the community. This wizard "
+"will help you take your first steps: it shows you how to find your way "
+"around the program, helps you complete your account and profile, and "
+"introduces you to the community."
+msgstr ""
+"Willkommen bei Elten und vielen Dank, dass Sie Teil der Community "
+"geworden sind. Dieser Assistent hilft Ihnen bei den ersten Schritten: Er"
+" zeigt Ihnen, wie Sie sich im Programm zurechtfinden, hilft Ihnen dabei,"
+" Ihr Konto und Profil zu vervollständigen, und stellt Ihnen die "
+"Community vor."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Welcome to Elten 3.0. Starting with this version, Elten runs on an "
+"engine of its own and no longer relies on the old RGSS runtime. That "
+"change opened the way to new platforms, resolved many long-standing "
+"problems and allowed a thorough rebuild of the program, with dozens of "
+"changes and refinements too numerous to list here. The next pages of "
+"this wizard walk you through the most important ones."
+msgstr ""
+"Willkommen bei Elten 3.0. Seit dieser Version verwendet Elten eine "
+"eigene Engine und ist nicht mehr auf die alte RGSS-Laufzeitumgebung "
+"angewiesen. Dadurch wurden neue Plattformen möglich, viele seit Langem "
+"bestehende Probleme behoben und das Programm umfassend neu aufgebaut – "
+"mit Dutzenden Änderungen und Verbesserungen, die hier gar nicht alle "
+"aufgezählt werden können. Auf den nächsten Seiten stellt Ihnen dieser "
+"Assistent die wichtigsten davon vor."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"Use Tab and Shift+Tab to move between the fields and buttons on a page, "
+"and the Next and Back buttons to move between pages; skip anything that "
+"does not interest you. Nothing is applied until you choose Finish on the"
+" last page, and you can leave at any time by pressing Escape."
+msgstr ""
+"Mit Tab und Umschalt+Tab wechseln Sie zwischen den Feldern und "
+"Schaltflächen einer Seite, mit Weiter und Zurück zwischen den Seiten. "
+"Alles, was Sie nicht interessiert, können Sie überspringen. Es wird "
+"nichts übernommen, bevor Sie auf der letzten Seite Fertig stellen "
+"wählen, und Sie können den Assistenten jederzeit mit Escape verlassen."
+
+#: src/scenes/welcome_wizard.rb
+msgctxt "WelcomeWizard"
+msgid ""
+"The context menu can also be placed as the first item of the main menu, "
+"so both menus are available after pressing Alt."
+msgstr ""
+"Das Kontextmenü kann auch als erster Eintrag im Hauptmenü angezeigt "
+"werden, sodass nach dem Drücken von Alt beide Menüs verfügbar sind."
+
+#: src/scenes/forum.rb
+msgctxt "Forum"
+msgid "Show older"
+msgstr "Ältere anzeigen"
+

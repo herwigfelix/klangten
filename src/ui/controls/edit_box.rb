@@ -1826,6 +1826,8 @@ end
      end
      def tips
                 tips=[]
+       # Keyboard-only quick navigation; there are no gestures for it.
+       return tips if touch_ui?
        if (@flags&Flags::HTML)>0 || (@flags&Flags::MarkDown)>0
          tips.push(p_("EAPI_Form", "Use H or the number keys 1 to 6 to navigate to the next heading"))
          tips.push(p_("EAPI_Form", "Use k to navigate to the next link"))

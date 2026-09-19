@@ -243,7 +243,7 @@ module EltenAPI
       pieces = []
       if target.spoiler_text.to_s != ""
         pieces << p_("Mastodon", "Content warning: %{text}") % { text: target.spoiler_text }
-        pieces << (full ? status.text : p_("Mastodon", "Content hidden, press Enter to read it"))
+        pieces << (full ? status.text : (touch_ui? ? p_("Mastodon", "Content hidden, double tap to read it") : p_("Mastodon", "Content hidden, press Enter to read it")))
       else
         pieces << status.text
       end

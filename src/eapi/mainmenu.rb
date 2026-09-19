@@ -138,7 +138,9 @@ module GlobalMenu
    m.scene(p_("MainMenu", "&Licence agreement"), Scene_Documentation, "license")
    # Klangten: EltenLink's terms, privacy policy and the Elten 2.4 migration notice do not apply.
    m.scene(p_("Klangten", "&Terms of the Klango server"), Scene_Documentation, "rules")
-   m.scene(p_("MainMenu", "List of &Invisible Interface keyboard shortcuts"), Scene_IIKeys)
+   # The Invisible Interface is a set of global hotkeys; on touch platforms it
+   # reports itself unavailable, so its key list has nothing to show.
+   m.scene(p_("MainMenu", "List of &Invisible Interface keyboard shortcuts"), Scene_IIKeys) if !defined?(EltenAPI::InvisibleInterface) || !EltenAPI::InvisibleInterface.respond_to?(:available?) || EltenAPI::InvisibleInterface.available?
    m.submenu(p_("MainMenu", "Welcome &wizards")) {|m|
        m.scene(p_("MainMenu", "&First run wizard"), Scene_WelcomeWizard, true, true)
        m.scene(p_("MainMenu", "&Update to Elten 3.0 wizard"), Scene_WelcomeWizard, false, true)

@@ -4524,7 +4524,7 @@ class Scene_Forum_UserPosts
 
   def rebuild_list(index = nil)
     options = @posts.map { |post| post_label(post) }
-    options << p_("Forum", "Show older (Press Shift+Enter to load more posts at once)") if @more
+    options << (touch_ui? ? p_("Forum", "Show older") : p_("Forum", "Show older (Press Shift+Enter to load more posts at once)")) if @more
     options << p_("Forum", "No forum posts") if options.empty?
     index = @list.index if index.nil? && @list != nil
     index = 0 if index.nil?

@@ -105,6 +105,23 @@ module EltenAPI
      rescue Exception => e
        Log.warning("Cannot load locale resources: #{e.class}: #{e.message}") if defined?(Log)
      end
+     # The best available language for a system locale. An exact match wins;
+     # otherwise the first language with the same language part is used, so a
+     # phone set to de-AT or pt-PT still starts in German or Portuguese instead
+     # of falling back to English. Returns "" when nothing matches.
+     def resolve_locale_code(code)
+       normalized=normalize_locale_code(code)
+       return "" if normalized.to_s==""
+       exact=Languages.find { |l| l.realcode.downcase==normalized.downcase }
+       return exact.realcode if exact!=nil
+       part=normalized.split("-").first.to_s.downcase
+       return "" if part==""
+       similar=Languages.find { |l| l.realcode.to_s.split("-").first.to_s.downcase==part }
+       similar==nil ? "" : similar.realcode
+     rescue Exception
+       ""
+     end
+
      def getlocale(code)
        normalized=normalize_locale_code(code)
        lang=nil

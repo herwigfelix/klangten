@@ -462,6 +462,15 @@ h=d/3600
     end
   def tips
     tips=[]
+    # On a touch device the keyboard hints would name keys that are not there;
+    # these are the gestures of src/platforms/ios/ui/touchinput.rb instead.
+    if touch_ui?
+      tips.push(p_("EAPI_Form", "Swipe left or right to seek"))
+      tips.push(p_("EAPI_Form", "Swipe up or down to change playback volume"))
+      tips.push(p_("EAPI_Form", "Swipe up or down with two fingers to change pitch"))
+      tips.push(p_("EAPI_Form", "Press and hold for the player menu: play or pause, position, duration, chapters"))
+      return tips
+    end
     tips.push(p_("EAPI_Form", "Press the Space bar to play or pause"))
     tips.push(p_("EAPI_Form", "Use the Left/Right Arrow keys to seek"))
     tips.push(p_("EAPI_Form", "Use up/down arrows to change playback volume"))

@@ -116,7 +116,11 @@ public func elten_host_microphone_request(_ timeout: Double) -> Int32 {
 
 @_cdecl("elten_host_locale")
 public func elten_host_locale() -> UnsafePointer<CChar> {
-    return CStringHolder.shared.store("locale", Locale.current.identifier)
+    // Locale.current follows the bundle's development region (Polish here), so
+    // a German phone would report pl_DE and Klangten would start in English.
+    // The user's own language order is in preferredLanguages.
+    let preferred = Locale.preferredLanguages.first ?? Locale.current.identifier
+    return CStringHolder.shared.store("locale", preferred)
 }
 
 @_cdecl("elten_host_os_version")

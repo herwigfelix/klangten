@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 require "date"
 
@@ -80,6 +81,8 @@ module EltenAPI
       end
 
       def tips
+        # Moving by days, weeks and months is keyboard-only; no gestures yet.
+        return [] if touch_ui?
         [
           p_("Calendar", "Use the Left and Right Arrow keys to move by days"),
           p_("Calendar", "Use the Up and Down Arrow keys to move by weeks"),

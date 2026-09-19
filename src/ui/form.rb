@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module Controls
@@ -386,7 +387,7 @@ def delete_timer(timer)
   ae = escapable
   dialog_open
   inp = EditBox.new(header, type: flags, text: text, quiet: false)
-  inp.add_tip(p_("EAPI_Form", "Press Tab to check the number of entered characters")) if character_counter
+  inp.add_tip(p_("EAPI_Form", "Press Tab to check the number of entered characters")) if character_counter && !touch_ui?
   inp.max_length = max_length if max_length>0
   if move_to_end
     inp.index=inp.check=text.length
@@ -427,7 +428,7 @@ loop_update
 
   def input_user(header="", escapable: true)
     edt = EditBox.new(header, quiet: true)
-    edt.add_tip(p_("EAPI_Form", "Press the Up or Down Arrow key to select a contact"))
+    edt.add_tip(p_("EAPI_Form", "Press the Up or Down Arrow key to select a contact")) unless touch_ui?
     edt.bind_context {|menu|
     menu.option(p_("EAPI_Form", "Select contact")) {
     s=selectcontact

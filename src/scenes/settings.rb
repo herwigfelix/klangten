@@ -195,7 +195,7 @@ def make_window
     field = ListBox.new(order.map{|value|labels[value]}, header: label, index: 0, flags: 0)
     field.params[:setting_order]=order
     field.params[:setting_order_labels]=labels
-    field.add_tip(p_("Settings", "Use Shift with up/down arrows to move items"))
+    field.add_tip(p_("Settings", "Use Shift with up/down arrows to move items")) unless touch_ui?
     field.bind_context do |menu|
       menu.option(p_("Settings", "Move up")){move_order_setting(field,-1)} if field.index>0
       menu.option(p_("Settings", "Move down")){move_order_setting(field,1)} if field.index<order.size-1
@@ -277,9 +277,12 @@ def make_window
             make_setting(p_("Settings", "Selection-list navigation mode"), [p_("Settings", "Linear"),p_("Settings", "Circular")], "Interface", "ListType", ["linear", "circular"])
             make_setting(p_("Settings", "Wrap focus within forms"), :bool, "Interface", "RoundUpForms")
             make_setting(p_("Settings", "Automatically play audio content"), [p_("Settings", "Always"),p_("Settings", "Only when transcription is not available"), p_("Settings", "Never")], "Interface", "AutoPlay", ["always", "without_transcription", "never"])
+            # Nothing to set where there is no keyboard.
+            unless touch_ui?
             make_setting(p_("Settings", "Keyboard scheme"), [p_("Settings", "Default"), p_("Settings", "Windows"), p_("Settings", "macOS")], "Interface", "KeyboardScheme", ["default", "windows", "macos"])
             make_setting(p_("Settings", "Use macOS-style character navigation in text fields"), [p_("Settings", "System Default"), p_("Settings", "Disable"), p_("Settings", "Enable")], "Interface", "MacOSCharacterNavigation", ["default", "disabled", "enabled"])
             make_setting(p_("Settings", "Manage keyboard shortcuts"), :custom, Proc.new { insert_scene(Scene_KeyboardShortcuts.new) })
+            end
             on_load {
             @form.fields[1].on(:change) {
             if @form.fields[1].checked

@@ -94,11 +94,20 @@ class Scene_WelcomeWizard
     add_summary_page
   end
 
+  # How to move around a wizard page: keys on the desktop, gestures on a phone.
+  def navigation_hint
+    if touch_ui?
+      p_("WelcomeWizard", "Swipe right and left with three fingers to move between the fields and buttons on a page, double tap to activate the one you hear, and use the Next and Back buttons to move between pages; skip anything that does not interest you. Nothing is applied until you choose Finish on the last page, and you can leave at any time by swiping left with two fingers.")
+    else
+      p_("WelcomeWizard", "Use Tab and Shift+Tab to move between the fields and buttons on a page, and the Next and Back buttons to move between pages; skip anything that does not interest you. Nothing is applied until you choose Finish on the last page, and you can leave at any time by pressing Escape.")
+    end
+  end
+
   def add_welcome_page
     text = if @first_run
-      p_("WelcomeWizard", "Welcome to Elten, and thank you for joining the community. This wizard will help you take your first steps: it shows you how to find your way around the program, helps you complete your account and profile, and introduces you to the community. Use Tab and Shift+Tab to move between the fields and buttons on a page, and the Next and Back buttons to move between pages; skip anything that does not interest you. Nothing is applied until you choose Finish on the last page, and you can leave at any time by pressing Escape.")
+      p_("WelcomeWizard", "Welcome to Elten, and thank you for joining the community. This wizard will help you take your first steps: it shows you how to find your way around the program, helps you complete your account and profile, and introduces you to the community.") + " " + navigation_hint
     else
-      p_("WelcomeWizard", "Welcome to Elten 3.0. Starting with this version, Elten runs on an engine of its own and no longer relies on the old RGSS runtime. That change opened the way to new platforms, resolved many long-standing problems and allowed a thorough rebuild of the program, with dozens of changes and refinements too numerous to list here. The next pages of this wizard walk you through the most important ones. Use Tab and Shift+Tab to move between the fields and buttons on a page, and the Next and Back buttons to move between pages; skip anything that does not interest you. Nothing is applied until you choose Finish on the last page, and you can leave at any time by pressing Escape.")
+      p_("WelcomeWizard", "Welcome to Elten 3.0. Starting with this version, Elten runs on an engine of its own and no longer relies on the old RGSS runtime. That change opened the way to new platforms, resolved many long-standing problems and allowed a thorough rebuild of the program, with dozens of changes and refinements too numerous to list here. The next pages of this wizard walk you through the most important ones.") + " " + navigation_hint
     end
     add_page(:welcome, p_("WelcomeWizard", "Welcome")) do
       info = information_field(p_("WelcomeWizard", "Welcome"), text)
@@ -308,16 +317,26 @@ class Scene_WelcomeWizard
     rescue StandardError
       "Ctrl"
     end
-    text = p_("WelcomeWizard", "Voice messages, audio blog posts and other recordings all share the same player controls. The spacebar pauses and resumes playback, the Left and Right Arrows skip backwards or forwards, and the Up and Down Arrows adjust the playback volume. Holding %{modifier} with the Up and Down Arrows speeds a recording up or slows it down, and Backspace restores the default playback settings.") % { modifier: modifier }
-    tips_hotkey = quick_action_hotkey_label(:tips)
+    text = if touch_ui?
+      p_("WelcomeWizard", "Voice messages, audio blog posts and other recordings all share the same player. Swipe left or right to skip backwards or forwards, swipe up or down to change the volume, and swipe up or down with two fingers to change the pitch. Press and hold to open the player menu, which plays and pauses and reads the position, the duration and the chapters.")
+    else
+      p_("WelcomeWizard", "Voice messages, audio blog posts and other recordings all share the same player controls. The spacebar pauses and resumes playback, the Left and Right Arrows skip backwards or forwards, and the Up and Down Arrows adjust the playback volume. Holding %{modifier} with the Up and Down Arrows speeds a recording up or slows it down, and Backspace restores the default playback settings.") % { modifier: modifier }
+    end
+    tips_hotkey = touch_ui? ? nil : quick_action_hotkey_label(:tips)
     text += " " + p_("WelcomeWizard", "With a player focused, %{hotkey} reads the remaining playback shortcuts.") % { hotkey: tips_hotkey } if tips_hotkey != nil
     add_info_page(:media_playback, p_("WelcomeWizard", "Playing audio"), text)
   end
 
   def add_menus_page
-    text = p_("WelcomeWizard", "Nearly everything in Elten starts from one of two menus. Press Alt on most screens to open the main menu; it leads to the community areas, your account, programs, settings and help. The context menu is different: it lists the actions available for whatever currently has focus, such as a message, a forum post or a list entry.")
-    hotkey = quick_action_hotkey_label(:context)
-    opening = if context_menu_key_available? && hotkey != nil
+    text = if touch_ui?
+      p_("WelcomeWizard", "Nearly everything in Elten starts from one of two menus. Double tap with two fingers on most screens to open the main menu; it leads to the community areas, your account, programs, settings and help. The context menu is different: it lists the actions available for whatever currently has focus, such as a message, a forum post or a list entry.")
+    else
+      p_("WelcomeWizard", "Nearly everything in Elten starts from one of two menus. Press Alt on most screens to open the main menu; it leads to the community areas, your account, programs, settings and help. The context menu is different: it lists the actions available for whatever currently has focus, such as a message, a forum post or a list entry.")
+    end
+    hotkey = touch_ui? ? nil : quick_action_hotkey_label(:context)
+    opening = if touch_ui?
+      p_("WelcomeWizard", "Open it by swiping up with two fingers, or by pressing and holding.")
+    elsif context_menu_key_available? && hotkey != nil
       p_("WelcomeWizard", "Open it with the context menu key on your keyboard, or with %{hotkey}, the shortcut of the Open context menu quick action.") % { hotkey: hotkey }
     elsif context_menu_key_available?
       p_("WelcomeWizard", "Open it with the context menu key on your keyboard.")
@@ -325,8 +344,8 @@ class Scene_WelcomeWizard
       p_("WelcomeWizard", "Open it with %{hotkey}, the shortcut of the Open context menu quick action.") % { hotkey: hotkey }
     end
     text += " " + opening if opening != nil
-    text += " " + p_("WelcomeWizard", "The context menu can also be placed as the first item of the main menu, so both menus are available after pressing Alt. Use the checkbox below to choose whether it should appear there; you can change this later in the program settings. Whenever an option seems to be missing, check the context menu first; that is usually where it lives.")
-    tips_hotkey = quick_action_hotkey_label(:tips)
+    text += " " + (touch_ui? ? p_("WelcomeWizard", "The context menu can also be placed as the first item of the main menu, so both menus are available after a two-finger double tap.") : p_("WelcomeWizard", "The context menu can also be placed as the first item of the main menu, so both menus are available after pressing Alt.")) + " " + p_("WelcomeWizard", "Use the checkbox below to choose whether it should appear there; you can change this later in the program settings. Whenever an option seems to be missing, check the context menu first; that is usually where it lives.")
+    tips_hotkey = touch_ui? ? nil : quick_action_hotkey_label(:tips)
     if tips_hotkey != nil
       text += " " + p_("WelcomeWizard", "One more shortcut worth remembering is %{hotkey}: wherever you are, it reads the additional keyboard shortcuts and hints available for the control that currently has focus.") % { hotkey: tips_hotkey }
     end
@@ -345,7 +364,11 @@ class Scene_WelcomeWizard
   end
 
   def add_quick_actions_page
-    text = p_("Klangten", "The main window greets you with a list of Quick Actions: shortcuts that take you straight to the places and commands you use most, such as opening Messages, publishing a post on Mastodon or opening the conference rooms. The default set covers the essentials, but all of it is yours to change: choose below which actions should be visible in your Quick Actions list; shortcuts assigned to hidden actions remain active. You can also use a Quick Action's context menu at any time to move, rename, hide or delete it, assign a hotkey to it, add further actions or restore the defaults.")
+    text = if touch_ui?
+      p_("Klangten", "The main window greets you with a list of Quick Actions: entries that take you straight to the places and commands you use most, such as opening Messages, publishing a post on Mastodon or opening the conference rooms. The default set covers the essentials, but all of it is yours to change: choose below which actions should be visible in your Quick Actions list. You can also use a Quick Action's context menu at any time to move, rename, hide or delete it, add further actions or restore the defaults.")
+    else
+      p_("Klangten", "The main window greets you with a list of Quick Actions: shortcuts that take you straight to the places and commands you use most, such as opening Messages, publishing a post on Mastodon or opening the conference rooms. The default set covers the essentials, but all of it is yours to change: choose below which actions should be visible in your Quick Actions list; shortcuts assigned to hidden actions remain active. You can also use a Quick Action's context menu at any time to move, rename, hide or delete it, assign a hotkey to it, add further actions or restore the defaults.")
+    end
     if available_quick_actions.empty?
       add_info_page(:quick_actions, p_("WelcomeWizard", "Quick Actions"), text)
       return
@@ -1444,7 +1467,9 @@ end
       lines += ["", p_("WelcomeWizard", "Elten could not check the following information. The wizard will make no changes based on it:"), ""]
       lines += deferred.map { |line| "• #{line}" }
     end
-    lines.push("", p_("WelcomeWizard", "Use Back to review a page, Finish to apply the selections above, or Escape to leave without applying them."))
+    lines.push("", touch_ui? ?
+      p_("WelcomeWizard", "Use Back to review a page, Finish to apply the selections above, or swipe left with two fingers to leave without applying them.") :
+      p_("WelcomeWizard", "Use Back to review a page, Finish to apply the selections above, or Escape to leave without applying them."))
     lines.join("\n")
   end
 

@@ -186,7 +186,10 @@ $thr2=Thread.new{thr2} if $thr2==nil
                     Lists.langs=load_json_resource("langs.json", {})
                     Lists.locations=load_json_resource("locations.json", [])
 if Configuration.language==""
-                                          Configuration.language=EltenSystemHelpers.current_locale_name
+                                          # Fall back to English only when the system locale matches nothing.
+                                          system_locale=EltenSystemHelpers.current_locale_name
+                                          Configuration.language=resolve_locale_code(system_locale)
+                                          Log.info("First run language: system locale #{system_locale.to_s.empty? ? "unknown" : system_locale} -> #{Configuration.language.to_s.empty? ? "default (English)" : Configuration.language}") if defined?(Log)
                                                                                   writeconfig("Interface", "Language", Configuration.language) if Configuration.language.to_s!=""
                                                                                 end
                                                                                 setlocale(Configuration.language)

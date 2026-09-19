@@ -543,7 +543,7 @@ def acsel_load(fc=true)
       options = @specials.map{|s|s[1]}+@actions.map{|a|a.detail}
       if @acsel==nil
     @acsel = ListBox.new(options, header: p_("Main", "Quick actions"), index: @@acselindex)
-    @acsel.add_tip(p_("Main", "Use Shift with up/down arrows to move quick actions"))
+    @acsel.add_tip(p_("Main", "Use Shift with up/down arrows to move quick actions")) unless touch_ui?
     @acsel.bind_context{|menu| accontext(menu)}
   else
     @acsel.options = options
@@ -690,10 +690,10 @@ def feeds_load(fc=false)
   service=Klangten::Mastodon::Service
   if mastodon_account==nil
     @feeds_placeholder=:connect
-    selt=[p_("Mastodon", "No Mastodon account is connected. Press Enter to connect one.")]
+    selt=[touch_ui? ? p_("Mastodon", "No Mastodon account is connected. Double tap to connect one.") : p_("Mastodon", "No Mastodon account is connected. Press Enter to connect one.")]
   elsif service.status==:unauthorized
     @feeds_placeholder=:reconnect
-    selt=[p_("Mastodon", "The Mastodon server no longer accepts the connection to your account. Press Enter to connect the account again.")]
+    selt=[touch_ui? ? p_("Mastodon", "The Mastodon server no longer accepts the connection to your account. Double tap to connect the account again.") : p_("Mastodon", "The Mastodon server no longer accepts the connection to your account. Press Enter to connect the account again.")]
   else
     @feeds=service.home_statuses
     selt=@feeds.map{|status|mastodon_status_speech(status)}

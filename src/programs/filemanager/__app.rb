@@ -747,8 +747,11 @@ class ProgramFileManager < Program
       return false if raw_key_held?(:key_shift) && [:up, :down].include?(key)
       original_key_processed.call(key)
     end
-    list.add_tip(_("Use Shift+Up and Shift+Down to move tracks."))
-    list.add_tip(_("Use the Left/Right Arrow keys to seek"))
+    # respond_to?: programs do not necessarily carry the Klangten UI mixin.
+    unless respond_to?(:touch_ui?) && touch_ui?
+      list.add_tip(_("Use Shift+Up and Shift+Down to move tracks."))
+      list.add_tip(_("Use the Left/Right Arrow keys to seek"))
+    end
     refresh = proc do |index = list.index|
       list.options = playlist_entry_labels(playlist)
       list.index = [[index.to_i, 0].max, [playlist.entries.size - 1, 0].max].min

@@ -140,7 +140,7 @@ class Scene_Sounds
           @snd.push(Struct_Sounds_Sound.new(file,@soundnames[file],@theme))
     end
     return $scene=Scene_Main.new if @snd.size==0
-    h=p_("Sounds", "Sound guide; press Space to play")
+    h=touch_ui? ? p_("Sounds", "Sound guide; use the Play button") : p_("Sounds", "Sound guide; press Space to play")
     h=p_("Sounds", "Editing sound theme %{theme}")%{:theme=>@name} if @theme!=nil
     @fields = [
     @sel=ListBox.new(@snd.map{|o| o.description}, header: h, index: 0, flags: ListBox::Flags::Silent),
