@@ -1,0 +1,57 @@
+// Klangten for Android (GNU GPL v3). See docs/android.md.
+//
+// The native part (src/main/cpp) links the Ruby runtime that
+// scripts/build-runtime.sh produces in vendor/<abi>; scripts/stage-assets.sh
+// stages the Ruby standard library into build/assets, scripts/fetch-bass.sh
+// puts BASS into vendor/jnilibs.
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "it.sixdots.klangten"
+    compileSdk 36
+    ndkVersion "28.2.13676358"
+
+    defaultConfig {
+        applicationId "it.sixdots.klangten"
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName "0.1.0"
+        ndk {
+            abiFilters "arm64-v8a"
+        }
+        externalNativeBuild {
+            cmake {
+                // c++_shared: the TeamConference library (Rust + C++ audio
+                // backend) needs libc++_shared.so, and only one copy may exist.
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+
+    // Assets are extracted once per version; keep them uncompressed-agnostic.
+    androidResources {
+        ignoreAssetsPattern "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs = ["../build/assets"]
+            jniLibs.srcDirs = ["../vendor/jnilibs"]
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
