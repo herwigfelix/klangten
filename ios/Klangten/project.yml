@@ -48,7 +48,7 @@ targets:
         ENABLE_DEBUG_DYLIB: "NO"
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Elten-Bridging-Header.h
         HEADER_SEARCH_PATHS: [$(inherited), $(SRCROOT)/vendor/cruby/include]
-        LIBRARY_SEARCH_PATHS: [$(inherited), $(SRCROOT)/vendor/fiddle/$(PLATFORM_NAME)-$(CURRENT_ARCH), $(SRCROOT)/vendor/gems/$(PLATFORM_NAME)-$(CURRENT_ARCH), $(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)]
+        LIBRARY_SEARCH_PATHS: [$(inherited), $(SRCROOT)/vendor/fiddle/$(PLATFORM_NAME)-$(CURRENT_ARCH), $(SRCROOT)/vendor/gems/$(PLATFORM_NAME)-$(CURRENT_ARCH), $(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH), $(SRCROOT)/vendor/teamconference/$(PLATFORM_NAME)-$(CURRENT_ARCH)]
         OTHER_LDFLAGS:
           - $(inherited)
           - -lz
@@ -66,6 +66,43 @@ targets:
           - -Wl,-force_load,$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)/libogg.a
           - -Wl,-force_load,$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)/libvorbis.a
           - -Wl,-force_load,$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)/libspeexdsp.a
+          - -lteamconference_core
+          - -Wl,-u,_tc_audio_format
+          - -Wl,-u,_tc_clear_audio
+          - -Wl,-u,_tc_connect
+          - -Wl,-u,_tc_core_version
+          - -Wl,-u,_tc_create
+          - -Wl,-u,_tc_current_room
+          - -Wl,-u,_tc_destroy
+          - -Wl,-u,_tc_disconnect
+          - -Wl,-u,_tc_download_file
+          - -Wl,-u,_tc_get_deafen
+          - -Wl,-u,_tc_get_mute
+          - -Wl,-u,_tc_is_authenticated
+          - -Wl,-u,_tc_is_connected
+          - -Wl,-u,_tc_join_group_room
+          - -Wl,-u,_tc_join_room
+          - -Wl,-u,_tc_last_error
+          - -Wl,-u,_tc_leave_room
+          - -Wl,-u,_tc_list_input_devices
+          - -Wl,-u,_tc_poll_event
+          - -Wl,-u,_tc_read_audio
+          - -Wl,-u,_tc_send
+          - -Wl,-u,_tc_set_deafen
+          - -Wl,-u,_tc_set_input_device
+          - -Wl,-u,_tc_set_mute
+          - -Wl,-u,_tc_set_user_volume
+          - -Wl,-u,_tc_set_volume
+          - -Wl,-u,_tc_stream_file
+          - -Wl,-u,_tc_stream_is_active
+          - -Wl,-u,_tc_stream_is_paused
+          - -Wl,-u,_tc_stream_pause
+          - -Wl,-u,_tc_stream_seek
+          - -Wl,-u,_tc_stream_set_volume
+          - -Wl,-u,_tc_stream_stop
+          - -Wl,-u,_tc_upload_file
+          - -Wl,-u,_tc_user_id
+          - -Wl,-u,_tc_version
           # Export the app's own symbols into the dynamic table so the embedded
           # Ruby can resolve the host bridge (elten_host_*) via dlopen(nil)/dlsym.
           # Without this the @_cdecl entry points are not visible and the app is
@@ -102,4 +139,6 @@ targets:
         embed: true
         codeSign: true
       - sdk: AVFoundation.framework
+      - sdk: AudioToolbox.framework
+      - sdk: CoreAudio.framework
       - sdk: UIKit.framework

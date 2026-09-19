@@ -14,6 +14,7 @@
 #   SDK=iphonesimulator ARCH=arm64 ios/scripts/build-gems-ios.sh     # + iphoneos
 #   SDK=iphonesimulator ARCH=arm64 ios/scripts/build-codecs-ios.sh   # + iphoneos
 #   ios/scripts/fetch-native-libs.sh   (BASS xcframeworks)
+#   ios/scripts/fetch-teamconference.sh   (optional: conferences)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -76,6 +77,22 @@ echo "==> Generating Xcode project"
 LP='$(SRCROOT)/vendor/fiddle/$(PLATFORM_NAME)-$(CURRENT_ARCH)'
 GP='$(SRCROOT)/vendor/gems/$(PLATFORM_NAME)-$(CURRENT_ARCH)'
 CP='$(SRCROOT)/vendor/codecs/$(PLATFORM_NAME)-$(CURRENT_ARCH)'
+TP='$(SRCROOT)/vendor/teamconference/$(PLATFORM_NAME)-$(CURRENT_ARCH)'
+# TeamConference is linked through -u for each tc_* function instead of
+# -force_load: its archive carries its own copy of libopus, which is already
+# force-loaded above, so only the Rust objects may be pulled in. -export_dynamic
+# then makes the functions visible to Fiddle in the running process.
+TC_FLAGS=""
+TC_LIB="$(ls "$HERE"/vendor/teamconference/iphoneos-arm64/libteamconference_core.a 2>/dev/null || true)"
+if [ -n "$TC_LIB" ]; then
+  TC_FLAGS="          - -lteamconference_core"
+  for sym in $(nm -gU "$TC_LIB" | awk '$2 == "T" && $3 ~ /^_tc_/ { print $3 }' | sort -u); do
+    TC_FLAGS="$TC_FLAGS
+          - -Wl,-u,$sym"
+  done
+else
+  echo "   (no vendor/teamconference: conferences will be unavailable)"
+fi
 {
 cat <<YAML
 name: Klangten
@@ -127,7 +144,7 @@ $SIGN
         ENABLE_DEBUG_DYLIB: "NO"
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Elten-Bridging-Header.h
         HEADER_SEARCH_PATHS: [\$(inherited), \$(SRCROOT)/vendor/cruby/include]
-        LIBRARY_SEARCH_PATHS: [\$(inherited), $LP, $GP, $CP]
+        LIBRARY_SEARCH_PATHS: [\$(inherited), $LP, $GP, $CP, $TP]
         OTHER_LDFLAGS:
           - \$(inherited)
           - -lz
@@ -145,6 +162,7 @@ $SIGN
           - -Wl,-force_load,$CP/libogg.a
           - -Wl,-force_load,$CP/libvorbis.a
           - -Wl,-force_load,$CP/libspeexdsp.a
+$TC_FLAGS
           # Export the app's own symbols into the dynamic table so the embedded
           # Ruby can resolve the host bridge (elten_host_*) via dlopen(nil)/dlsym.
           # Without this the @_cdecl entry points are not visible and the app is
@@ -161,6 +179,8 @@ for xc in "$HERE"/Frameworks/*.xcframework; do
   echo "        codeSign: true"
 done
 echo "      - sdk: AVFoundation.framework"
+echo "      - sdk: AudioToolbox.framework"
+echo "      - sdk: CoreAudio.framework"
 echo "      - sdk: UIKit.framework"
 } > "$HERE/project.yml"
 

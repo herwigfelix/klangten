@@ -24,6 +24,7 @@ for SDK in iphonesimulator iphoneos; do
   SDK=$SDK ARCH=arm64 ios/scripts/build-codecs-ios.sh
 done
 ios/scripts/fetch-native-libs.sh          # BASS xcframeworks (device+sim)
+ios/scripts/fetch-teamconference.sh       # TeamConference core (optional, conferences)
 
 # 2. Assemble the app + generate the Xcode project
 ios/Klangten/assemble.sh
@@ -176,6 +177,7 @@ All of Elten's native dependencies now build for iOS and load on the simulator:
 | ruby-xz, rubyzip, http-2, base62/64, ostruct | pure Ruby (bundle their `lib/`) | ✅ |
 | opus, ogg, vorbis, speexdsp | `build-codecs-ios.sh` (linked with `-Wl,-force_load`) | ✅ |
 | BASS + add-ons (mix/enc/opus/flac/midi/hls/webm) | `fetch-native-libs.sh` (un4seen frameworks) | ✅ |
+| TeamConference core (conferences) | `fetch-teamconference.sh` from the TeamConference xcframework; linked with `-Wl,-u,_tc_*` (not `-force_load`: the archive carries its own libopus), found by Fiddle in the process | ✅ |
 
 ### ✅ MILESTONE: the full Elten core boots on iOS
 
@@ -211,6 +213,7 @@ ios/scripts/build-fiddle-ios.sh           # -> vendor/fiddle (fiddle + libffi)
 ios/scripts/build-gems-ios.sh             # -> vendor/gems  (bigdecimal, zstd, nokogiri)
 ios/scripts/build-codecs-ios.sh           # -> vendor/codecs (opus, ogg, vorbis, speexdsp)
 ios/scripts/fetch-native-libs.sh          # -> Frameworks   (BASS + add-ons)
+ios/scripts/fetch-teamconference.sh       # -> vendor/teamconference (conferences)
 ios/scripts/build-app.sh                  # stage Ruby core + stdlib, generate, build
 ```
 

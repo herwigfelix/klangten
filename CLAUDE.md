@@ -57,7 +57,7 @@ tools/build-windows.bat --pkg --build-id 2026091401   # multi-arch helper, needs
 - **`src/eapi/common/klangten.rb`** provides the fork notice, server-terms text and helpers; wrap text that must literally say "Elten" in `unbranded { … }`.
 - **Branding is display-time**: `src/eapi/dictionary.rb` substitutes Elten→Klangten and EltenLink→Klango in translated output. Do not rename msgids.
 - **Feed = Mastodon** (`src/eapi/mastodon/`, `src/scenes/mastodon_timeline.rb`); EltenLink feeds are gone.
-- **Conferences = TeamConference** (`src/eapi/teamconference.rb`, libraries in `bin/`, token from `GET /api/v1/conference/token`); Elten's own VoIP/relay code was removed.
+- **Conferences = TeamConference** (`src/eapi/teamconference.rb`, libraries in `bin/`, on iOS linked into the app via `ios/scripts/fetch-teamconference.sh`, token from `GET /api/v1/conference/token`); Elten's own VoIP/relay code was removed. The library comes from the public TeamConference repository only; `tc_join_group_room` is optional (without it just the forum-group rooms disappear). Windows DLLs must be built with `+crt-static`, the installer ships no VC++ runtime.
 - **Built-in programs** live unpacked in `src/programs/` (youtube, filemanager, ffmpeg, mcp) and are loaded as trusted by `src/eapi/program_builtins.rb`; their translations are in `locale/programs/`.
 - **Main menu order** is Community → Media → Files → Programs → Tools. In `src/eapi/mainmenu.rb` every `@menu.submenu` call *inside* the Community block nests into it — top-level entries must be added after that block closes.
 - **Removed**: premium, payments, auctions, sponsors, calendar, tasks. `holds_premiumpackage`/`requires_premiumpackage` always return true, so former premium features are available to everyone.

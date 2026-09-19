@@ -102,9 +102,19 @@ module TeamConference
       "tc_clear_audio" => [[], V]
     }.freeze
 
-    # Library file name for a platform, nil where no build is shipped.
-    # Shipped builds: Windows x64 and macOS arm64. Windows arm64/x86 and Linux
-    # need their own build of teamconference/lib (see THIRD-PARTY-NOTICES.md).
+    # Functions a build may lack. Without them only the matching feature is
+    # switched off (for tc_join_group_room: the rooms of forum groups) instead
+    # of the whole library failing to load.
+    OPTIONAL = ["tc_join_group_room"].freeze
+
+    # Stands for "the running process" in a candidate list: on iOS the library
+    # is linked statically into the app, so its symbols are looked up there.
+    PROCESS = :process
+
+    # Library file name for a platform, nil where no file is shipped.
+    # Shipped builds: Windows x64 and macOS arm64 as files, iOS linked into the
+    # app. Windows arm64/x86 and Linux need their own build of
+    # teamconference/lib (see THIRD-PARTY-NOTICES.md).
     def self.file_name(platform, runtime_dir = nil)
       case platform.to_s
       when "windows"
@@ -116,11 +126,12 @@ module TeamConference
       end
     end
 
-    # Candidate paths: $KLANGTEN_TCLIB, bin/<runtime>/, bin/.
+    # Candidate paths: $KLANGTEN_TCLIB, bin/<runtime>/, bin/; on iOS the app itself.
     def self.candidates(root:, platform:, runtime_dir:)
       list = []
       env = ENV[ENV_PATH].to_s
       list << env if env != ""
+      list << PROCESS if platform.to_s == "ios"
       name = file_name(platform, runtime_dir)
       if name != nil
         list << File.join(root, "bin", runtime_dir.to_s, name)
@@ -131,7 +142,7 @@ module TeamConference
 
     # Returns [library, nil] or [nil, "reason"].
     def self.open(candidates)
-      path = candidates.find { |candidate| File.file?(candidate) }
+      path = candidates.find { |candidate| candidate == PROCESS || File.file?(candidate) }
       return [nil, "TeamConference library not available for this platform"] if path == nil
       library = new(path)
       return [nil, "tc_create failed: #{library.last_error}"] unless library.create
@@ -144,10 +155,14 @@ module TeamConference
 
     def initialize(path)
       @path = path
-      @handle = Fiddle.dlopen(path)
+      @handle = path == PROCESS ? process_handle : Fiddle.dlopen(path)
       @functions = {}
       SIGNATURES.each do |name, (args, ret)|
-        @functions[name] = Fiddle::Function.new(@handle[name], args, ret)
+        begin
+          @functions[name] = Fiddle::Function.new(@handle[name], args, ret)
+        rescue Fiddle::DLError
+          raise unless OPTIONAL.include?(name)
+        end
       end
       @event_buffer = "\0".b * 65_536
     end
@@ -210,7 +225,13 @@ module TeamConference
       fn("tc_join_room").call(room_id.to_i, pw) == 1
     end
 
+    # False when the build predates group rooms.
+    def group_rooms?
+      @functions.key?("tc_join_group_room")
+    end
+
     def join_group_room(group_id, name)
+      return false unless group_rooms?
       fn("tc_join_group_room").call(cstr(group_id), cstr(name)) == 1
     end
 
@@ -311,6 +332,10 @@ module TeamConference
 
     def fn(name)
       @functions.fetch(name)
+    end
+
+    def process_handle
+      defined?(Fiddle::Handle::DEFAULT) ? Fiddle::Handle::DEFAULT : Fiddle.dlopen(nil)
     end
 
     def cstr(value)
@@ -688,6 +713,10 @@ module TeamConference
         apply_input_device
         @library.join_room(id.to_i, password) || record_error(@library.last_error)
       end
+    end
+
+    def group_rooms?
+      !@library.respond_to?(:group_rooms?) || @library.group_rooms?
     end
 
     def join_group_room(group_id, name)

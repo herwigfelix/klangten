@@ -190,7 +190,8 @@ class Scene_Conference
     rooms = @client.rooms
     by_group = {}
     rooms.each { |r| by_group[r["group_id"].to_s] = r if r["group_id"].to_s != "" }
-    entries = @groups.map { |g| { kind: :group, gid: g[:gid], name: g[:name], room: by_group[g[:gid]] } }
+    groups = @client.group_rooms? ? @groups : []
+    entries = groups.map { |g| { kind: :group, gid: g[:gid], name: g[:name], room: by_group[g[:gid]] } }
     open_rooms = rooms.select { |r| r["group_id"].to_s == "" && !TeamConference.truthy?(r["private"]) }
     open_rooms.sort_by { |r| r["name"].to_s.downcase }.each { |r| entries << { kind: :room, name: r["name"].to_s, room: r } }
     current = rooms.find { |r| r["id"].to_i == @client.room_id.to_i }
