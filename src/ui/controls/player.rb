@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module Controls
@@ -67,8 +68,16 @@ elsif @file==nil
 return @sound
   end
 
+# Whether a player took input within the last moments. A player's update only
+# runs while it has the focus, so touch layers use this to switch gestures.
+def self.focused?(within = 0.5)
+  @@focused_at ||= nil
+  @@focused_at != nil && Process.clock_gettime(Process::CLOCK_MONOTONIC) - @@focused_at <= within
+end
+
 def update
 super
+  @@focused_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
   return if @sound!=nil && @sound.closed?
     boundary_action=keyboard_action_pressed?(:player_start, :player_end)
     if boundary_action==:player_start && get_sound!=nil

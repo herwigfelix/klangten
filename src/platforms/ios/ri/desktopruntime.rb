@@ -92,15 +92,20 @@ module IOSWindowNative
 
     # Hold one or more modifiers, tap a key while they are down, then release
     # them. Spread across frames so a real Ctrl+key / Shift+key chord is seen.
-    def tap_chord(modifiers, vk)
+    # `times` repeats the key while the modifiers stay down (one gesture standing
+    # in for a held key).
+    def tap_chord(modifiers, vk, times = 1)
       vk = normalize_key(vk)
       return false if vk == nil
       mods = Array(modifiers).map { |m| normalize_key(m) }.compact
       ensure_state
       mods.each { |m| schedule(@frame, m, true) }
-      schedule(@frame + 1, vk, true)
-      schedule(@frame + 2, vk, false)
-      mods.each { |m| schedule(@frame + 3, m, false) }
+      count = times.to_i < 1 ? 1 : times.to_i
+      count.times do |i|
+        schedule(@frame + 1 + i * 2, vk, true)
+        schedule(@frame + 2 + i * 2, vk, false)
+      end
+      mods.each { |m| schedule(@frame + 1 + count * 2, m, false) }
       true
     end
 

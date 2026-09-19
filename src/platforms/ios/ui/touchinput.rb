@@ -66,6 +66,20 @@ module IOSTouchInput
     four_finger_double_tap:   [:toggle_keyboard]
   }
 
+  # While a player has the focus, two-finger swipes up and down stand for
+  # Shift+Up/Down (pitch) instead of context menu and back. One key press moves
+  # the pitch by only 0.4 %, so a swipe counts as several presses.
+  PLAYBACK_STEPS = 5
+  PLAYBACK_GESTURES = {
+    two_finger_swipe_up:   [:chord, SHIFT, UP, PLAYBACK_STEPS],
+    two_finger_swipe_down: [:chord, SHIFT, DOWN, PLAYBACK_STEPS]
+  }
+
+  PLAYBACK_LABELS = {
+    two_finger_swipe_up: "Pitch up (Shift+Up)",
+    two_finger_swipe_down: "Pitch down (Shift+Down)"
+  }
+
   # Short human-readable descriptions for the in-app gesture help / host hints.
   LABELS = {
     swipe_right: "Next item (Right)",
@@ -95,7 +109,7 @@ module IOSTouchInput
     def perform(gesture)
       gesture = gesture.to_s.to_sym
       return keyboard_gesture(gesture) if keyboard_active? && keyboard_intercepts?(gesture)
-      spec = GESTURES[gesture]
+      spec = (playback_focused? && PLAYBACK_GESTURES[gesture]) || GESTURES[gesture]
       return false if spec == nil
       dispatch(spec)
       true
@@ -114,7 +128,8 @@ module IOSTouchInput
 
     # Ordered help text for a gesture reference screen.
     def help_lines
-      GESTURES.keys.map { |gesture| "#{humanize(gesture)}: #{describe(gesture)}" }
+      GESTURES.keys.map { |gesture| "#{humanize(gesture)}: #{describe(gesture)}" } +
+        PLAYBACK_GESTURES.keys.map { |gesture| "#{humanize(gesture)} (player): #{PLAYBACK_LABELS[gesture]}" }
     end
 
     # --- on-screen keyboard coordination --------------------------------
@@ -229,12 +244,17 @@ module IOSTouchInput
 
     private
 
+    def playback_focused?
+      defined?(EltenAPI::Controls::Player) && EltenAPI::Controls::Player.respond_to?(:focused?) &&
+        EltenAPI::Controls::Player.focused?
+    end
+
     def dispatch(spec)
       case spec[0]
       when :tap
         IOSWindowNative.tap_key(spec[1])
       when :chord
-        IOSWindowNative.tap_chord(spec[1], spec[2])
+        IOSWindowNative.tap_chord(spec[1], spec[2], spec[3] || 1)
       when :hold
         IOSWindowNative.hold_key(spec[1], spec[2] || 3)
       when :stop_speech
