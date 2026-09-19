@@ -63,7 +63,7 @@ static jstring jstr(JNIEnv *env, const char *value) {
 
 // Returned strings stay valid until the same function is called again, like
 // the CStringHolder on iOS.
-enum { S_VOICES, S_CLIPBOARD, S_LOCALE, S_OS, S_LIBDIR, S_INPUT, S_COUNT };
+enum { S_VOICES, S_ENGINES, S_ENGINE, S_CLIPBOARD, S_LOCALE, S_OS, S_LIBDIR, S_INPUT, S_COUNT };
 static char *g_strings[S_COUNT];
 static pthread_mutex_t g_strings_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -165,6 +165,12 @@ EXPORT const char *elten_host_next_input(void) {
 EXPORT int elten_host_speech_available(void) { return call_int("speechAvailable"); }
 EXPORT const char *elten_host_speech_voices_json(void) { return call_string(S_VOICES, "speechVoicesJson"); }
 EXPORT void elten_host_speech_stop(void) { call_void("speechStop"); }
+
+// Android keeps engines (Google, Samsung, ...) and voices apart; iOS has no
+// such split, so these exist only here.
+EXPORT const char *elten_host_speech_engines_json(void) { return call_string(S_ENGINES, "speechEnginesJson"); }
+EXPORT const char *elten_host_speech_engine(void) { return call_string(S_ENGINE, "speechEngine"); }
+EXPORT int elten_host_speech_set_engine(const char *id) { return call_int_string("speechSetEngine", id); }
 EXPORT int elten_host_speech_speaking(void) { return call_int("speechSpeaking"); }
 EXPORT void elten_host_speech_pause(void) { call_void("speechStop"); }
 EXPORT void elten_host_speech_resume(void) {}

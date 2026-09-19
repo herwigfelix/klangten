@@ -21,7 +21,8 @@ module EltenAPI
       end
       def detail
         l=@label
-        if @key!=0
+        # The function key belongs to a keyboard; on touch it is only noise.
+        if @key!=0 && !(respond_to?(:touch_ui?, true) && touch_ui?)
           l+=" ("
           l+=KeyboardScheme.modifier_name+"+" if @key.abs>12
           l+="SHIFT+" if @key<0

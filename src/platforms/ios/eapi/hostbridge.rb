@@ -40,6 +40,25 @@ module IOSHostBridge
       []
     end
 
+    # Android only: the speech engine (Google, Samsung, ...) is chosen apart
+    # from the voice. Empty list where the platform has no such split.
+    def speech_engines
+      json = call_string(:speech_engines_json)
+      return [] if json == ""
+      require "json" unless defined?(JSON)
+      Array(JSON.parse(json)).map { |engine| { id: engine["id"].to_s, name: engine["name"].to_s } }
+    rescue Exception
+      []
+    end
+
+    def speech_engine
+      call_string(:speech_engine)
+    end
+
+    def speech_engine=(value)
+      call_set_string_int(:speech_set_engine, value.to_s) == 1
+    end
+
     def speech_speak(text, voice_id, rate, volume, pitch, interrupt)
       call_speak(text.to_s, voice_id.to_s, rate.to_i, volume.to_i, pitch.to_i, interrupt ? 1 : 0)
       true

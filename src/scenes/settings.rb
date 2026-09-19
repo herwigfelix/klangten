@@ -365,6 +365,16 @@ def make_window
       end
       def load_voice
         setting_category(p_("Settings", "Voice"))
+        # Android keeps the speech engine (Google, Samsung, ...) apart from the
+        # voice, and every engine brings its own voices. Where the output works
+        # that way, the engine gets a field of its own in front of the voice and
+        # every later field moves down by one (vo).
+        engine_output=SpeechOutput.list.find { |output| output.respond_to?(:engines_supported?) && output.engines_supported? }
+        engines=engine_output!=nil ? engine_output.engines : []
+        vo=engines.size>0 ? 1 : 0
+        if vo==1
+          make_setting(p_("Settings", "Speech engine"), engines.map { |engine| engine[:name] }, "Voice", "Engine", engines.map { |engine| engine[:id] })
+        end
                 speechvoices=SpeechOutput.voices
         voices=speechvoices.map{|v|v.name}
         voicesmapping=speechvoices.map{|v|v.voiceid}
@@ -377,18 +387,36 @@ def make_window
         make_setting(p_("Settings", "Manage the spell check dictionary"), :custom, Proc.new{insert_scene(Scene_SpellCheckDictionary.new)})
                         make_setting(p_("Settings", "Typing echo"), [p_("Settings", "Characters"),p_("Settings", "Words"),p_("Settings", "Characters and words"),p_("Settings", "None")], "Interface", "TypingEcho", ["characters", "words", "characters_and_words", "none"])
         on_load {
+        if vo==1
+          @form.fields[1].on(:move) {
+            speech_stop
+            engine=engines[@form.fields[1].index]
+            if engine!=nil && engine_output.engine.to_s!=engine[:id]
+              engine_output.engine=engine[:id]
+              # The voices of the new engine replace the old list right away.
+              speechvoices=SpeechOutput.voices
+              voices=speechvoices.map{|v|v.name}
+              voicesmapping=speechvoices.map{|v|v.voiceid}
+              @form.fields[2].options=voices
+              @form.fields[2].index=0
+              Configuration.voice=voicesmapping[0].to_s
+              SpeechOutput.apply_current_voice
+            end
+            @form.fields[1].say_option
+          }
+        end
         voice_output=Proc.new {
-          voice=voicesmapping[@form.fields[1].index].to_s
+          voice=voicesmapping[@form.fields[1+vo].index].to_s
           SpeechOutput.output_for_voice(voice) || SpeechOutput.default_output
         }
-        @form.fields[1].on(:move) {
+        @form.fields[1+vo].on(:move) {
           output=voice_output.call
-          output!=nil && output.rate_supported? ? @form.show(2) : @form.hide(2)
-          output!=nil && output.volume_supported? ? @form.show(3) : @form.hide(3)
-          output!=nil && output.pitch_supported? ? @form.show(4) : @form.hide(4)
+          output!=nil && output.rate_supported? ? @form.show(2+vo) : @form.hide(2+vo)
+          output!=nil && output.volume_supported? ? @form.show(3+vo) : @form.hide(3+vo)
+          output!=nil && output.pitch_supported? ? @form.show(4+vo) : @form.hide(4+vo)
         }
-        @form.fields[1].trigger(:move)
-        @form.fields[1].on(:move) {
+        @form.fields[1+vo].trigger(:move)
+        @form.fields[1+vo].on(:move) {
         speech_stop
           restore_speaker_preview
           output=voice_output.call
@@ -397,31 +425,31 @@ def make_window
             Configuration.voice=vc
             SpeechOutput.apply_current_voice
           }
-          Configuration.voice=voicesmapping[@form.fields[1].index].to_s
+          Configuration.voice=voicesmapping[@form.fields[1+vo].index].to_s
           output.apply_voice(Configuration.voice) if output!=nil
-          @form.fields[1].say_option
+          @form.fields[1+vo].say_option
         }
-        @form.fields[2].on(:move) {
+        @form.fields[2+vo].on(:move) {
         speech_stop
         restore_speaker_preview
         output=voice_output.call
         start_speaker_preview {
           SpeechOutput.current_output.set_rate(Configuration.voicerate) if SpeechOutput.current_output!=nil && SpeechOutput.current_output.rate_supported?
         }
-        output.set_rate(100-@form.fields[2].index) if output!=nil && output.rate_supported?
-                @form.fields[2].say_option
+        output.set_rate(100-@form.fields[2+vo].index) if output!=nil && output.rate_supported?
+                @form.fields[2+vo].say_option
         }
-        @form.fields[3].on(:move) {
+        @form.fields[3+vo].on(:move) {
         speech_stop
         restore_speaker_preview
         output=voice_output.call
         start_speaker_preview {
           SpeechOutput.current_output.set_volume(Configuration.voicevolume) if SpeechOutput.current_output!=nil && SpeechOutput.current_output.volume_supported?
         }
-        output.set_volume(100-@form.fields[3].index) if output!=nil && output.volume_supported?
-        @form.fields[3].say_option
+        output.set_volume(100-@form.fields[3+vo].index) if output!=nil && output.volume_supported?
+        @form.fields[3+vo].say_option
         }
-        @form.fields[4].on(:move) {
+        @form.fields[4+vo].on(:move) {
         speech_stop
         restore_speaker_preview
         output=voice_output.call
@@ -430,8 +458,8 @@ def make_window
         start_speaker_preview {
           Configuration.voicepitch=pt
         }
-        Configuration.voicepitch=100-@form.fields[4].index
-        @form.fields[4].say_option
+        Configuration.voicepitch=100-@form.fields[4+vo].index
+        @form.fields[4+vo].say_option
         }
         }
       end

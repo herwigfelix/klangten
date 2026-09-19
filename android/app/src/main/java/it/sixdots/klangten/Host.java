@@ -28,6 +28,9 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
@@ -43,6 +46,7 @@ final class Host {
     private static Context app;
     private static TextToSpeech tts;
     private static volatile boolean ttsReady;
+    private static volatile String engineId = "";
     private static final AtomicInteger utterances = new AtomicInteger();
     private static volatile CountDownLatch microphoneLatch;
     private static volatile boolean microphoneGranted;
@@ -69,10 +73,7 @@ final class Host {
         if (app == null) {
             app = current.getApplicationContext();
             debug = (app.getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
-            tts = new TextToSpeech(app, status -> {
-                ttsReady = status == TextToSpeech.SUCCESS;
-                Log.i(TAG, "TextToSpeech ready: " + ttsReady);
-            });
+            createSpeech("");
         }
     }
 
@@ -89,12 +90,15 @@ final class Host {
     static String speechVoicesJson() {
         JSONArray list = new JSONArray();
         try {
+            if (!ttsReady) waitForSpeech();
             if (ttsReady && tts.getVoices() != null) {
-                for (Voice voice : tts.getVoices()) {
+                List<Voice> voices = new ArrayList<>(tts.getVoices());
+                Collections.sort(voices, (a, b) -> voiceLabel(a).compareToIgnoreCase(voiceLabel(b)));
+                for (Voice voice : voices) {
                     if (voice.isNetworkConnectionRequired()) continue;
                     JSONObject o = new JSONObject();
                     o.put("id", voice.getName());
-                    o.put("name", voice.getName());
+                    o.put("name", voiceLabel(voice));
                     o.put("language", voice.getLocale().toLanguageTag());
                     list.put(o);
                 }
@@ -103,6 +107,80 @@ final class Host {
             Log.w(TAG, "voices", e);
         }
         return list.toString();
+    }
+
+    // "Deutsch (Deutschland) - deb, hohe Qualitaet": the raw names Android
+    // reports ("de-de-x-deb-local") mean nothing to a listener.
+    private static String voiceLabel(Voice voice) {
+        String language = voice.getLocale().getDisplayName();
+        String name = voice.getName();
+        String variant = name;
+        int marker = name.indexOf("-x-");
+        if (marker >= 0) {
+            variant = name.substring(marker + 3);
+            if (variant.endsWith("-local")) variant = variant.substring(0, variant.length() - 6);
+            if (variant.endsWith("-network")) variant = variant.substring(0, variant.length() - 8);
+        } else if (name.toLowerCase(Locale.ROOT).startsWith(voice.getLocale().toLanguageTag().toLowerCase(Locale.ROOT))) {
+            variant = name.substring(Math.min(name.length(), voice.getLocale().toLanguageTag().length()));
+            variant = variant.replaceAll("^[-_]+", "");
+        }
+        String quality = voice.getQuality() >= Voice.QUALITY_VERY_HIGH ? "+" : "";
+        return variant.isEmpty() ? language : language + " - " + variant + quality;
+    }
+
+    // The engines installed on the device (Google, Samsung, Vocalizer, ...).
+    static String speechEnginesJson() {
+        JSONArray list = new JSONArray();
+        try {
+            if (tts == null) return list.toString();
+            for (TextToSpeech.EngineInfo engine : tts.getEngines()) {
+                JSONObject o = new JSONObject();
+                o.put("id", engine.name);
+                o.put("name", engine.label == null || engine.label.isEmpty() ? engine.name : engine.label);
+                list.put(o);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "engines", e);
+        }
+        return list.toString();
+    }
+
+    static String speechEngine() {
+        if (!engineId.isEmpty()) return engineId;
+        try {
+            return tts == null ? "" : tts.getDefaultEngine();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    // Switching engines means a new TextToSpeech instance; the voices change with it.
+    static int speechSetEngine(String id) {
+        if (id == null) id = "";
+        if (id.equals(speechEngine())) return 1;
+        try {
+            if (tts != null) {
+                tts.stop();
+                tts.shutdown();
+            }
+        } catch (Exception ignored) {
+        }
+        createSpeech(id);
+        waitForSpeech();
+        return ttsReady ? 1 : 0;
+    }
+
+    private static void createSpeech(String id) {
+        engineId = id == null ? "" : id;
+        ttsReady = false;
+        tts = engineId.isEmpty()
+                ? new TextToSpeech(app, status -> speechInitialised(status))
+                : new TextToSpeech(app, status -> speechInitialised(status), engineId);
+    }
+
+    private static void speechInitialised(int status) {
+        ttsReady = status == TextToSpeech.SUCCESS;
+        Log.i(TAG, "TextToSpeech ready: " + ttsReady + (engineId.isEmpty() ? "" : " (" + engineId + ")"));
     }
 
     // rate, volume and pitch are 0..100 with 50 as the default, like on iOS.

@@ -16,6 +16,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -141,5 +143,17 @@ public final class MainActivity extends Activity {
         } catch (Throwable e) {
             Log.e(TAG, "Ruby failed", e);
         }
+        quit();
+    }
+
+    // Klangten ended (Quit in the main menu, or a crash). Without this the
+    // activity would stay on screen as an empty, silent window, and the
+    // embedded runtime cannot be started a second time in the same process.
+    private void quit() {
+        runOnUiThread(() -> {
+            Host.detach(this);
+            finishAndRemoveTask();
+            new Handler(Looper.getMainLooper()).postDelayed(() -> System.exit(0), 200);
+        });
     }
 }

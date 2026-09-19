@@ -200,6 +200,24 @@ class SpeechOutput
       false
     end
 
+    # Android separates the speech engine from the voice; other platforms do
+    # not, and report no engines.
+    def engines_supported?
+      false
+    end
+
+    def engines
+      []
+    end
+
+    def engine
+      ""
+    end
+
+    def engine=(_id)
+      false
+    end
+
     def stop
       1
     end

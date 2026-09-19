@@ -24590,3 +24590,13 @@ msgctxt "Forum"
 msgid "Show older"
 msgstr "Ältere anzeigen"
 
+#: src/platforms/ios/eapi/speech.rb
+msgctxt "EAPI_Speech"
+msgid "System voice"
+msgstr "Systemstimme"
+
+#: src/scenes/settings.rb
+msgctxt "Settings"
+msgid "Speech engine"
+msgstr "Sprachausgabe"
+

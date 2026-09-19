@@ -16,8 +16,16 @@
 
 class IOSSpeech < SpeechOutput
   NativeVoice = Struct.new(:id, :name, :language, :backend)
+  # The id is stored in the settings and must not change; the name is what the
+  # user hears, and "iOS" is wrong on Android, which shares this output.
   DEFAULT_VOICE_ID = "default (iOS)"
   DEFAULT_VOICE_NAME = "default (iOS)"
+
+  def self.default_voice_name
+    p_("EAPI_Speech", "System voice")
+  rescue Exception
+    DEFAULT_VOICE_NAME
+  end
 
   class << self
     def bridge
@@ -49,15 +57,23 @@ class IOSSpeech < SpeechOutput
     end
 
     def voices
+      unless @engine_applied
+        @engine_applied = true
+        apply_configured_engine
+      end
       @voices ||= begin
         default_voice = SpeechOutput::Voice.new(
           id: DEFAULT_VOICE_ID,
-          name: DEFAULT_VOICE_NAME,
+          name: IOSSpeech.default_voice_name,
           output: self,
-          native: NativeVoice.new("", DEFAULT_VOICE_NAME, "", :default)
+          native: NativeVoice.new("", IOSSpeech.default_voice_name, "", :default)
         )
+        # The Android host already spells the language out in the voice name
+        # ("Deutsch (Deutschland) - deb"); only iOS needs the tag appended.
+        android = EltenSystemHelpers.respond_to?(:android?) && EltenSystemHelpers.android? rescue false
         native = native_voices.map do |voice|
-          label = voice.language.to_s == "" ? voice.name.to_s : "#{voice.name} (#{voice.language})"
+          label = voice.name.to_s
+          label = "#{label} (#{voice.language})" if !android && voice.language.to_s != ""
           SpeechOutput::Voice.new(id: voice.id, name: label, output: self, native: voice)
         end
         [default_voice] + native
@@ -66,6 +82,40 @@ class IOSSpeech < SpeechOutput
 
     def reset_voices!
       @voices = nil
+    end
+
+    # Only Android reports engines; on iOS the list stays empty.
+    def engines_supported?
+      engines.size > 1
+    end
+
+    def engines
+      @engines ||= (bridge.respond_to?(:speech_engines) ? bridge.speech_engines : [])
+    rescue Exception
+      []
+    end
+
+    def engine
+      bridge.respond_to?(:speech_engine) ? bridge.speech_engine.to_s : ""
+    rescue Exception
+      ""
+    end
+
+    def engine=(id)
+      return false unless bridge.respond_to?(:speech_engine=)
+      ok = (bridge.speech_engine = id.to_s)
+      reset_voices!
+      ok
+    rescue Exception
+      false
+    end
+
+    # The engine chosen in the settings, applied before the voices are read.
+    def apply_configured_engine
+      wanted = readconfig("Voice", "Engine", "").to_s
+      return if wanted == "" || wanted == engine
+      self.engine = wanted
+    rescue Exception
     end
 
     def voice_for(voice)
