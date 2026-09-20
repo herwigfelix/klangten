@@ -84,9 +84,11 @@ class IOSSpeech < SpeechOutput
       @voices = nil
     end
 
-    # Only Android reports engines; on iOS the list stays empty.
+    # Only Android reports engines; on iOS the list stays empty. One engine is
+    # enough to show the field: it tells the user which one speaks, and another
+    # one can be installed at any time.
     def engines_supported?
-      engines.size > 1
+      engines.size >= 1
     end
 
     def engines

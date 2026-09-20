@@ -93,7 +93,15 @@ final class Host {
             if (!ttsReady) waitForSpeech();
             if (ttsReady && tts.getVoices() != null) {
                 List<Voice> voices = new ArrayList<>(tts.getVoices());
-                Collections.sort(voices, (a, b) -> voiceLabel(a).compareToIgnoreCase(voiceLabel(b)));
+                // The voices of the phone's own language first; the rest, in
+                // alphabetical order, follows.
+                String own = Locale.getDefault().getLanguage();
+                Collections.sort(voices, (a, b) -> {
+                    boolean ownA = a.getLocale().getLanguage().equals(own);
+                    boolean ownB = b.getLocale().getLanguage().equals(own);
+                    if (ownA != ownB) return ownA ? -1 : 1;
+                    return voiceLabel(a).compareToIgnoreCase(voiceLabel(b));
+                });
                 for (Voice voice : voices) {
                     if (voice.isNetworkConnectionRequired()) continue;
                     JSONObject o = new JSONObject();

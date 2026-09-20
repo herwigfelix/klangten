@@ -145,6 +145,12 @@ module EltenAPI
     return if lang==nil
        Docs.clear
        loadmo(lang.mo)
+       # Voice lists are built at startup, before this point; their labels
+       # ("System voice") would otherwise stay in English.
+       begin
+         SpeechOutput.list.each { |output| output.reset_voices! if output.respond_to?(:reset_voices!) }
+       rescue Exception
+       end
 
    if defined?(Programs) && Programs.respond_to?(:language_locale_data)
      Programs.language_locale_data(code).each { |data| loadmo(data, false) }
