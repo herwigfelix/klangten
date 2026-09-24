@@ -18,6 +18,7 @@ src/platforms/windows/ri/win32structs.rb :windows
 src/platforms/windows/ri/systemhelpers.rb :windows
 src/platforms/osx/ri/systemhelpers.rb :osx
 src/platforms/ios/eapi/hostbridge.rb :ios
+src/platforms/ios/eapi/youtube_host.rb :ios
 src/platforms/ios/ri/systemhelpers.rb :ios
 src/platforms/linux/ri/systemhelpers.rb :linux
 src/ri/runtimepaths.rb

@@ -7,6 +7,12 @@
 
 class Scene_Online
   def main
+    # Klangten: the Klango server lists users for logged-in accounts only.
+    unless Session.logged?
+      alert(_("This section is unavailable for guests"))
+      $scene = Scene_Main.new
+      return
+    end
     begin
       @onl = EltenLink::Users.online(elten_link)
     rescue EltenLink::Error => e

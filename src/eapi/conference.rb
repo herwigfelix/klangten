@@ -392,7 +392,15 @@ module EltenAPI
       def request_microphone
         return if @@microphone_requested
         @@microphone_requested = true
-        if defined?(::OSXSystemNative) && OSXSystemNative.respond_to?(:request_microphone_access)
+        # TeamConference records through its own library, so BASS never asks for
+        # the microphone here. Every platform layer knows how to ask (macOS and
+        # iOS the system dialog, Android the runtime permission).
+        if defined?(EltenSystemHelpers) && EltenSystemHelpers.respond_to?(:prepare_os_microphone)
+          # Linux takes no timeout.
+          method = EltenSystemHelpers.method(:prepare_os_microphone)
+          granted = method.arity == 0 ? method.call : method.call(15.0)
+          Log.warning("Conference: microphone access denied") if granted == false
+        elsif defined?(::OSXSystemNative) && OSXSystemNative.respond_to?(:request_microphone_access)
           OSXSystemNative.request_microphone_access(15.0)
         end
       rescue Exception => e

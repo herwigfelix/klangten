@@ -22,6 +22,29 @@ module EltenAPI
       def logged?
         return @name!="" && @name!=nil && @token!="" && @token!=nil
       end
+      # Klangten: the guest account reads forums, blogs and the media catalog; the
+      # Klango server answers these scenes only for a logged-in account, so a guest
+      # is not offered them (main menu, quick actions).
+      GUEST_UNAVAILABLE_SCENES = %w[
+        Scene_Messages Scene_Contacts Scene_Users_AddedMeToContacts Scene_Online
+        Scene_Users Scene_Users_RecentlyActived Scene_Users_RecentlyRegistered
+        Scene_Conference Scene_Notifications Scene_Notes Scene_CallHistory
+        Scene_Account Scene_MastodonTimeline Scene_Account_AudioAvatar Scene_Authentication
+      ].freeze
+      def guest_unavailable?(scene)
+        return false if logged?
+        name = scene.is_a?(Module) ? scene.name : scene.to_s
+        GUEST_UNAVAILABLE_SCENES.include?(name.to_s)
+      end
+      # Klangten: true when a request failed only because it needs an account
+      # (the server answers write routes with "unauthorized" for guests).
+      def login_required_error?(error)
+        return false if logged?
+        error.respond_to?(:code) && %w[unauthorized auth.unauthorized].include?(error.code.to_s)
+      end
+      def login_required_message
+        p_("Klangten", "You need to be logged in to do this.")
+      end
       def feeds
         @feeds||={}
         @feeds

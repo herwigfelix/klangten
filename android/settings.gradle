@@ -11,6 +11,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // NewPipeExtractor (YouTube) is published through JitPack.
+        maven { url "https://jitpack.io" }
     }
 }
 rootProject.name = "Klangten"

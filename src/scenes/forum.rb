@@ -3,13 +3,18 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; read-only guest access.
  
 module ForumSceneClient
   def forum_fetch(default = nil, error_message = _("Error"))
     yield
-  rescue EltenLink::Error
-    alert(error_message)
+  rescue EltenLink::Error => e
+    # Klangten: a guest hears why, not a bare "Error" (write routes answer "unauthorized").
+    if Session.login_required_error?(e)
+      alert(Session.login_required_message)
+    else
+      alert(error_message)
+    end
     default
   end
 
@@ -19,7 +24,7 @@ module ForumSceneClient
     true
   rescue EltenLink::Error => e
     log_forum_error(e)
-    alert(error_message)
+    alert(Session.login_required_error?(e) ? Session.login_required_message : error_message)
     false
   end
 
@@ -389,6 +394,12 @@ end
       klangs=[]
       knownlanguages = Session.languages.split(",").map{|lg|lg.upcase}
       for g in @groups
+        # Klangten: a guest belongs to no group; list the official (recommended) groups
+        # in every language, they are the ones whose forums are public.
+        if !Session.logged?
+          spgroups.push(g) if g.recommended
+          next
+        end
         if g.role == 1 || g.role == 2
           @sgroups.push(g)
         end
@@ -467,6 +478,13 @@ end
       grpselt[@grpheadindex + @sgroups.size + 3] = [nil] if groupsinvitedcnt == 0
       grpselt[@grpheadindex + @sgroups.size + 4] = [nil] if groupsmoderatedcnt == 0
       grpselt[@grpheadindex + @sgroups.size + 10] = [nil] if ofs==0
+      if !Session.logged?
+        # Klangten: lists built from the own account (friends, mentions, own threads)
+        # mean nothing to a guest.
+        grpselt[@grpheadindex + @sgroups.size + 7] = [nil]
+        grpselt[@grpheadindex + @sgroups.size + 9] = [nil]
+        grpselt[@grpheadindex + @sgroups.size + 11] = [nil]
+      end
       grpselh = [nil, p_("Forum", "Forums"), p_("Forum", "Threads"), p_("Forum", "posts"), p_("Forum", "Unread")]
       @grpindex[0] = @grpheadindex + @sgroups.size + ll - 1 if ll > 0
       when       1 #Recently active
@@ -860,7 +878,7 @@ return result
               groupregulationsdlg(@sgroups[@grpsel.index - @grpheadindex])
               }
             end
-if (((@sgroups[@grpsel.index - @grpheadindex].role==1 || (@sgroups[@grpsel.index - @grpheadindex].public && @sgroups[@grpsel.index - @grpheadindex].open)) && @sgroups[@grpsel.index - @grpheadindex].showpostreports>0) || @sgroups[@grpsel.index - @grpheadindex].role==2) && @sgroups[@grpsel.index - @grpheadindex].allowpostreporting            
+if Session.logged? && (((@sgroups[@grpsel.index - @grpheadindex].role==1 || (@sgroups[@grpsel.index - @grpheadindex].public && @sgroups[@grpsel.index - @grpheadindex].open)) && @sgroups[@grpsel.index - @grpheadindex].showpostreports>0) || @sgroups[@grpsel.index - @grpheadindex].role==2) && @sgroups[@grpsel.index - @grpheadindex].allowpostreporting            
             menu.option(p_("Forum", "Show reported posts")) {
             groupreports(@sgroups[@grpsel.index - @grpheadindex])
             }
@@ -884,6 +902,7 @@ if (((@sgroups[@grpsel.index - @grpheadindex].role==1 || (@sgroups[@grpsel.index
       s = p_("Forum", "Join") if @sgroups[@grpsel.index - @grpheadindex].role == 0 and @sgroups[@grpsel.index - @grpheadindex].open and @sgroups[@grpsel.index - @grpheadindex].public
       s = p_("Forum", "Accept invitation") if @sgroups[@grpsel.index - @grpheadindex].role == 5
       s = p_("Forum", "Request to join this group") if @sgroups[@grpsel.index - @grpheadindex].role == 0 && ((@sgroups[@grpsel.index - @grpheadindex].public && !@sgroups[@grpsel.index - @grpheadindex].open) || (@sgroups[@grpsel.index - @grpheadindex].open && !@sgroups[@grpsel.index - @grpheadindex].public))
+      s = "" if !Session.logged? # Klangten: joining needs an account.
       if s != ""
         menu.option(s, nil, "j") {
         if canjoin(@sgroups[@grpsel.index - @grpheadindex])
@@ -934,6 +953,7 @@ if (((@sgroups[@grpsel.index - @grpheadindex].role==1 || (@sgroups[@grpsel.index
           @grpsel.focus
         }
       end
+            if Session.logged? # Klangten: a guest has no read state to change.
             menu.option(p_("Forum", "Mark this group as read"), nil, "w") {
                     if @sgroups[@grpsel.index-@grpheadindex].posts - @sgroups[@grpsel.index-@grpheadindex].readposts < 100 or confirm(p_("Forum", "All posts in this group will be marked as read. Are you sure you want to continue?"))
           if forum_attempt(nil) {
@@ -952,6 +972,7 @@ if (((@sgroups[@grpsel.index - @grpheadindex].role==1 || (@sgroups[@grpsel.index
           end
         end
       }
+            end
       if @sgroups[@grpsel.index - @grpheadindex].founder == Session.name
         menu.option(p_("Forum", "Edit group"), nil, "e") {
           g = @sgroups[@grpsel.index - @grpheadindex]
@@ -1901,6 +1922,7 @@ form.focus
         @frmindex = @frmsel.index
         threadsmain(@sforums[@frmsel.index].id)
       }
+      if Session.logged? # Klangten: following needs an account.
             s = p_("Forum", "Follow this forum")
       s = p_("Forum", "Unfollow this forum") if @sforums.size > 0 and @sforums[@frmsel.index].followed == true
       menu.option(s, nil, "l") {
@@ -1923,11 +1945,13 @@ form.focus
           forumsmain(@group)
         end
       }
+      end
       if @group != -5
         menu.option(p_("Forum", "Search"), nil, "f") {
           open_forum_search(@sforums[@frmsel.index], @frmsel)
         }
       end
+      if Session.logged? # Klangten: a guest has no read state to change.
       menu.option(p_("Forum", "Mark this forum as read"), nil, "w") {
         if @sforums[@frmsel.index].posts - @sforums[@frmsel.index].readposts < 100 or confirm(p_("Forum", "All posts on this forum will be marked as read. Are you sure you want to continue?"))
           if forum_attempt(nil) {
@@ -1945,6 +1969,7 @@ form.focus
           end
         end
       }
+      end
       menu.option(p_("Forum", "Add this forum to quick actions"), nil, "q") {
         if QuickActions.create(Scene_Forum, @sforums[@frmsel.index].fullname+" (#{p_("Forum", "Forum")})", [nil, Scene_Forum.forum_target(@sforums[@frmsel.index].id)])
           alert(p_("Forum", "Forum added to quick actions"), false)
@@ -1955,7 +1980,7 @@ form.focus
     end
     groupclass = Struct_Forum_Group.new
     @groups.each { |g| groupclass = g if g.id == @group }
-    if groupclass.founder == Session.name or groupclass.role == 2
+    if Session.logged? and (groupclass.founder == Session.name or groupclass.role == 2)
       menu.submenu(p_("Forum", "Moderation")) {|m|
       m.option(p_("Forum", "New forum"), nil, "n") {
         newforum
@@ -2150,7 +2175,7 @@ break
           nil
           end
               when -8
-        if @popular.include?(t.id) and t.readposts <= t.posts / 1.1
+        if @popular.include?(t.id) and (!Session.logged? or t.readposts <= t.posts / 1.1)
           t
         else
           nil
@@ -2364,6 +2389,8 @@ threadopen(@thrsel.index)
         threadopen(@thrsel.index)
       }
       thread = @sthreads[@thrsel.index]
+      # Klangten: marking, following and the statistics need an account.
+      if Session.logged?
       if thread.readposts < thread.posts
         menu.option(p_("Forum", "Mark this thread as read"), nil, "w") {
           unread = thread.posts - thread.readposts
@@ -2433,6 +2460,7 @@ threadopen(@thrsel.index)
       end
       input_text(p_("Forum", "Thread statistics summary"), flags: EditBox::Flags::ReadOnly, text: s, escapable: true)
       }
+      end
     end
     forum=@forum
     @forums.each {|f| forum=f if f.id==@forum}
@@ -3031,6 +3059,11 @@ if flp[0..3] != "OggS"
     @@groups = structure.groups
     @@forums = structure.forums
     @@threads = structure.threads
+    # Klangten: a guest has no read state; the server reports nothing as read, which
+    # would announce every group, forum and thread as new. Treat everything as read.
+    if !Session.logged?
+      (@@groups.to_a + @@forums.to_a + @@threads.to_a).each { |entry| entry.readposts = entry.posts }
+    end
     @@lastCache = structure.raw_cache
     @@lastCacheIdent = structure.ident
     @@lastCacheTime = structure.loaded_at
@@ -3194,7 +3227,8 @@ return $scene=Scene_Main.new if @form==nil
         pl = @posts[@form.index / 3].polls[@form.fields[@form.index].index]
         voted = false
         begin
-          voted = EltenLink::Polls.voted?(elten_link, pl)
+          # Klangten: only an account can have voted (the route needs one).
+          voted = EltenLink::Polls.voted?(elten_link, pl) if Session.logged?
         rescue EltenLink::Error
           voted = false
         end
@@ -3544,7 +3578,8 @@ loop do
     end
     if @form.index < @postscount * 3
       post=@posts[@form.index/3]
-      if @threadclass != nil && @threadclass.forum.group.role!=3
+      # Klangten: liking and reporting need an account.
+      if Session.logged? && @threadclass != nil && @threadclass.forum.group.role!=3
       s=p_("Forum", "Like this post")
 s=p_("Forum", "Dislike this post") if post.liked==true
 menu.option(s, nil, "k") {
@@ -3588,7 +3623,7 @@ if post.edited && !post.locked
     end
   }
   end
-  if @threadclass.forum.group.allowpostreporting && @threadclass.forum.group.role != 3
+  if Session.logged? && @threadclass.forum.group.allowpostreporting && @threadclass.forum.group.role != 3
         menu.option(p_("Forum", "Report this post")) {
     postreport(post)
     @form.focus
@@ -3603,9 +3638,11 @@ if post.edited && !post.locked
           return_scene: @scene
         )
       }
+    if Session.logged? # Klangten: bookmarks belong to an account.
     m.option(p_("Forum", "Bookmarks"), nil, "b") {
     showbookmarks
     }
+    end
       m.option(p_("Forum", "Go to post"), nil, "j") {
         selt = []
         for i in 0..@posts.size - 1
@@ -3654,7 +3691,7 @@ if post.edited && !post.locked
         @form.index = @postscount * 3 - 3
         @form.focus
       }
-      if @readposts < @postscount && @readposts>=0
+      if Session.logged? && @readposts < @postscount && @readposts>=0
         m.option(p_("Forum", "Go to first new post"), nil, "u") {
           @form.index = @readposts * 3
           @form.focus
@@ -3708,6 +3745,8 @@ if post.edited && !post.locked
       }
     end
   end
+    # Klangten: marking and following need an account.
+    if Session.logged?
         s = p_("Forum", "Mark this thread")
       s = p_("Forum", "Unmark this thread") if @threadclass.marked== true
             menu.option(s, nil, "h") {
@@ -3743,6 +3782,7 @@ if post.edited && !post.locked
         end
       end
     }
+    end
     menu.option(p_("Forum", "Signature notifications")) {
       current_mode = forum_signature_mode
       selected = selector(

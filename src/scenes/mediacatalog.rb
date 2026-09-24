@@ -61,8 +61,14 @@ class Scene_MediaCatalog
     yield
   rescue EltenLink::Error => e
     Log.warning("Media catalog request failed: #{e.class}: #{e.message}")
+    # A guest reads the catalogue; anything that changes it needs an account and
+    # is announced as such instead of the server's error text.
     message = e.message.to_s
-    alert(message == "" ? _("Error") : message)
+    if Session.login_required_error?(e)
+      alert(Session.login_required_message)
+    else
+      alert(message == "" ? _("Error") : message)
+    end
     nil
   end
 

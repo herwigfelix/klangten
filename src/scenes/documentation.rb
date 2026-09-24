@@ -24,7 +24,7 @@ class Scene_Documentation
             label=p_("Documentation", "Read me")
             # Klangten: the manual is upstream Elten's; say which parts do not apply.
             # The note names Elten literally, so it is not branded.
-            text="**#{Klangten::Config::PRODUCT_NAME}:** "+unbranded { p_("Klangten","This manual comes from Elten and has not been fully adapted to Klangten. Premium packages, sponsors, the calendar, tasks, SMS two-factor authentication and the built-in updater do not exist in Klangten. Conferences and calls use the TeamConference rooms of the Klango server: positional sound, whispering, dice, cards, recording and sound card streaming are not available. The Feed shows the home timeline of your Mastodon account.") }+"\n\n"+_doc('readme')
+            text="**#{Klangten::Config::PRODUCT_NAME}:** "+unbranded { p_("Klangten","This manual comes from Elten and has not been fully adapted to Klangten. Premium packages, sponsors, the calendar, tasks and the built-in updater do not exist in Klangten. Two-factor authentication sends its codes via Telegram or by text message; resetting the password does not disable it. Conferences and calls use the TeamConference rooms of the Klango server: positional sound, whispering, dice, cards, recording and sound card streaming are not available. The Feed shows the home timeline of your Mastodon account.") }+"\n\n"+_doc('readme')
             when "migration24"
               label=p_("Documentation", "Information about migration to Elten version 2.4")
             text=_doc('migration24')

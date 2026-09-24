@@ -10,6 +10,7 @@
 // For automated tests the entry script and gestures can be driven by intents:
 //   adb shell am start -n it.sixdots.klangten/.MainActivity --es entry probe.rb
 //   adb shell am start -n it.sixdots.klangten/.MainActivity --es gesture swipe_right
+//   adb shell am start -n it.sixdots.klangten/.MainActivity --es text "search term"
 package it.sixdots.klangten;
 
 import android.app.Activity;
@@ -74,8 +75,12 @@ public final class MainActivity extends Activity {
     }
 
     private void handleIntent(Intent intent) {
-        String gesture = intent == null ? null : intent.getStringExtra("gesture");
+        if (intent == null) return;
+        String gesture = intent.getStringExtra("gesture");
         if (gesture != null) Host.pushGesture(gesture);
+        // Typing without the on-screen keyboard, for tests.
+        String text = intent.getStringExtra("text");
+        if (text != null) Host.pushToken("ktext:" + text);
     }
 
     @Override

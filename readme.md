@@ -29,7 +29,8 @@ All Klangten-specific settings live in [`src/eltenlink/klangten_config.rb`](src/
 | Conferences (TeamConference) | host and ports come from `GET /api/v1/conference/token`; library from `bin/` | `KLANGTEN_TCLIB` (path of the TeamConference core library) |
 | Program relay host and port (no relay on Klango) | API host, port 8244 | `KLANGTEN_RELAY_HOST`, `KLANGTEN_RELAY_PORT` |
 | Built-in updater (served by the Klango server, launcher builds only) | enabled | `KLANGTEN_UPDATES=0` |
-| Program repository, SMS two-factor authentication, launcher stamp | disabled | constants in the configuration module |
+| Two-factor authentication (codes via Telegram or text message, backup codes) | enabled | `TWO_FACTOR_ENABLED` in the configuration module |
+| Program repository, launcher stamp | disabled | constants in the configuration module |
 
 ## Releases and updates
 

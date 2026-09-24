@@ -105,6 +105,41 @@ module EltenAPI
       end
     end
 
+    # Name of the Telegram bot that delivers two-factor codes (see TWOFACTOR
+    # contract of the Klango server); the server sends the full link itself.
+    TWO_FACTOR_TELEGRAM_BOT = "@klango_server_bot".freeze
+    # Who can switch two-factor authentication off when phone and backup codes are lost.
+    TWO_FACTOR_ADMIN_CONTACT = "admin@klango.online".freeze
+
+    # Message for the error codes of /api/v1/authentication and of the
+    # two-factor part of the login; nil for codes without a special text.
+    def klangten_two_factor_error_message(error)
+      return nil unless error.respond_to?(:code)
+      return klangten_too_many_attempts_message(error) if klangten_too_many_attempts?(error)
+      case error.code.to_s
+      when "authentication.sms_cooldown"
+        p_("Authentication", "A text message with a verification code can be requested only once per minute. Please try again later.")
+      when "authentication.sms_daily_limit"
+        p_("Authentication", "The daily limit for text messages with verification codes has been reached. Please try again later.")
+      when "authentication.sms_limiter_unavailable"
+        p_("Authentication", "Text message verification is temporarily unavailable. Please try again later.")
+      when "authentication.telegram_unavailable"
+        p_("Authentication", "Codes via Telegram are temporarily unavailable. Please try again later or use another method.")
+      when "authentication.invalid_phone"
+        p_("Authentication", "This phone number is not valid. Enter it with the country code, for example +49 for Germany.")
+      when "authentication.invalid_code"
+        p_("Authentication", "The entered code is not correct.")
+      when "authentication.code_expired"
+        p_("Authentication", "The code has expired. Please request a new code.")
+      when "authentication.too_many_attempts"
+        p_("Authentication", "Too many incorrect codes have been entered. Please request a new code.")
+      when "authentication.telegram_not_linked"
+        p_("Authentication", "The Telegram bot %{bot} has not received your start message yet. Open the link or send the start message to the bot, wait for its reply with the code and try again.") % { bot: TWO_FACTOR_TELEGRAM_BOT }
+      when "auth.invalid_password", "session.invalid_credentials"
+        p_("Authentication", "Invalid password")
+      end
+    end
+
     # Shows a message and returns true when the built-in updater is disabled.
     def klangten_updates_unavailable?
       return false if Klangten::Config.updates_enabled?

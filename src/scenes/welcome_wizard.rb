@@ -790,8 +790,8 @@ class Scene_WelcomeWizard
   end
 
   def add_security_page
-    # Klangten: the setup screen configures EltenLink's SMS based two-factor authentication.
-    return unless Klangten::Config.sms_two_factor_enabled?
+    # Klangten: codes via Telegram or text message, served by the Klango server.
+    return unless Klangten::Config.two_factor_enabled?
     return unless show_when(@authentication_state == 0)
 
     add_page(:two_factor_authentication, p_("WelcomeWizard", "Two-factor authentication")) do
@@ -801,7 +801,7 @@ class Scene_WelcomeWizard
       elsif enabled
         p_("WelcomeWizard", "Two-factor authentication is already enabled on this account. There is nothing to change on this page.")
       else
-        p_("WelcomeWizard", "A strong password is a good start, but two-factor authentication protects your account even if that password ever leaks. When it is enabled and a sign-in needs confirming, Elten sends a code to your telephone by text message. The button below opens the setup screen, where Elten will ask for your password and telephone number; changes made there take effect immediately and are independent of this wizard.")
+        p_("WelcomeWizard", "A strong password is a good start, but two-factor authentication protects your account even if that password ever leaks. When it is enabled and a sign-in from a new device needs confirming, you receive a code via Telegram or by text message, whichever you choose. The button below opens the setup screen, where Elten will ask for your password and the method; changes made there take effect immediately and are independent of this wizard.")
       end
       info = information_field(p_("WelcomeWizard", "Two-factor authentication"), text)
       if enabled || @authentication_state == nil

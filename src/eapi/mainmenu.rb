@@ -50,7 +50,7 @@ module GlobalMenu
   end
   if defaults==true && !$scene.is_a?(Scene_Main) && (Session.logged? || $preinitialized==true)
     @menu.submenu(p_("MainMenu", "Quick &actions")) {|m|
-    QuickActions.get.each {|a|m.quickaction(a.label, a) if a.show}
+    QuickActions.get.each {|a|m.quickaction(a.label, a) if a.show && !Session.guest_unavailable?(a.action)}
     }
   end
     if defaults or defaults==:defaults
@@ -62,7 +62,8 @@ module GlobalMenu
     end
     m.scene(p_("MainMenu", "&Blogs"), Scene_Blog)
     m.scene(p_("MainMenu", "&Forum"), Scene_Forum)
-        m.scene(p_("MainMenu", "&Conferences"), Scene_Conference)
+        # Klangten: conferences need an account (token from the server).
+        m.scene(p_("MainMenu", "&Conferences"), Scene_Conference) if Session.logged?
             if Session.logged?
             m.scene(p_("MainMenu", "Notification hi&story"), Scene_Notifications)
         m.scene(p_("MainMenu", "No&tes"), Scene_Notes)
@@ -75,13 +76,15 @@ module GlobalMenu
     m.scene(p_("MainMenu", "My &contacts"), Scene_Contacts)
     m.scene(p_("MainMenu", "Users who a&dded me to their contact list"), Scene_Users_AddedMeToContacts)
     end
-    m.scene(p_("MainMenu", "Who is &online?"), Scene_Online)
+    # Klangten: the user lists (online, all, recently active or registered) are
+    # answered for logged-in accounts only; guests keep badges, admins and search.
+    m.scene(p_("MainMenu", "Who is &online?"), Scene_Online) if Session.logged?
     m.scene(p_("MainMenu", "&badges"), Scene_Honors)
-    m.scene(p_("MainMenu", "&Users list"), Scene_Users)
+    m.scene(p_("MainMenu", "&Users list"), Scene_Users) if Session.logged?
     m.scene(p_("MainMenu", "Ad&mins and authors"), Scene_Admins)
     m.scene(p_("MainMenu", "User searc&h"), Scene_UserSearch)
-    m.scene(p_("MainMenu", "Recently &active users"), Scene_Users_RecentlyActived)
-    m.scene(p_("MainMenu", "Recently &registered users"), Scene_Users_RecentlyRegistered)
+    m.scene(p_("MainMenu", "Recently &active users"), Scene_Users_RecentlyActived) if Session.logged?
+    m.scene(p_("MainMenu", "Recently &registered users"), Scene_Users_RecentlyRegistered) if Session.logged?
     }
     if Session.logged?
             @menu.scene(p_("MainMenu", "Call &history"), Scene_CallHistory)

@@ -2,7 +2,8 @@
 # Licensed under the GNU General Public License, version 3.
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: built into Klangten and opened from the
 # Media menu (hidden from the Programs menu); Linux support; yt-dlp downloads verified against the
-# release's SHA2-256SUMS; own user agent.
+# release's SHA2-256SUMS; own user agent; on Android the data comes from the host
+# (NewPipeExtractor) instead of yt-dlp, the screens stay the same; "Set as audio avatar".
 =begin Elten3AppInfo
 {
   "id": "7c8e3f91-40a7-45af-8758-99d67a602e41",
@@ -15,7 +16,7 @@
   "main_language": "en",
   "supported_languages": ["en", "de", "es", "pl", "ro", "ru", "tr"],
   "main_class": "ProgramYoutube",
-  "platforms": ["windows", "osx", "linux"],
+  "platforms": ["windows", "osx", "linux", "android"],
   "execution": { "backend": "box" },
   "description": "Simple Youtube client based on yt-dlp."
 }
@@ -67,15 +68,31 @@ module Youtube
   class << self
     attr_accessor :binary, :js_runtimes
 
+    # Android has no yt-dlp and no JavaScript runtime; there the host answers
+    # with NewPipeExtractor (src/platforms/ios/eapi/youtube_host.rb).
+    def host
+      return @host if defined?(@host)
+      @host = (defined?(::KlangtenYouTubeHost) && ::KlangtenYouTubeHost.available?) ? ::KlangtenYouTubeHost : nil
+    rescue Exception
+      @host = nil
+    end
+
     def available?
+      return true if host != nil
       binary.to_s != "" && File.file?(binary.to_s) && js_runtimes.to_s != ""
     end
 
     def ensure_available!
+      return if host != nil
       raise Error, "yt-dlp not found" if !available?
     end
 
     def search(query, results = 50, type = :search)
+      if host != nil
+        items = host.search(query, type)
+        mapped = items.map { |item| from_host(item) }.compact
+        return mapped.first(results.to_i > 0 ? results.to_i : mapped.size)
+      end
       case type
       when :channel
         channel_search(query, results)
@@ -100,6 +117,10 @@ module Youtube
     end
 
     def channel_videos(channel, results = 50)
+      if host != nil
+        items = host.channel_videos(channel.to_s).map { |item| from_host(item) }.compact
+        return items.first(results.to_i > 0 ? results.to_i : items.size)
+      end
       url = channel.to_s
       url = "https://www.youtube.com/channel/#{url}/videos" if url !~ %r{\Ahttps?://}i
       data = dump_single(url, :flat => true, :playlist_items => "1:#{results.to_i}")
@@ -107,6 +128,10 @@ module Youtube
     end
 
     def playlist_videos(playlist, results = 50)
+      if host != nil
+        items = host.playlist_videos(playlist.to_s).map { |item| from_host(item) }.compact
+        return items.first(results.to_i > 0 ? results.to_i : items.size)
+      end
       url = playlist.to_s
       url = "https://www.youtube.com/playlist?list=#{url}" if url !~ %r{\Ahttps?://}i
       data = dump_single(url, :flat => true, :playlist_items => "1:#{results.to_i}")
@@ -114,6 +139,10 @@ module Youtube
     end
 
     def video(value)
+      if host != nil
+        data = host.video(video_id(value) || value.to_s)
+        return data == nil ? nil : from_host(data.merge("type" => "video"))
+      end
       id = video_id(value)
       url = id == nil ? value.to_s : video_url(id)
       data = dump_single(url, :flat => false, :no_playlist => true)
@@ -123,11 +152,28 @@ module Youtube
     end
 
     def audio_streams(video)
+      if host != nil
+        data = host.video(video.id.to_s)
+        return [] if data == nil
+        return Array(data["streams"]).map { |stream|
+          audio = AudioStream.new
+          audio.url = stream["url"].to_s
+          audio.bitrate = stream["bitrate"].to_i
+          audio.codec = stream["codec"].to_s
+          audio.container = stream["container"].to_s
+          audio.format_id = stream["id"].to_s
+          audio
+        }.sort_by { |stream| stream.bitrate.to_i }
+      end
       data = dump_single(video_url(video.id), :flat => false, :no_playlist => true)
       Array(data["formats"]).map { |format| audio_stream_from_format(format) }.compact.sort_by { |stream| stream.bitrate.to_i }
     end
 
     def stream_url(video, format = "ba/bestaudio/best")
+      if host != nil
+        streams = audio_streams(video)
+        return streams.last&.url.to_s
+      end
       lines = run(["-g", "-f", format, "--no-playlist", video_url(video.id)])
       lines.to_s.delete("\r").split("\n").map(&:strip).select { |line| line.start_with?("http://", "https://") }.last
     end
@@ -289,6 +335,44 @@ module Youtube
       video.rating = entry["average_rating"].to_f if entry.key?("average_rating")
       video.keywords = Array(entry["tags"])
       video
+    end
+
+    # Host answers (NewPipeExtractor) in the shape the yt-dlp mapping expects,
+    # so videos, channels and playlists are built by the same code on every
+    # platform.
+    def from_host(item)
+      return nil if !item.is_a?(Hash)
+      case item["type"].to_s
+      when "channel"
+        channel = Channel.new
+        channel.title = clean_text(item["title"])
+        channel.url = item["url"].to_s
+        channel.id = channel_id(item["url"]).to_s
+        channel.id = item["url"].to_s if channel.id == ""
+        channel
+      when "playlist"
+        playlist = Playlist.new
+        playlist.title = clean_text(item["title"])
+        playlist.author = clean_text(item["author"])
+        playlist.url = item["url"].to_s
+        playlist.id = playlist_id(item["url"]).to_s
+        playlist.id = item["url"].to_s if playlist.id == ""
+        playlist
+      else
+        entry = {
+          "id" => item["id"].to_s,
+          "webpage_url" => item["url"].to_s,
+          "title" => item["title"],
+          "channel" => item["author"],
+          "channel_url" => item["channel"],
+          "description" => item["description"],
+          "duration" => item["duration"]
+        }
+        entry["view_count"] = item["views"] if item.key?("views")
+        entry["like_count"] = item["likes"] if item.key?("likes")
+        entry["upload_date"] = item["date"] if item["date"].to_s != ""
+        video_from_entry(entry)
+      end
     end
 
     def channel_from_entry(entry)
@@ -535,6 +619,8 @@ class ProgramYoutube < Program
   end
 
   def self.ensure_runtime_ready
+    # On Android the host does the extracting; there is nothing to download.
+    return true if Youtube.host != nil
     configure_youtube_runtime
     if !File.file?(Youtube.binary)
       alert(_("Youtube needs to download yt-dlp before first use."))
@@ -963,9 +1049,10 @@ class ProgramYoutube < Program
         custom: _("Play custom quality"),
         channel: _("Show channel"),
         download: _("Download"),
+        avatar: p_("Klangten", "Set as audio avatar"),
         copy: _("Copy URL to the clipboard"),
         cancel: _("Cancel")
-      },
+      }.reject { |key, _label| key == :avatar && !Session.logged? },
       header: video.title,
       cancel: :cancel,
       flags: 1
@@ -979,6 +1066,9 @@ class ProgramYoutube < Program
       insert_scene(new(video.channel), true) if video.channel.to_s != ""
     when :download
       download_video(video)
+    when :avatar
+      source = best_audio_url(video)
+      source == nil ? alert(_("Error")) : set_audio_avatar_from(source, video.title)
     when :copy
       Clipboard.set_data(video.url)
       alert(_("Copied to clipboard."))

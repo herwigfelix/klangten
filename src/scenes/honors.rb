@@ -70,13 +70,16 @@ class Scene_Honors
     return if @honors.empty? || @sel.index >= @honors.size
 
     honor = @honors[@sel.index]
-    menu.option(p_("Honors", "Set as primary honor")) do
-      begin
-        EltenLink::Honors.set_main(elten_link, honor)
-      rescue EltenLink::Error
-        alert(_("Error"))
-      else
-        alert(p_("Honors", "The honor has been set as the primary honor."))
+    # Klangten: a guest has no badges of its own to choose from.
+    if Session.logged?
+      menu.option(p_("Honors", "Set as primary honor")) do
+        begin
+          EltenLink::Honors.set_main(elten_link, honor)
+        rescue EltenLink::Error
+          alert(_("Error"))
+        else
+          alert(p_("Honors", "The honor has been set as the primary honor."))
+        end
       end
     end
 

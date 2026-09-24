@@ -23,7 +23,7 @@ cp -R "$STDLIB" "$OUT/stdlib"
 # Not needed at run time on the device.
 rm -rf "$OUT/stdlib/bundler" "$OUT/stdlib/rdoc" "$OUT/stdlib/ruby_vm/rjit" 2>/dev/null || true
 [ -d "$ANDROID_DIR/vendor/$ABI/gemlibs" ] && cp -R "$ANDROID_DIR/vendor/$ABI/gemlibs" "$OUT/gemlibs"
-cp "$ANDROID_DIR/app/ruby/probe.rb" "$ANDROID_DIR/app/ruby/android_boot.rb" "$OUT/"
+cp "$ANDROID_DIR"/app/ruby/*.rb "$OUT/"
 REPO="$(cd "$ANDROID_DIR/.." && pwd)"
 mkdir -p "$OUT/app/eltencore"
 for item in elten.rb filelist src resources locale patchs audio; do

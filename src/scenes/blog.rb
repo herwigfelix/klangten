@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; guests only read.
 
 class Scene_Blog
   def initialize(index=0)
@@ -466,7 +466,9 @@ else
     alert(info)
     }
     end # if @id=="NEWFOLLOWEDBLOGS"
+  # Klangten: mentioning needs an account.
   menu.option(p_("Blog", "Mention post"), nil, "w") {
+        next alert(Session.login_required_message) if !Session.logged?
         users = []
         begin
           users = EltenLink::Contacts.added_me(elten_link)
@@ -809,7 +811,7 @@ def context(menu)
     }
     end
     }
-    if @comments!=0
+    if @comments!=0 && Session.logged?
       menu.option(p_("Blog", "Write a comment"), nil, "n") {
       @form.index=@postcur=@form.fields.size-4
       @form.focus
@@ -1194,6 +1196,8 @@ if b.include?(Session.name)
   }
   end
   end
+# Klangten: following, the library and the read state need an account.
+if Session.logged?
 isf = @blogs[@sel.index].followed
 s=""
 if isf == true
@@ -1231,12 +1235,13 @@ end
 end
 }
 end
-if !blog.library
+end
+if Session.logged? && !blog.library
   menu.option(p_("Blog", "Add to Elten library")) {
   addlib(blog)
   @sel.focus
   }
-elsif blog.library && (blog.library_user==Session.name)
+elsif Session.logged? && blog.library && (blog.library_user==Session.name)
   menu.option(p_("Blog", "Delete from Elten library"), nil, :del) {
   confirm(p_("Blog", "Are you sure you want to delete blog %{blog} from Elten library?")%{ :blog => blog.name}) {
   EltenLink::Blog.library_delete(elten_link, blog: blog.id)
@@ -1256,7 +1261,7 @@ menu.option(p_("Blog", "Copy blog URL")) {
 Clipboard.text=@blogs[@sel.index].url
 alert(p_("Blog", "Blog URL copied to clipboard"))
 }
-if blog.elten
+if blog.elten && Session.logged?
 menu.option(p_("Blog", "Mark the blog as read"), nil, "w") {
 confirm(p_("Blog", "All posts on this blog will be marked as read. Do you want to continue?")) do
     begin
@@ -1270,10 +1275,12 @@ confirm(p_("Blog", "All posts on this blog will be marked as read. Do you want t
 }
 end
 end
+if Session.logged?
 menu.option(p_("Blog", "Create new blog"), nil, "n") {
 $bloglistindex = @sel.index
 $scene=Scene_Blog_Create.new(true, $scene)
 }
+end
 if !@type.is_a?(String)
 if Session.languages.size>0
          s=p_("Blog", "Show blogs in unknown languages")

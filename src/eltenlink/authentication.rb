@@ -1,6 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; two-factor authentication via Telegram or text message.
 
 module EltenLink
   class LoginResult
@@ -20,6 +20,35 @@ module EltenLink
 
     def success?
       true
+    end
+  end
+
+  # Klangten: state of two-factor authentication of the logged-in account.
+  class TwoFactorStatus
+    attr_reader :method, :phone, :backup_left, :devices
+
+    def initialize(data)
+      data = {} unless data.is_a?(Hash)
+      @enabled = truthy?(data.key?("enabled") ? data["enabled"] : data["state"])
+      @method = data["method"].to_s
+      @method = "sms" if @method == "" && @enabled
+      @phone = data["phone"].to_s
+      @backup_left = data.key?("backup_left") && data["backup_left"] != nil ? data["backup_left"].to_i : nil
+      @devices = data.key?("devices") && data["devices"] != nil ? data["devices"].to_i : nil
+    end
+
+    def enabled?
+      @enabled
+    end
+
+    def telegram?
+      @method == "telegram"
+    end
+
+    private
+
+    def truthy?(value)
+      value == true || %w[1 true yes].include?(value.to_s.downcase)
     end
   end
 
@@ -79,19 +108,29 @@ module EltenLink
         data["token"].to_s
       end
 
+      # Klangten: GET /authentication answers {enabled, method ("sms"|"telegram"|nil),
+      # phone (masked), telegram, backup_left, devices}. Elten's {state} is still read.
+      def status(client)
+        TwoFactorStatus.new(client.api_data("GET", "/api/v1/authentication"))
+      end
+
       def state(client)
-        data = client.api_data("GET", "/api/v1/authentication")
-        data["state"].to_i
+        status(client).enabled? ? 1 : 0
       end
 
-      def enable(client, password:, phone:, language:)
-        client.api_data("PUT", "/api/v1/authentication", { "password" => password, "phone" => phone, "lang" => language, "language" => language })
-        true
+      # Klangten: method is "sms" (phone required, the code goes out by text
+      # message) or "telegram" (answer {link, start} for linking the bot).
+      def enable(client, password:, method: "sms", phone: nil, language:)
+        params = { "password" => password, "method" => method.to_s, "lang" => language, "language" => language }
+        params["phone"] = phone if phone.to_s != ""
+        data = client.api_data("PUT", "/api/v1/authentication", params)
+        data.is_a?(Hash) ? data : {}
       end
 
+      # Klangten: returns the first backup codes ({codes: [...]}), may be empty.
       def verify(client, code:, appid:)
-        client.api_data("POST", "/api/v1/authentication/verification", { "code" => code, "appid" => appid })
-        true
+        data = client.api_data("POST", "/api/v1/authentication/verification", { "code" => code, "appid" => appid })
+        data.is_a?(Hash) ? data["codes"].to_a.map(&:to_s) : []
       end
 
       def disable(client, password:)

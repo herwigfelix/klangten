@@ -1,7 +1,7 @@
 # FileManager - a former Elten component (author: pajper), Copyright (C) Dawid Pieper.
 # Licensed under the GNU General Public License, version 3.
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: built into Klangten and opened from the
-# Files menu (hidden from the Programs menu).
+# Files menu (hidden from the Programs menu); "Set as audio avatar" for audio files.
 =begin Elten3AppInfo
 {
   "id": "8c8d86ce-dc24-453f-a388-e9b5e8626c5c",
@@ -907,6 +907,7 @@ class ProgramFileManager < Program
 
   def audiomenu(submenu = false)
     actions = { play: _("Play"), convert: _("convert"), add_to_playlist: _("Add to playlist") }
+    actions[:avatar] = p_("Klangten", "Set as audio avatar") if Session.logged?
     actions[:cancel] = _("Cancel") if !submenu
     action = select_action(actions, flags: submenu ? 0 : 1, cancel_key: submenu ? :left : nil)
     case action
@@ -916,6 +917,8 @@ class ProgramFileManager < Program
       convert_audio
     when :add_to_playlist
       add_to_current_playlist(selected_path)
+    when :avatar
+      set_audio_avatar_from(selected_path, File.basename(selected_path))
     end
     action != nil
   end

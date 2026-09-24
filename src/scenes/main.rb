@@ -557,6 +557,8 @@ def acsel_load(fc=true)
   end
       for i in 0...@actions.size
       @acsel.disable_item(@specials.size+i) if @actions[i].show==false && !@acselshowhidden
+      # Klangten: a guest is not offered actions that need an account (messages, contacts...).
+      @acsel.disable_item(@specials.size+i) if Session.guest_unavailable?(@actions[i].action)
     end
         @acsel.focus if fc==true
     end

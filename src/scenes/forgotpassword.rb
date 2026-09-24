@@ -9,7 +9,7 @@ class Scene_ForgotPassword
   def main
     @user=""
     loop do    
-    @user=input_text(p_("ForgotPassword", "If you forget your password, you can reset it using the email address you provided when registering. You can request a password reset code to verify your identity. The code will be sent to your email address. Warning: two-factor authentication will be disabled on your account. To continue, enter your username."),flags: 0,text: "",escapable: true)
+    @user=input_text(p_("ForgotPassword", "If you forget your password, you can reset it using the email address you provided when registering. You can request a password reset code to verify your identity. The code will be sent to your email address. Two-factor authentication stays enabled; if you cannot receive a code, log in with a backup code. To continue, enter your username."),flags: 0,text: "",escapable: true)
     return $scene=Scene_Loading.new if @user==nil
     @user=klangten_canonical_user_name(@user) # Klangten: silent lookup
           break

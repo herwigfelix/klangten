@@ -107,40 +107,42 @@ end
 suc=true
 rescue EltenLink::Error => e
 if e.code.to_s=="auth.two_factor_required"
-  if Klangten::Config.sms_two_factor_enabled?
-  meth = selector([p_("Login", "Authenticate using SMS"), p_("Login", "Authenticate using backup code"), _("Cancel")], header: p_("Login", "Two-factor authentication is enabled on this account. Select an authentication method."), start_index: 0, cancel_index: 2, flags: 1)
-  else
-    # Klangten: no text-message delivery; only a code can be entered.
-    meth = selector([p_("Login", "Authenticate using backup code"), _("Cancel")], header: p_("Login", "Two-factor authentication is enabled on this account. Select an authentication method."), start_index: 0, cancel_index: 1, flags: 1)
-    meth = meth==0 ? 1 : 2
+  # Klangten: the choice follows details.methods of the error ("sms",
+  # "telegram", "backup"); a code is requested with authmethod phone/telegram.
+  kinds=klangten_two_factor_methods(e)
+  labels=kinds.map { |k| klangten_two_factor_method_label(k) }
+  meth=selector(labels+[_("Cancel")], header: p_("Login", "Two-factor authentication is enabled on this account. Select an authentication method."), start_index: 0, cancel_index: kinds.size, flags: 1)
+  kind=kinds[meth]
+  if kind==nil
+    @@skipauto=true
+    return $scene=Scene_Login.new
   end
-if meth==0
-  phone_error=nil
+if kind!="backup"
+  send_error=nil
+  authmethod=(kind=="telegram" ? "telegram" : "phone")
   begin
-  if token!=""
-    logintemp = EltenLink::Authentication.login(elten_link, name: name, token: token, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "phone", stamp: stamp, accept_tos: accept_tos)
+  if token!="" && @skipauto!=true
+    logintemp = EltenLink::Authentication.login(elten_link, name: name, token: token, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: authmethod, stamp: stamp, accept_tos: accept_tos)
 else
-  logintemp = EltenLink::Authentication.login(elten_link, name: name, password: password, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: "phone", stamp: stamp, accept_tos: accept_tos)
+  logintemp = EltenLink::Authentication.login(elten_link, name: name, password: password, version_string: version_string, version_isdevelopment: version_isdevelopment, version_islauncher: version_islauncher, appid: $appid, language: Configuration.language, os: platform_os, authmethod: authmethod, stamp: stamp, accept_tos: accept_tos)
 end
-  rescue EltenLink::Error => phone_error
+  rescue EltenLink::Error => send_error
   end
-  if phone_error!=nil && phone_error.code.to_s!="auth.two_factor_required"
-    login_error=phone_error
+  if send_error!=nil && send_error.code.to_s.start_with?("authentication.") && (msg=klangten_two_factor_error_message(send_error))!=nil
+    # Klangten: e.g. no Telegram right now; back to the choice, where a backup code is offered.
+    alert(msg)
+    speech_wait
+    suc=false
+    next
+  elsif send_error!=nil && send_error.code.to_s!="auth.two_factor_required"
+    login_error=send_error
     break
   end
   end
   suc=false
 tries=0
-if meth==2
-  @@skipauto=true
-  return $scene=Scene_Login.new
-  break
-  end
-if meth==0
-  label=p_("Login", "Enter the code sent to you by text message to allow this device to log in. If you cannot access the phone number used, select the password reset option to disable two-factor authentication.")
-else
-  label = p_("Login", "Enter backup code")
-  end
+label=klangten_two_factor_code_label(kind)
+restart=false
 while tries<3
   code=input_text(label,flags: 0,text: "",escapable: true)
   if code==nil
@@ -148,10 +150,23 @@ while tries<3
     return $scene=Scene_Loading.new
     break
   end
-  code=code.delete("\r\n")
+  code=code.delete("\r\n\t ")
+  next if code==""
   begin
     EltenLink::Authentication.authenticate(elten_link, appid: $appid, name: name, code: code)
-  rescue EltenLink::Error
+  rescue EltenLink::Error => code_error
+    if code_error.code.to_s=="authentication.code_expired" || code_error.code.to_s=="authentication.too_many_attempts"
+      # Klangten: a new code is needed; back to the choice of the method.
+      alert(klangten_two_factor_error_message(code_error))
+      speech_wait
+      restart=true
+      break
+    elsif code_error.code.to_s!="authentication.invalid_code" && (msg=klangten_two_factor_error_message(code_error))!=nil
+      alert(msg)
+      speech_wait
+      restart=true
+      break
+    end
     tries+=1
     if tries>=3
       alert(p_("Login", "Verification failed."))
@@ -165,6 +180,7 @@ while tries<3
         break
     end
   end
+next if restart
 elsif e.code.to_s=="session.tos_required" && !accept_tos
   # Klangten: the Klango server wants the terms accepted first. This also happens
   # with an auto-login key; the user is asked and the same login is repeated.
@@ -289,20 +305,9 @@ else
     speech_wait
     @skipauto=true
     return main
-  when "authentication.sms_cooldown"
-    alert(p_("Login", "A text message with a verification code can be requested only once per minute. Please try again later."))
-    Session.token = nil
-    speech_wait
-    @skipauto=true
-    return main
-  when "authentication.sms_daily_limit"
-    alert(p_("Login", "The daily limit for text messages with verification codes has been reached. Please try again later."))
-    Session.token = nil
-    speech_wait
-    @skipauto=true
-    return main
-  when "authentication.sms_limiter_unavailable"
-    alert(p_("Login", "Text message verification is temporarily unavailable. Please try again later."))
+  when "authentication.sms_cooldown", "authentication.sms_daily_limit", "authentication.sms_limiter_unavailable", "authentication.telegram_unavailable", "authentication.telegram_not_linked", "authentication.invalid_code", "authentication.code_expired", "authentication.too_many_attempts"
+    # Klangten: the code could not be sent; the texts are shared with the setup screen.
+    alert(klangten_two_factor_error_message(login_error))
     Session.token = nil
     speech_wait
     @skipauto=true
@@ -319,6 +324,32 @@ end
         $scene = Scene_Loading.new
         $preinitialized = false
                 $scene = Scene_Main.new if Session.logged?
+      end
+      # Klangten: methods offered by auth.two_factor_required (details.methods),
+      # in a fixed order; "phone" is accepted as another name for "sms".
+      def klangten_two_factor_methods(error)
+        raw=error.detail("methods")
+        raw=raw.split(",") if raw.is_a?(String)
+        raw=["sms", "telegram", "backup"] if !raw.is_a?(Array) || raw.empty?
+        names=raw.map { |m| m.to_s.strip.downcase }.map { |m| m=="phone" ? "sms" : m }
+        kinds=%w[telegram sms backup].select { |k| names.include?(k) }
+        kinds.push("backup") if !kinds.include?("backup")
+        kinds
+      end
+      def klangten_two_factor_method_label(kind)
+        case kind
+        when "telegram" then p_("Login", "Get a code via Telegram")
+        when "sms" then p_("Login", "Get a code by text message (SMS)")
+        else p_("Login", "Enter a backup code")
+        end
+      end
+      def klangten_two_factor_code_label(kind)
+        hint=p_("Login", "If you cannot receive a code, use one of your backup codes instead. Resetting the password does not disable two-factor authentication. If you have no backup codes left, contact the administrator at %{contact}.")%{:contact=>EltenAPI::Common::TWO_FACTOR_ADMIN_CONTACT}
+        case kind
+        when "telegram" then p_("Login", "Enter the code the Klango bot sent you in Telegram to allow this device to log in.")+" "+hint
+        when "sms" then p_("Login", "Enter the code sent to you by text message to allow this device to log in.")+" "+hint
+        else p_("Login", "Enter backup code")
+        end
       end
       def handle_account_activation(name)
         header = p_("Login", "This account has not been activated. Enter the activation code from the e-mail message or request the message again.")

@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages, feed statistics and the SMS two-factor setup entry removed.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages, feed statistics removed; two-factor setup via Telegram or text message.
 
 class Scene_Account
   WHATSNEW_DISABLE_LIST = 1
@@ -311,8 +311,8 @@ def load_notifications_settings
     make_setting(p_("Account", "Change e-mail"), :custom, Proc.new{insert_scene(Scene_Account_Mail.new)})
     make_setting(p_("Account", "Change password"), :custom, Proc.new{insert_scene(Scene_Account_Password.new)})
     make_setting(p_("Account", "Forgot password"), :custom, Proc.new { insert_scene(Scene_ForgotPassword.new) })
-    # Klangten: the setup screen configures EltenLink's SMS based two-factor authentication.
-    make_setting(p_("Account", "Manage Two-Factor authentication"), :custom, Proc.new{insert_scene(Scene_Authentication.new)}) if Klangten::Config.sms_two_factor_enabled?
+    # Klangten: codes via Telegram or text message, served by the Klango server.
+    make_setting(p_("Account", "Manage Two-Factor authentication"), :custom, Proc.new{insert_scene(Scene_Authentication.new)}) if Klangten::Config.two_factor_enabled?
     make_setting(p_("Account", "Manage mail events-reporting"), :custom, Proc.new{insert_scene(Scene_Account_MailEvents.new)})
     make_setting(p_("Account", "Manage auto-login tokens"), :custom, Proc.new{insert_scene(Scene_Account_AutoLogins.new)})
     make_setting(p_("Account", "Show last logins"), :custom, Proc.new{insert_scene(Scene_Account_Logins.new)})
