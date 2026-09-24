@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: architecture in the installer request.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: architecture in the installer request, verified downloads from GitHub, Android self-update.
 
 require "digest"
 
@@ -198,6 +198,59 @@ ensure
   rescue Exception => e
     Log.warning("Could not remove temporary installer: #{e.class}: #{e.message}")
   end
+end
+
+# Klangten: true when version a (e.g. "0.3.0" from a release) is newer than b.
+# Unreadable versions are never newer, so a malformed release offers nothing.
+def klangten_version_newer?(a, b)
+  require "rubygems" unless defined?(Gem::Version)
+  Gem::Version.new(a.to_s.strip) > Gem::Version.new(b.to_s.strip)
+rescue ArgumentError, StandardError
+  false
+end
+
+# Klangten: the Android updater. The app has no launcher and no build id, and
+# the Klango server publishes no APK, so it compares its version with the
+# newest GitHub release and, after asking, downloads Klangten.apk (size and
+# SHA-256 checked like every installer) and hands it to the system package
+# installer, which asks once more before installing. interactive: true is the
+# "Check for updates now" entry and reports "no update" too; the check at start
+# stays silent then.
+def android_update_check(interactive: false)
+  return false if platform_os != "android" || !Klangten::Config.updates_enabled?
+  release = github_latest_release
+  asset = Klangten::GitHub.installer_asset(release, "android")
+  version = release == nil ? "" : release.version_string.to_s
+  if asset == nil || !klangten_version_newer?(version, Klangten::Config::VERSION)
+    alert(p_("Loading", "You are using the newest version of Klangten.")) if interactive
+    return false
+  end
+  question = p_("Loading", "Klangten %{version} is available. Download and install it now?") % { :version => version }
+  return false unless confirm(question, default_yes: true)
+  unless download_github_installer(use_waiting: true, can_cancel: true)
+    alert(p_("Loading", "The update could not be downloaded."))
+    return false
+  end
+  installer = platform_installer_path
+  unless installer_sha256_valid?(installer, $update_installer_sha256)
+    Log.error("APK hash verification failed immediately before installation")
+    alert(p_("Loading", "The update could not be downloaded."))
+    return false
+  end
+  case IOSHostBridge.install_package(installer)
+  when :opened
+    alert(p_("Loading", "The Android installer is open. Confirm the update there."))
+    true
+  when :needs_permission
+    alert(p_("Loading", "Allow Klangten to install apps on the page that just opened. Then check for updates again in the settings, under Auto updater."))
+    false
+  else
+    alert(p_("Loading", "The update could not be installed."))
+    false
+  end
+rescue Exception => e
+  Log.error("Android update failed: #{e.class}: #{e.message}")
+  false
 end
 
 def download_verified_installer(use_waiting: true, can_cancel: false)

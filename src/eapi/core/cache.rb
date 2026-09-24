@@ -164,19 +164,17 @@ module Cache
   end
   end
 
-  # Klangten: the rolling channel is served by the public GitHub releases, not by
-  # the Klango server. Requests that still go to the server must never carry it,
-  # so they fall back to the branch this build was made for.
+  # Klangten: the Klango server only serves the stable channel (rc and beta are
+  # gone). The rolling channel is served by the public GitHub releases, so
+  # requests that still go to the server never carry it either.
   def get_updatesbranch
-    if Configuration.branch==:auto or updates_rolling?
-      return Elten.branch
-    else
-      return Configuration.branch.to_s
-      end
+    return "stable"
     end
 
   # True when updates are taken from the public GitHub releases of the fork.
+  # Android always is: the Klango server publishes no APK.
   def updates_rolling?
+    return true if platform_os == "android"
     Klangten::GitHub.selected?(Configuration.branch)
   end
 end

@@ -34,7 +34,7 @@ module Klangten
     PRODUCT_NAME = "Klangten".freeze
     # Lower-case identifier used for file, directory and registry names.
     PRODUCT_ID = "klangten".freeze
-    VERSION = "0.1.0".freeze
+    VERSION = "0.2.0".freeze
     VENDOR = "sixdotsIT".freeze
     COPYRIGHT = "Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT)".freeze
     UPSTREAM_NAME = "Elten".freeze
@@ -89,7 +89,10 @@ module Klangten
     UPDATES_ENABLED = true
     UPDATES_ENV = "KLANGTEN_UPDATES".freeze
     PROGRAM_STORE_ENABLED = false      # server program repository offered by the welcome wizard
-    SMS_TWO_FACTOR_ENABLED = false     # EltenLink SMS based two-factor authentication
+    # Two-factor authentication (Konto > Manage Two-Factor authentication and the
+    # login prompt). The Klango server delivers codes via Telegram or text message
+    # and answers the Elten endpoints under /api/v1/authentication.
+    TWO_FACTOR_ENABLED = true
     LAUNCHER_STAMP_ENABLED = false     # EltenLink launcher stamp (get_stamp); never used by Klangten
     PROGRAM_SIGNING_ROOT_RESOURCE = nil # no Klangten signing root yet: packages are treated as unsigned
 
@@ -167,8 +170,8 @@ module Klangten
         PROGRAM_STORE_ENABLED == true
       end
 
-      def sms_two_factor_enabled?
-        SMS_TWO_FACTOR_ENABLED == true
+      def two_factor_enabled?
+        TWO_FACTOR_ENABLED == true
       end
 
       def launcher_stamp_enabled?
@@ -222,7 +225,8 @@ module Klangten
     INSTALLER_FILENAMES = {
       "windows" => "KlangtenSetup.exe",
       "osx" => "Klangten.dmg",
-      "linux" => "klangten-linux.run"
+      "linux" => "klangten-linux.run",
+      "android" => "Klangten.apk"
     }.freeze
     ARCHES = %w[x64 x86 arm64].freeze
     LINUX_INSTALL_DIR = "/opt/klangten".freeze

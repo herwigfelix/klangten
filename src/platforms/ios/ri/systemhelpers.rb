@@ -297,21 +297,24 @@ module EltenSystemHelpers
       ""
     end
 
+    # Android updates itself from the GitHub releases (Klangten.apk); on iOS
+    # self-update is not permitted, the App Store delivers updates.
     def installer_filename
-      ""
+      android? ? Klangten::Updates.installer_filename("android") : ""
     end
 
-    def installer_path(_data_dir)
-      ""
+    def installer_path(data_dir)
+      android? ? File.join(data_dir.to_s, installer_filename) : ""
     end
 
-    # Self-update is not permitted on iOS; the App Store delivers updates.
+    # Never used on Android: the APK is handed to the package installer right
+    # after the download (android_update_check), not after Klangten exits.
     def update_install_command(_installer, silent: true)
       [NATIVE_OPEN_COMMAND, "https://apps.apple.com/"]
     end
 
     def update_supported?
-      false
+      android?
     end
 
     private

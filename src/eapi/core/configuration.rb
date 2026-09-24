@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: update channels reduced to stable and rolling.
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
@@ -114,7 +115,9 @@ Configuration.saytimetype = load_configuration_choice("Clock", "SayTimeType", [:
 Configuration.registeractivity = load_configuration_value("Privacy", "RegisterActivity", { "unset" => nil, "false" => false, "true" => true }, nil)
 Configuration.checkupdates = load_configuration_boolean("Updates", "CheckAtStartup", true)
 Configuration.autoplay = load_configuration_choice("Interface", "AutoPlay", [:always, :without_transcription, :never], :always)
-Configuration.branch = load_configuration_choice("Updates", "Branch", [:auto, :stable, :rc, :beta, :rolling], :auto)
+# Klangten: only two channels remain - stable (Klango server) and rolling (GitHub
+# releases). Settings saved by older versions ("auto", "rc", "beta") mean stable.
+Configuration.branch = load_configuration_value("Updates", "Branch", { "stable" => :stable, "rolling" => :rolling, "auto" => :stable, "rc" => :stable, "beta" => :stable }, :stable)
 if tray_supported?
 Configuration.autostart=load_configuration_choice("System", "AutoStart", [:disabled, :hidden, :visible], :disabled)
 path=EltenSystemHelpers.autostart_executable_path(current_executable_path)

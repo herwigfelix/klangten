@@ -26,7 +26,7 @@ Klangten's built-in updater is served by the Klango server the client is connect
 | Parameter | Values | Source |
 | --- | --- | --- |
 | `os` | `windows`, `osx`, `linux` | `platform_os` |
-| `branch` | `stable` (also for the setting "Auto"), `rc`, `beta` | Settings > Updates branch |
+| `branch` | always `stable` (the RC and Beta channels were removed in 0.2; older settings "auto", "rc", "beta" are read as stable) | Settings > Auto updater |
 | `arch` | `x64`, `x86`, `arm64` | `ELTEN_LAUNCHER_ARCH` set by the launcher |
 | `build_id` / `current_build_id` | the id embedded at build time, empty for source runs | `Elten.build_id` |
 
@@ -35,7 +35,7 @@ Klangten's built-in updater is served by the Klango server the client is connect
 The server looks for a release in this order:
 
 1. **Architecture:** `<platform>-<arch>`, then the emulation fallback (Windows arm64 → x64, macOS arm64 → x64), then the universal release `<platform>`. Linux has no emulation fallback.
-2. **Branch:** if a branch has no release at all, `beta` falls back to `rc`, and `rc` to `stable`.
+2. **Branch:** clients only ask for `stable`. The server still understands `rc` and `beta` (and falls back from them to `stable`), which only matters for clients older than 0.2.
 
 Current packages are published as follows:
 
@@ -115,7 +115,7 @@ $REL remove --platform windows --branch stable                # withdraw a relea
 
 Options: `--arch` (default `universal`), `--branch` (default `stable`), `--filename` (default: the name of `--file`), `--notes`. `--platform` also accepts `macos`. Without `--dir`, the tool uses `KLANGTEN_RELEASES_DIR`, otherwise `klangten_releases` next to `KLANGO_DB`.
 
-Recommended order: publish to `--branch beta`, update a test installation (Settings > Updates branch: Beta), then publish the same files to `stable`. The store keeps the current and the previous installer for every target. To roll back, publish the previous installer again with its old build id.
+Test a release before it goes to `stable` through the rolling channel: the tag builds are on GitHub first, and a test installation set to "Rolling release (GitHub)" takes them from there. The store keeps the current and the previous installer for every target. To roll back, publish the previous installer again with its old build id.
 
 ## Testing an update locally
 
@@ -140,11 +140,25 @@ Besides the branches served by the Klango server, the update channel in Settings
 - The same rule as on the server decides: the build id must **differ**, so a rollback works by publishing an older build again.
 - Downloads are accepted only from `github.com` and GitHub's asset hosts (`Klangten::GitHub.trusted_url?`); size and SHA-256 must match before the file is stored, and `src/main.rb` checks the hash again immediately before the installer runs.
 - There is **no background polling** in this channel: GitHub is asked once at start-up and whenever the user triggers an update. `Configuration.checkupdates` ("Check for updates automatically") switches the automatic check off in both channels — including the 600 s server poll, which upstream did not gate.
-- `rolling` is never sent to the Klango server; `get_updatesbranch` maps it back to the branch the build was made for (`src/eapi/core/cache.rb`).
+- `rolling` is never sent to the Klango server; `get_updatesbranch` always sends `stable` (`src/eapi/core/cache.rb`).
+
+## Android
+
+Android has no launcher and no build id, and the Klango server publishes no APK, so Android always updates from the GitHub releases, whatever the channel setting says (the Auto updater page shows only "Check for updates automatically" and "Check for updates now" there).
+
+| Step | Client code | Source |
+| --- | --- | --- |
+| Check at start (when "Check for updates automatically" is on) and "Check for updates now" | `src/eapi/network.rb` `android_update_check` | `releases/latest`; an update is offered when the release version is **newer** than `Klangten::Config::VERSION` (not merely different: Android refuses a lower `versionCode`) |
+| Download | `download_github_installer` | `Klangten.apk`, verified against `Klangten.apk.sha256` |
+| Installation | `IOSHostBridge.install_package` → `Host.installPackage` (Java) | the APK is copied to `cache/updates/` and served to the system package installer by `UpdateProvider`, which asks the user once more |
+
+- Without the permission to install apps, `installPackage` opens the system page for it and the user checks again afterwards.
+- `versionName` and `versionCode` come from `VERSION` in `klangten_config.rb` (`android/app/build.gradle`: `0.2.0` → `200`), so Android needs no fourth place to bump.
+- The APK must always be signed with the **same key**, otherwise Android refuses the update. The key is not in the repository: locally it is read from `KLANGTEN_KEYSTORE`, `KLANGTEN_KEYSTORE_PASSWORD`, `KLANGTEN_KEY_ALIAS`; in CI from the secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`. Losing it means every Android user has to uninstall and reinstall once.
 
 ## Continuous integration
 
-`.github/workflows/build-macos.yml` (runner `macos-26`) and `.github/workflows/build-windows.yml` (runner `windows-2025-vs2026`) build on a `v*` tag and on manual dispatch. Both derive the build id from the tag (`v0.1.1` → `0.1.1`) or from the run number, write `<installer>.sha256` and `build-id.txt` next to the installer, upload them as artifacts and, for a tag, attach them to the release — which is exactly what the rolling channel expects.
+`.github/workflows/build-macos.yml` (runner `macos-26`) and `.github/workflows/build-windows.yml` (runner `windows-2025-vs2026`) build on a `v*` tag and on manual dispatch. `.github/workflows/build-android.yml` (runner `macos-26`) builds the APK the same way — Ruby runtime, gems, codecs, BASS and the TeamConference core from its public repository — and attaches `Klangten.apk` and `Klangten.apk.sha256` (no `build-id.txt`, see Android above). Both derive the build id from the tag (`v0.1.1` → `0.1.1`) or from the run number, write `<installer>.sha256` and `build-id.txt` next to the installer, upload them as artifacts and, for a tag, attach them to the release — which is exactly what the rolling channel expects.
 
 The Ruby runtime and the gems are compiled from source by the build itself, so both jobs cache `build/launcher-*/ruby`. macOS additionally installs `ruby-install` and needs `rustc` for YJIT. The Windows job builds x64, x86 and the facade `elten.exe`, but not ARM64: that target's Ruby runtime has to run during the build and therefore needs an ARM64 host.
 

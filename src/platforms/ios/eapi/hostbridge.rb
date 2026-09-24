@@ -97,6 +97,17 @@ module IOSHostBridge
       call_set_string_int(:open_url, url.to_s) == 1
     end
 
+    # Android only: hands a verified APK to the system package installer.
+    # :opened, :needs_permission (the settings page for installing apps was
+    # opened instead) or :failed.
+    def install_package(path)
+      case call_set_string_int(:install_package, path.to_s)
+      when 1 then :opened
+      when 2 then :needs_permission
+      else :failed
+      end
+    end
+
     def request_microphone_access(timeout = 15.0)
       fn = func(:microphone_request, [Fiddle::TYPE_DOUBLE], Fiddle::TYPE_INT)
       return true if fn == nil

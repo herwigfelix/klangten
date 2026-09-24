@@ -63,7 +63,7 @@ static jstring jstr(JNIEnv *env, const char *value) {
 
 // Returned strings stay valid until the same function is called again, like
 // the CStringHolder on iOS.
-enum { S_VOICES, S_ENGINES, S_ENGINE, S_CLIPBOARD, S_LOCALE, S_OS, S_LIBDIR, S_INPUT, S_COUNT };
+enum { S_VOICES, S_ENGINES, S_ENGINE, S_CLIPBOARD, S_LOCALE, S_OS, S_LIBDIR, S_INPUT, S_YOUTUBE, S_COUNT };
 static char *g_strings[S_COUNT];
 static pthread_mutex_t g_strings_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -188,11 +188,52 @@ EXPORT void elten_host_speech_speak(const char *text, const char *voice, int rat
     clear_exception(env);
 }
 
+// --- YouTube (NewPipeExtractor, Android only) -------------------------------------------
+// Every call performs network I/O and blocks the calling Ruby thread; the
+// answer is JSON, or {"error": ...}.
+
+static const char *call_youtube(const char *name, const char *a, const char *b) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return hold(S_YOUTUBE, NULL);
+    jclass cls = (*env)->FindClass(env, "it/sixdots/klangten/YouTube");
+    if (cls == NULL) { (*env)->ExceptionClear(env); return hold(S_YOUTUBE, NULL); }
+    const char *signature = b != NULL ? "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"
+                                      : "(Ljava/lang/String;)Ljava/lang/String;";
+    jmethodID id = (*env)->GetStaticMethodID(env, cls, name, signature);
+    if (id == NULL) { (*env)->ExceptionClear(env); return hold(S_YOUTUBE, NULL); }
+    jstring ja = jstr(env, a);
+    jstring jb = b != NULL ? jstr(env, b) : NULL;
+    jstring value = b != NULL ? (jstring)(*env)->CallStaticObjectMethod(env, cls, id, ja, jb)
+                              : (jstring)(*env)->CallStaticObjectMethod(env, cls, id, ja);
+    clear_exception(env);
+    (*env)->DeleteLocalRef(env, ja);
+    if (jb != NULL) (*env)->DeleteLocalRef(env, jb);
+    return hold(S_YOUTUBE, copy_jstring(env, value));
+}
+
+EXPORT int elten_host_youtube_available(void) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return 0;
+    jclass cls = (*env)->FindClass(env, "it/sixdots/klangten/YouTube");
+    if (cls == NULL) { (*env)->ExceptionClear(env); return 0; }
+    jmethodID id = (*env)->GetStaticMethodID(env, cls, "available", "()I");
+    if (id == NULL) { (*env)->ExceptionClear(env); return 0; }
+    jint value = (*env)->CallStaticIntMethod(env, cls, id);
+    clear_exception(env);
+    return value;
+}
+
+EXPORT const char *elten_host_youtube_search(const char *query, const char *type) { return call_youtube("search", query, type); }
+EXPORT const char *elten_host_youtube_channel(const char *url) { return call_youtube("channelVideos", url, NULL); }
+EXPORT const char *elten_host_youtube_playlist(const char *url) { return call_youtube("playlistVideos", url, NULL); }
+EXPORT const char *elten_host_youtube_video(const char *id) { return call_youtube("video", id, NULL); }
+
 // --- clipboard, URLs, permissions, system info ----------------------------------------
 
 EXPORT const char *elten_host_clipboard_get(void) { return call_string(S_CLIPBOARD, "clipboardGet"); }
 EXPORT void elten_host_clipboard_set(const char *text) { call_int_string("clipboardSet", text); }
 EXPORT int elten_host_open_url(const char *url) { return call_int_string("openUrl", url); }
+EXPORT int elten_host_install_package(const char *path) { return call_int_string("installPackage", path); }
 EXPORT const char *elten_host_locale(void) { return call_string(S_LOCALE, "locale"); }
 EXPORT const char *elten_host_os_version(void) { return call_string(S_OS, "osVersion"); }
 EXPORT const char *elten_host_frameworks_path(void) { return call_string(S_LIBDIR, "nativeLibraryDir"); }

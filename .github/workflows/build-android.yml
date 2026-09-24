@@ -1,0 +1,160 @@
+# Klangten: Android build (experimental).
+#
+# Produces Klangten.apk (arm64-v8a), signed with the release key from the
+# repository secrets. On a tag the APK and its SHA-256 are attached to the
+# release; the Android self-updater (android_update_check in
+# src/eapi/network.rb) reads exactly these two files. It compares versions, not
+# build ids, so this workflow attaches no build-id.txt of its own - that file
+# belongs to the Windows and macOS installers.
+#
+# The key must never change: Android installs an update only when it is signed
+# like the installed app. Secrets: ANDROID_KEYSTORE_BASE64 (PKCS12 keystore),
+# ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS. Without them the job fails
+# instead of publishing an APK nobody could update.
+#
+# The build scripts (android/scripts, docs/android.md) were written on macOS,
+# so the job runs on a macOS runner as well.
+
+name: Build Android
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: macos-26
+    timeout-minutes: 240
+    env:
+      NDK_VERSION: "28.2.13676358"
+      # TeamConference's Android core comes from the public repository only.
+      TEAMCONFERENCE_REPO: herwigfelix/TeamConference
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK und NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0 cmake;3.22.1 ndk;${{ env.NDK_VERSION }}"
+
+      - name: NDK-Pfad setzen
+        run: |
+          echo "NDK=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+
+      # The cross build of CRuby needs a host Ruby of the same version as baseruby.
+      - name: Host-Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0.7"
+
+      - name: Werkzeuge
+        run: |
+          set -eu
+          brew list ninja >/dev/null 2>&1 || brew install ninja
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo install cargo-ndk --locked
+
+      # Runtime, gems, codecs and downloads take long to build and change rarely.
+      - name: Android-Laufzeit aus dem Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            android/vendor/arm64-v8a
+            android/build/downloads
+            android/build/runtime-arm64-v8a
+            android/build/gems-arm64-v8a
+            android/build/codecs-arm64-v8a
+          key: androidrt-${{ runner.os }}-${{ hashFiles('android/scripts/build-runtime.sh', 'android/scripts/build-gems.sh', 'android/scripts/build-codecs.sh') }}
+          restore-keys: androidrt-${{ runner.os }}-
+
+      - name: Ruby-Laufzeit, Gems und Codecs
+        run: |
+          set -eu
+          [ -f android/vendor/arm64-v8a/lib/libruby-static.a ] || sh android/scripts/build-runtime.sh
+          sh android/scripts/build-gems.sh
+          sh android/scripts/build-codecs.sh
+          sh android/scripts/fetch-bass.sh
+
+      - name: TeamConference-Kern bauen
+        run: |
+          set -eu
+          git clone --depth 1 "https://github.com/$TEAMCONFERENCE_REPO.git" "$RUNNER_TEMP/teamconference"
+          # Builds all four ABIs (the script adds the Rust targets itself); Klangten packs arm64-v8a.
+          ( cd "$RUNNER_TEMP/teamconference/lib" && bash build-mobile.sh android )
+          echo "TEAMCONFERENCE_JNILIBS=$RUNNER_TEMP/teamconference/dist/mobile/android/jniLibs" >> "$GITHUB_ENV"
+
+      - name: Assets bereitstellen
+        run: sh android/scripts/stage-assets.sh
+
+      - name: Signierschlüssel
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -eu
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ]; then
+            echo "::error::Signier-Secrets fehlen - ohne den festen Schlüssel ließe sich die APK nicht aktualisieren."
+            exit 1
+          fi
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/klangten-release.jks"
+          {
+            echo "KLANGTEN_KEYSTORE=$RUNNER_TEMP/klangten-release.jks"
+            echo "KLANGTEN_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "KLANGTEN_KEY_ALIAS=${ANDROID_KEY_ALIAS:-klangten}"
+          } >> "$GITHUB_ENV"
+
+      - name: APK bauen
+        run: |
+          set -eu
+          cd android
+          ./gradlew --no-daemon assembleRelease
+          mkdir -p ../dist/android
+          cp app/build/outputs/apk/release/app-release.apk ../dist/android/Klangten.apk
+
+      - name: Signatur und Prüfsumme
+        run: |
+          set -eu
+          "$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner" verify --print-certs dist/android/Klangten.apk
+          ( cd dist/android && shasum -a 256 Klangten.apk | tr -d '\n' > Klangten.apk.sha256 )
+          cat dist/android/Klangten.apk.sha256; echo
+          ls -lh dist/android/Klangten.apk
+
+      - name: Schlüssel entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/klangten-release.jks"
+
+      - name: Artefakte hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Klangten-Android-${{ github.run_number }}
+          path: |
+            dist/android/Klangten.apk
+            dist/android/Klangten.apk.sha256
+          if-no-files-found: error
+
+      # Only the files: the release text comes from the Windows and macOS jobs.
+      - name: An das Release anhängen
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/android/Klangten.apk
+            dist/android/Klangten.apk.sha256
+          fail_on_unmatched_files: true

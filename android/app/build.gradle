@@ -8,6 +8,25 @@ plugins {
     id "com.android.application"
 }
 
+// The version lives in ONE place for every platform: VERSION in
+// src/eltenlink/klangten_config.rb (docs/klangten-releases.md). versionCode is
+// derived from it (0.2.0 -> 200, 1.4.12 -> 10412), because Android refuses an
+// update whose versionCode is not higher - the self-updater depends on that.
+def klangtenVersion = {
+    def config = file("../../src/eltenlink/klangten_config.rb").text
+    def m = (config =~ /VERSION\s*=\s*"(\d+)\.(\d+)\.(\d+)"/)
+    if (!m.find()) throw new GradleException("VERSION not found in klangten_config.rb")
+    [name: "${m.group(1)}.${m.group(2)}.${m.group(3)}",
+     code: m.group(1).toInteger() * 10000 + m.group(2).toInteger() * 100 + m.group(3).toInteger()]
+}()
+
+// Release signing: the self-updater can only install an APK signed with the
+// same key as the installed one. The key never enters the repository; it comes
+// from the environment (locally, or from the repository secrets in
+// .github/workflows/build-android.yml). Without it the release build stays
+// unsigned and cannot be installed.
+def releaseKeystore = System.getenv("KLANGTEN_KEYSTORE")
+
 android {
     namespace "it.sixdots.klangten"
     compileSdk 36
@@ -17,8 +36,8 @@ android {
         applicationId "it.sixdots.klangten"
         minSdk 26
         targetSdk 36
-        versionCode 1
-        versionName "0.1.0"
+        versionCode klangtenVersion.code
+        versionName klangtenVersion.name
         ndk {
             abiFilters "arm64-v8a"
         }
@@ -28,6 +47,23 @@ android {
                 // backend) needs libc++_shared.so, and only one copy may exist.
                 arguments "-DANDROID_STL=c++_shared"
             }
+        }
+    }
+
+    signingConfigs {
+        release {
+            if (releaseKeystore) {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv("KLANGTEN_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KLANGTEN_KEY_ALIAS") ?: "klangten"
+                keyPassword System.getenv("KLANGTEN_KEY_PASSWORD") ?: System.getenv("KLANGTEN_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (releaseKeystore) signingConfig signingConfigs.release
         }
     }
 
@@ -53,5 +89,14 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+        // NewPipeExtractor expects java.nio.file and other newer APIs; minSdk 26
+        // gets them through desugaring.
+        coreLibraryDesugaringEnabled true
     }
+}
+
+dependencies {
+    // YouTube without Google's API: the extractor NewPipe uses (GPLv3).
+    implementation "com.github.TeamNewPipe:NewPipeExtractor:v0.26.5"
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:2.1.5"
 }

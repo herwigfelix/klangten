@@ -68,6 +68,11 @@ final class Host {
         pushInput("gesture:" + name);
     }
 
+    static void pushToken(String token) {
+        if (debug) Log.d(TAG + "-input", token);
+        pushInput(token);
+    }
+
     static void attach(MainActivity current) {
         activity = current;
         if (app == null) {
@@ -267,6 +272,42 @@ final class Host {
             return 1;
         } catch (Exception e) {
             Log.w(TAG, "openUrl " + url, e);
+            return 0;
+        }
+    }
+
+    // --- self-update -----------------------------------------------------------------------
+
+    // Hands a downloaded and already verified APK to the system package installer.
+    // 1 = the installer was opened, 2 = Klangten may not install apps yet (the
+    // settings page for that permission was opened instead), 0 = failure.
+    static int installPackage(String path) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                    && !app.getPackageManager().canRequestPackageInstalls()) {
+                Intent settings = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + app.getPackageName()));
+                settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                app.startActivity(settings);
+                return 2;
+            }
+            java.io.File source = new java.io.File(path);
+            java.io.File target = UpdateProvider.file(app);
+            java.io.File dir = target.getParentFile();
+            if (dir != null && !dir.isDirectory() && !dir.mkdirs()) return 0;
+            try (java.io.InputStream in = new java.io.FileInputStream(source);
+                 java.io.OutputStream out = new java.io.FileOutputStream(target)) {
+                byte[] buffer = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
+            }
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(UpdateProvider.uri(), UpdateProvider.MIME);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            app.startActivity(intent);
+            return 1;
+        } catch (Exception e) {
+            Log.w(TAG, "installPackage " + path, e);
             return 0;
         }
     }

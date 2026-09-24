@@ -264,6 +264,8 @@ Log.info("NVDA Version: "+NVDA.getnvdaversion.to_s) if defined?(NVDA) && NVDA.ch
 # TLS, and the server certificate is verified by EltenAPI::TLS on every connection.
 alert(startmessage) if $silentstart != true
             $speech_wait = true if $silentstart != true
+            # Klangten: Android has no launcher; it updates itself from the GitHub releases.
+            android_update_check if platform_os == "android" && Configuration.checkupdates == true && $denyupdate != true
             if Klangten::Config.updates_enabled? && Configuration.checkupdates==true && launched_by_launcher?
             # Klangten: the rolling channel reads the public GitHub releases of the
             # fork, every other channel asks the Klango server.

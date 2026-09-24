@@ -19,7 +19,7 @@
 ; Klangten's own AppId. Never reuse Elten's {9FE2B24B-49F4-4D0B-A36B-31F267F9B114}.
 AppId={{2EEA2E35-34F6-4197-9224-50402E47BBAE}
 AppName=Klangten
-AppVersion=Klangten 0.1.0
+AppVersion=Klangten 0.2.0
 AppVerName=Klangten 0.1.0
 AppPublisher=sixdotsIT
 AppPublisherURL=https://klango.online

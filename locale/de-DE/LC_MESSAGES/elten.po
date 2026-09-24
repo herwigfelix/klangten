@@ -19754,6 +19754,22 @@ msgid "Play audio avatar"
 msgstr "Audio-Avatar abspielen"
 
 msgctxt "Klangten"
+msgid "Set as audio avatar"
+msgstr "Als Audio-Avatar festlegen"
+
+msgctxt "Klangten"
+msgid "Do you want to use this as your audio avatar? Only the first two minutes are kept."
+msgstr "Möchten Sie dies als Ihren Audio-Avatar verwenden? Nur die ersten zwei Minuten werden übernommen."
+
+msgctxt "Klangten"
+msgid "Do you want to use %{title} as your audio avatar? Only the first two minutes are kept."
+msgstr "Möchten Sie %{title} als Ihren Audio-Avatar verwenden? Nur die ersten zwei Minuten werden übernommen."
+
+msgctxt "Klangten"
+msgid "This file could not be converted to audio."
+msgstr "Diese Datei konnte nicht in Audio umgewandelt werden."
+
+msgctxt "Klangten"
 msgid "&Media"
 msgstr "&Medien"
 
@@ -20939,8 +20955,8 @@ msgid "The main window is built of tabs: Notifications, the Feed with the home t
 msgstr "Das Hauptfenster besteht aus Reitern: Benachrichtigungen, dem Feed mit der Startseiten-Timeline Ihres Mastodon-Kontos und den Schnellaktionen. Nicht jeder braucht alle drei, daher können Sie wählen, welche angezeigt werden. Der Reiter Benachrichtigungen hat zwei eigene Gewohnheiten, die Sie ebenfalls anpassen können: Standardmäßig erscheint er nur, solange es Benachrichtigungen gibt, und Sie können entscheiden, ob und wann er den Fokus erhält, wenn Sie zum Hauptfenster zurückkehren. All das lässt sich auch später unter Werkzeuge, Programmeinstellungen, Hauptfenster ändern."
 
 msgctxt "Klangten"
-msgid "This manual comes from Elten and has not been fully adapted to Klangten. Premium packages, sponsors, the calendar, tasks, SMS two-factor authentication and the built-in updater do not exist in Klangten. Conferences and calls use the TeamConference rooms of the Klango server: positional sound, whispering, dice, cards, recording and sound card streaming are not available. The Feed shows the home timeline of your Mastodon account."
-msgstr "Diese Anleitung stammt aus Elten und wurde noch nicht vollständig an Klangten angepasst. Premiumpakete, Sponsoren, der Kalender, Aufgaben, die Zwei-Faktor-Authentifizierung per SMS und die eingebaute Aktualisierung gibt es in Klangten nicht. Konferenzen und Anrufe verwenden die TeamConference-Räume des Klango-Servers: Positionsklang, Flüstern, Würfel, Karten, Aufnahmen und das Übertragen der Soundkarte sind nicht verfügbar. Der Feed zeigt die Startseiten-Timeline Ihres Mastodon-Kontos."
+msgid "This manual comes from Elten and has not been fully adapted to Klangten. Premium packages, sponsors, the calendar, tasks and the built-in updater do not exist in Klangten. Two-factor authentication sends its codes via Telegram or by text message; resetting the password does not disable it. Conferences and calls use the TeamConference rooms of the Klango server: positional sound, whispering, dice, cards, recording and sound card streaming are not available. The Feed shows the home timeline of your Mastodon account."
+msgstr "Diese Anleitung stammt aus Elten und wurde noch nicht vollständig an Klangten angepasst. Premiumpakete, Sponsoren, der Kalender, Aufgaben und die eingebaute Aktualisierung gibt es in Klangten nicht. Die Zwei-Faktor-Authentifizierung schickt ihre Codes über Telegram oder per SMS; das Zurücksetzen des Passworts schaltet sie nicht ab. Konferenzen und Anrufe verwenden die TeamConference-Räume des Klango-Servers: Positionsklang, Flüstern, Würfel, Karten, Aufnahmen und das Übertragen der Soundkarte sind nicht verfügbar. Der Feed zeigt die Startseiten-Timeline Ihres Mastodon-Kontos."
 
 # Klangten: Klango terms of service, verification word, login protection and temporary bans (added 2026).
 msgctxt "Klangten"
@@ -24600,3 +24616,168 @@ msgctxt "Settings"
 msgid "Speech engine"
 msgstr "Sprachausgabe"
 
+
+# Klangten: two-factor authentication via Telegram or text message (added 2026).
+msgctxt "Authentication"
+msgid "Two-factor authentication protects your account even if your password becomes known. When it is enabled, every login from a new device has to be confirmed with a code. The code is sent to you via Telegram or by text message, whichever you choose now. In addition you receive backup codes for the case that you cannot receive a code."
+msgstr "Die Zwei-Faktor-Authentifizierung schützt Ihr Konto auch dann, wenn Ihr Passwort bekannt wird. Ist sie aktiviert, muss jede Anmeldung von einem neuen Gerät mit einem Code bestätigt werden. Den Code bekommen Sie über Telegram oder per SMS, je nachdem, was Sie jetzt wählen. Zusätzlich erhalten Sie Backup-Codes für den Fall, dass Sie keinen Code empfangen können."
+
+msgctxt "Authentication"
+msgid "Change method"
+msgstr "Methode wechseln"
+
+msgctxt "Authentication"
+msgid "Codes are sent to you via Telegram."
+msgstr "Die Codes kommen über Telegram."
+
+msgctxt "Authentication"
+msgid "Codes are sent by text message to %{phone}."
+msgstr "Die Codes kommen per SMS an %{phone}."
+
+msgctxt "Authentication"
+msgid "Codes are sent to you by text message."
+msgstr "Die Codes kommen per SMS."
+
+msgctxt "Authentication"
+msgid "Unused backup codes: %{count}."
+msgstr "Unbenutzte Backup-Codes: %{count}."
+
+msgctxt "Authentication"
+msgid "Codes via Telegram"
+msgstr "Codes über Telegram"
+
+msgctxt "Authentication"
+msgid "Codes by text message (SMS)"
+msgstr "Codes per SMS"
+
+msgctxt "Authentication"
+msgid "How do you want to receive your codes? Telegram needs the Telegram app on your phone or computer; you connect it once with the Klango bot. A text message needs a mobile phone number."
+msgstr "Wie möchten Sie Ihre Codes erhalten? Für Telegram brauchen Sie die Telegram-App auf Ihrem Telefon oder Computer; Sie verbinden sie einmalig mit dem Klango-Bot. Für SMS brauchen Sie eine Mobilfunknummer."
+
+msgctxt "Authentication"
+msgid "Now connect Telegram with your account. Either open the link, which opens a chat with the Klango bot %{bot} in Telegram, and press Start there. Or send the bot this message yourself: %{start}. The link and the message are valid for 15 minutes. The bot then replies with a six-digit code, which you enter here."
+msgstr "Verbinden Sie jetzt Telegram mit Ihrem Konto. Öffnen Sie entweder den Link, der in Telegram einen Chat mit dem Klango-Bot %{bot} öffnet, und drücken Sie dort auf Starten. Oder schicken Sie dem Bot selbst diese Nachricht: %{start}. Link und Nachricht gelten 15 Minuten. Der Bot antwortet dann mit einem sechsstelligen Code, den Sie hier eingeben."
+
+msgctxt "Authentication"
+msgid "Open the link in Telegram"
+msgstr "Link in Telegram öffnen"
+
+msgctxt "Authentication"
+msgid "Read the start message"
+msgstr "Startnachricht vorlesen"
+
+msgctxt "Authentication"
+msgid "Copy the start message"
+msgstr "Startnachricht kopieren"
+
+msgctxt "Authentication"
+msgid "Enter the code"
+msgstr "Code eingeben"
+
+msgctxt "Authentication"
+msgid "Send this message to %{bot} in Telegram"
+msgstr "Schicken Sie diese Nachricht in Telegram an %{bot}"
+
+msgctxt "Authentication"
+msgid "The start message has been copied to the clipboard."
+msgstr "Die Startnachricht wurde in die Zwischenablage kopiert."
+
+msgctxt "Authentication"
+msgid "Enter the six-digit code the Klango bot sent you in Telegram."
+msgstr "Geben Sie den sechsstelligen Code ein, den Ihnen der Klango-Bot in Telegram geschickt hat."
+
+msgctxt "Authentication"
+msgid "Your backup codes. Each code can be used once to log in when you cannot receive a code. Write them down or copy them to a safe place now. Press Escape when you are done."
+msgstr "Ihre Backup-Codes. Jeder Code kann einmal zur Anmeldung verwendet werden, wenn Sie keinen Code empfangen können. Schreiben Sie sie jetzt auf oder kopieren Sie sie an einen sicheren Ort. Drücken Sie Escape, wenn Sie fertig sind."
+
+msgctxt "Authentication"
+msgid "To change the method, two-factor authentication is disabled and then set up again with the new method. Until the new setup is finished, your account is protected by the password only. Continue?"
+msgstr "Um die Methode zu wechseln, wird die Zwei-Faktor-Authentifizierung abgeschaltet und mit der neuen Methode wieder eingerichtet. Bis die neue Einrichtung abgeschlossen ist, schützt nur das Passwort Ihr Konto. Fortfahren?"
+
+msgctxt "Authentication"
+msgid "Two-factor authentication is now disabled on this account. You can set it up again at any time."
+msgstr "Die Zwei-Faktor-Authentifizierung ist für dieses Konto jetzt abgeschaltet. Sie können sie jederzeit wieder einrichten."
+
+msgctxt "Authentication"
+msgid "Codes via Telegram are temporarily unavailable. Please try again later or use another method."
+msgstr "Codes über Telegram sind vorübergehend nicht verfügbar. Bitte versuchen Sie es später erneut oder verwenden Sie eine andere Methode."
+
+msgctxt "Authentication"
+msgid "This phone number is not valid. Enter it with the country code, for example +49 for Germany."
+msgstr "Diese Telefonnummer ist ungültig. Geben Sie sie mit Landesvorwahl ein, zum Beispiel +49 für Deutschland."
+
+msgctxt "Authentication"
+msgid "The code has expired. Please request a new code."
+msgstr "Der Code ist abgelaufen. Bitte fordern Sie einen neuen Code an."
+
+msgctxt "Authentication"
+msgid "Too many incorrect codes have been entered. Please request a new code."
+msgstr "Es wurden zu viele falsche Codes eingegeben. Bitte fordern Sie einen neuen Code an."
+
+msgctxt "Authentication"
+msgid "The Telegram bot %{bot} has not received your start message yet. Open the link or send the start message to the bot, wait for its reply with the code and try again."
+msgstr "Der Telegram-Bot %{bot} hat Ihre Startnachricht noch nicht erhalten. Öffnen Sie den Link oder schicken Sie dem Bot die Startnachricht, warten Sie auf seine Antwort mit dem Code und versuchen Sie es dann erneut."
+
+msgctxt "Login"
+msgid "Get a code via Telegram"
+msgstr "Code über Telegram anfordern"
+
+msgctxt "Login"
+msgid "Get a code by text message (SMS)"
+msgstr "Code per SMS anfordern"
+
+msgctxt "Login"
+msgid "Enter a backup code"
+msgstr "Backup-Code eingeben"
+
+msgctxt "Login"
+msgid "If you cannot receive a code, use one of your backup codes instead. Resetting the password does not disable two-factor authentication. If you have no backup codes left, contact the administrator at %{contact}."
+msgstr "Wenn Sie keinen Code empfangen können, verwenden Sie stattdessen einen Ihrer Backup-Codes. Das Zurücksetzen des Passworts schaltet die Zwei-Faktor-Authentifizierung nicht ab. Haben Sie keine Backup-Codes mehr, wenden Sie sich an den Administrator unter %{contact}."
+
+msgctxt "Login"
+msgid "Enter the code the Klango bot sent you in Telegram to allow this device to log in."
+msgstr "Geben Sie den Code ein, den Ihnen der Klango-Bot in Telegram geschickt hat, um diesem Gerät die Anmeldung zu erlauben."
+
+msgctxt "Login"
+msgid "Enter the code sent to you by text message to allow this device to log in."
+msgstr "Geben Sie den Code ein, der Ihnen per SMS geschickt wurde, um diesem Gerät die Anmeldung zu erlauben."
+
+msgctxt "WelcomeWizard"
+msgid "A strong password is a good start, but two-factor authentication protects your account even if that password ever leaks. When it is enabled and a sign-in from a new device needs confirming, you receive a code via Telegram or by text message, whichever you choose. The button below opens the setup screen, where Elten will ask for your password and the method; changes made there take effect immediately and are independent of this wizard."
+msgstr "Ein starkes Passwort ist ein guter Anfang, aber die Zwei-Faktor-Authentifizierung schützt Ihr Konto auch dann, wenn dieses Passwort einmal bekannt wird. Ist sie aktiviert und muss eine Anmeldung von einem neuen Gerät bestätigt werden, erhalten Sie einen Code über Telegram oder per SMS, je nachdem, was Sie wählen. Die folgende Schaltfläche öffnet die Einrichtung, in der Elten nach Ihrem Passwort und der Methode fragt. Dort vorgenommene Änderungen werden sofort wirksam und sind unabhängig von diesem Assistenten."
+
+msgctxt "ForgotPassword"
+msgid "If you forget your password, you can reset it using the email address you provided when registering. You can request a password reset code to verify your identity. The code will be sent to your email address. Two-factor authentication stays enabled; if you cannot receive a code, log in with a backup code. To continue, enter your username."
+msgstr "Wenn Sie Ihr Passwort vergessen haben, können Sie es über die bei der Registrierung angegebene E-Mail-Adresse zurücksetzen. Dazu fordern Sie einen Code zum Zurücksetzen an, der Ihre Identität bestätigt; er wird an Ihre E-Mail-Adresse geschickt. Die Zwei-Faktor-Authentifizierung bleibt dabei aktiv; wenn Sie keinen Code empfangen können, melden Sie sich mit einem Backup-Code an. Um fortzufahren, geben Sie Ihren Benutzernamen ein."
+
+msgctxt "Klangten"
+msgid "You need to be logged in to do this."
+msgstr "Dafür müssen Sie angemeldet sein."
+
+msgctxt "Settings"
+msgid "Check for updates now"
+msgstr "Jetzt nach Updates suchen"
+
+msgctxt "Loading"
+msgid "You are using the newest version of Klangten."
+msgstr "Du verwendest die neueste Version von Klangten."
+
+msgctxt "Loading"
+msgid "Klangten %{version} is available. Download and install it now?"
+msgstr "Klangten %{version} ist verfügbar. Jetzt herunterladen und installieren?"
+
+msgctxt "Loading"
+msgid "The update could not be downloaded."
+msgstr "Das Update konnte nicht heruntergeladen werden."
+
+msgctxt "Loading"
+msgid "The Android installer is open. Confirm the update there."
+msgstr "Der Android-Installer ist geöffnet. Bestätige das Update dort."
+
+msgctxt "Loading"
+msgid "Allow Klangten to install apps on the page that just opened. Then check for updates again in the settings, under Auto updater."
+msgstr "Erlaube Klangten auf der eben geöffneten Seite, Apps zu installieren. Suche danach in den Einstellungen unter Auto-Updater erneut nach Updates."
+
+msgctxt "Loading"
+msgid "The update could not be installed."
+msgstr "Das Update konnte nicht installiert werden."

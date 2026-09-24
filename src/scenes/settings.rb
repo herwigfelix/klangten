@@ -256,12 +256,18 @@ def make_window
         return if !Klangten::Config.updates_enabled?
         setting_category(p_("Settings", "Auto updater"))
         make_setting(p_("Settings", "Check for updates automatically"), :bool, "Updates", "CheckAtStartup")
+        # Android always takes its updates from the GitHub releases, so there is
+        # no channel to choose - only a way to look right now.
+        if platform_os == "android"
+          make_setting(p_("Settings", "Check for updates now"), :custom, Proc.new { android_update_check(interactive: true) })
+          return
+        end
         make_setting(
           p_("Settings", "Update channel"),
-          [p_("Settings", "Auto"), p_("Settings", "Stable"), p_("Settings", "RC"), p_("Settings", "Beta"), p_("Settings", "Rolling release (GitHub)")],
+          [p_("Settings", "Stable"), p_("Settings", "Rolling release (GitHub)")],
           "Updates",
           "Branch",
-          ["auto", "stable", "rc", "beta", "rolling"]
+          ["stable", "rolling"]
         )
       end
       def load_interface
