@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 require "fileutils"
 require "tmpdir"
@@ -588,7 +589,7 @@ when 1
          setlocale(Configuration.language)
          true
        elsif install_error!=nil
-         alert(program_install_error_message(install_error)) if ask
+         show_program_install_error(install_error) if ask
          false
        else
          alert(p_("Programs", "Installation cancelled.")) if ask && cancelled
@@ -622,7 +623,7 @@ when 1
          info=Programs.setup_package_info(file)
        rescue Exception => e
          Log.warning("Program package read failed: #{e.class}: #{e.message}")
-         alert(program_install_error_message(e))
+         show_program_install_error(e)
          return
        end
        confirm(install_details(info[:manifest], format_size(info[:size]), File.basename(file))) {
@@ -648,7 +649,7 @@ when 1
          setlocale(Configuration.language)
          @refresh=true
        elsif install_error!=nil
-         alert(program_install_error_message(install_error))
+         show_program_install_error(install_error)
        else
          alert(p_("Programs", "Installation cancelled."))
        end
@@ -669,6 +670,39 @@ when 1
        lines.push(p_("Programs", "Package: %{file}")%{:file=>package_file.to_s}) if package_file!=nil && package_file.to_s!=""
        lines.push(p_("Programs", "Size: %{size}")%{:size=>size.to_s})
        lines.join("\n")
+     end
+
+     def show_program_install_error(error)
+       message = program_install_error_message(error)
+       if simple_program_install_error?(error)
+         alert(message)
+       else
+         details = message.to_s.dup
+         trace = if Programs.respond_to?(:clean_program_backtrace)
+           Programs.clean_program_backtrace(error)
+         else
+           Array(error.respond_to?(:backtrace) ? error.backtrace : nil)
+         end
+         if trace.empty? && error.respond_to?(:cause) && error.cause
+           trace = if Programs.respond_to?(:clean_program_backtrace)
+             Programs.clean_program_backtrace(error.cause)
+           else
+             Array(error.cause.respond_to?(:backtrace) ? error.cause.backtrace : nil)
+           end
+         end
+         if trace.size > 0
+           details += "\n\n#{p_("Program", "Backtrace:")}\n#{trace.join("\n")}"
+         end
+         display_text(details, header: _("Error"))
+       end
+     end
+
+     def simple_program_install_error?(error)
+       program_install_error_cause(error, Programs::UnsupportedAPIVersionError) != nil ||
+         program_install_error_cause(error, Programs::UnsupportedEltenLinkContractError) != nil ||
+         program_install_error_cause(error, Programs::UnsupportedPlatformError) != nil ||
+         program_install_error_cause(error, Programs::ProgramSigning::VerificationUnavailableError) != nil ||
+         program_install_error_cause(error, Programs::ProgramSigning::MissingSignatureError) != nil
      end
 
      def program_install_error_message(error)
