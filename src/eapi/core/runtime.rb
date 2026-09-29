@@ -3,9 +3,55 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
+  module ExceptionRecovery
+    @mutex = Mutex.new
+
+    class << self
+      def ready!
+        @mutex.synchronize { @ready = true }
+      end
+
+      def report
+        started = false
+        @mutex.synchronize do
+          return false unless @ready
+          return false if @reporting || Process.clock_gettime(Process::CLOCK_MONOTONIC) < @retry_after.to_f
+          @reporting = true
+          started = true
+        end
+        yield
+        true
+      ensure
+        if started
+          @mutex.synchronize do
+            @retry_after = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 1
+            @reporting = false
+          end
+        end
+      end
+    end
+  end
+
   private
+
+def recover_elten_error(error, scene)
+  return false if defined?(Programs) && Programs.runtime_from_error(error, scene) != nil
+  ExceptionRecovery.report do
+    Log.error("Elten failed: #{error.class}: #{error.message}\n#{Array(error.backtrace).join("\n")}")
+    trace = Programs.clean_program_backtrace(error)
+    details = "#{error.class}: #{error.message}"
+    details += "\n\n#{p_("Program", "Backtrace:")}\n#{trace.join("\n")}" unless trace.empty?
+    input_text(
+      p_("Elten", "Error in Elten"),
+      flags: EditBox::Flags::MultiLine | EditBox::Flags::ReadOnly,
+      text: details,
+      escapable: true
+    )
+  end
+end
 def execute_scene_main(scene)
   if defined?(Program) && scene.is_a?(Program) && scene.respond_to?(:program_main, true)
     begin

@@ -24861,3 +24861,7 @@ msgstr "Betreff der Nachrichten vorlesen"
 msgctxt "Blog"
 msgid "No new followers."
 msgstr "Keine neuen Follower."
+
+msgctxt "Elten"
+msgid "Error in Elten"
+msgstr "Fehler in Elten"

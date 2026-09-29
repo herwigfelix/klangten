@@ -38,6 +38,7 @@ Log.head("Ruby version: #{RUBY_DESCRIPTION.to_s}")
   $LOAD_PATH << "."
 end
   begin
+  begin
   #main
   # Make scene object (title screen)
     if $toscene != true
@@ -85,6 +86,14 @@ $toscene = false
       $exit_runproc=platform_update_install_command(installer, silent: false)
     end
   end
+  end
+  rescue Hangup, Reset, SystemExit
+    raise
+  rescue Exception => error
+    raise unless recover_elten_error(error, $scene)
+    $scene = Scene_Main.new
+    $toscene = true
+    retry
   end
           rescue Hangup
   loop_update_window

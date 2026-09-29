@@ -111,6 +111,7 @@ class Scene_Main
       if key_pressed?(:key_escape)
         quit
       end
+      EltenAPI::ExceptionRecovery.ready!
       break if $scene != self
     end
     @@notification_index=@notifications_sel.index if @notifications_sel!=nil
