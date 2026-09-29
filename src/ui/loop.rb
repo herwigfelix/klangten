@@ -42,6 +42,19 @@ rescue Exception
   TICK_SECONDS
 end
 
+def dispatch_notification(event, batch_sounds=nil)
+  sound = event["sound"]
+  if batch_sounds && sound != nil
+    event = event.merge("sound" => nil) if batch_sounds[sound]
+    batch_sounds[sound] = true
+  end
+  if $notifications_callback != nil
+    $notifications_callback.call(event)
+  else
+    process_notification(event)
+  end
+end
+
                     # Updates a window, speech api and keyboard state
                     # Klangten: incoming and missed call windows are managed by EltenAPI::UI::CallUI (src/ui/calls.rb).
      def loop_update(checkControls=true, responseCalls=true)
@@ -104,6 +117,7 @@ end
        begin
          NotificationService.start
          NotificationService.drain_events.each do |d|
+           batch_sounds = d.delete("batch_sounds")
            if d['func']=="app_notification"
              program, notification, presentation = Programs.receive_app_notification(d["notification"])
              next if program == nil || presentation == nil
@@ -122,22 +136,14 @@ end
                "metadata" => notification.metadata,
                "presentation_metadata" => presentation.metadata
              }
-             if $notifications_callback!=nil
-               $notifications_callback.call(event)
-             else
-               process_notification(event)
-             end
+             dispatch_notification(event, batch_sounds)
            elsif d['func']=="notif"
              if d['invisible'] != true
                $main_notifications_changed = true
                Session.notifications_update
              end
              next if $donotdisturb == true
-             if $notifications_callback!=nil
-               $notifications_callback.call(d)
-             else
-               process_notification(d)
-             end
+             dispatch_notification(d, batch_sounds)
            elsif d['func']=='msg'
              $notification_msg_count=d['msgs'].to_i
             elsif d['func']=='sig'

@@ -810,21 +810,23 @@ module EltenAPI
           id = notification["id"]
           queued << notification if remember_notification(id)
         end
+        batch_sounds = {}
         app_notifications, queued = queued.partition do |notification|
           notification["cat"].to_s == "app" && !notification["app_uuid"].to_s.empty?
         end
         app_notifications.each do |notification|
-          enqueue_event("func" => "app_notification", "notification" => notification)
+          enqueue_event("func" => "app_notification", "notification" => notification, "batch_sounds" => batch_sounds)
         end
         visible, invisible = queued.partition { |notification| !notification_invisible?(notification) }
         if visible.size > 10
-          enqueue_event("func" => "notif", "sound" => "new")
+          enqueue_event("func" => "notif", "sound" => "new", "batch_sounds" => batch_sounds)
         else
           visible.each do |notification|
             enqueue_event(
               "func" => "notif",
               "alert" => notification["alert"],
               "sound" => notification["sound"],
+              "batch_sounds" => batch_sounds,
               "id" => notification["id"]
             )
           end
@@ -834,6 +836,7 @@ module EltenAPI
             "func" => "notif",
             "alert" => notification["alert"],
             "sound" => notification["sound"],
+            "batch_sounds" => batch_sounds,
             "id" => notification["id"],
             "invisible" => true
           )
