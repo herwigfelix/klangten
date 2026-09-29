@@ -11,7 +11,10 @@ module EltenAPI
 
     class << self
       def ready!
-        @mutex.synchronize { @ready = true }
+        @mutex.synchronize do
+          @ready = true
+          @retry_after = nil unless @reporting
+        end
       end
 
       def report
