@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Object
   def deep_dup
@@ -91,25 +92,6 @@ class Array
     r+="]"
     return r
     end
-    def shuffle
-t=self+[]      
-res=[]
-t.each do |o|
-  v=-1
-  while v==-1 or res[v]!=nil
-  v=rand(t.size)
-  end
-    res[v]=o
-  end
-  return res  
-  end
-  def shuffle!
-    n=shuffle
-    (0..n.size-1).each do |i|
-      self[i]=n[i]
-      end
-    return self
-  end
   def polsort
         return self.sort_by {|a| polsort_key(a)} if self.all? {|a| a.is_a?(String)}
         a=self.sort {|a,b|
