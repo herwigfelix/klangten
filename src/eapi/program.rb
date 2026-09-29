@@ -32,6 +32,7 @@ module Programs
   @@runtimes = {}
   @@runtime_by_prefix = {}
   @@runtime_by_root = {}
+  @@runtime_path_cache = {}
   @@apps_registry_cache = nil
 
   class ProgramError < StandardError
@@ -1704,6 +1705,8 @@ module Programs
         root = File.expand_path(runtime.root).tr("\\", "/").downcase rescue nil
         @@runtime_by_root[root] = runtime if root != nil
       end
+    ensure
+      @@runtime_path_cache = {}
     end
 
     def namespace_for(manifest)
@@ -1733,6 +1736,7 @@ module Programs
       @@runtime_by_prefix.delete(runtime.virtual_prefix)
       root = File.expand_path(runtime.root).tr("\\", "/").downcase rescue nil
       @@runtime_by_root.delete(root) if root != nil
+      @@runtime_path_cache = {}
       if runtime.respond_to?(:dispose_execution)
         runtime.dispose_execution(reason)
       else
@@ -1918,8 +1922,12 @@ module Programs
     end
 
     def runtime_from_caller
+      return nil if @@runtime_by_prefix.empty? && @@runtime_by_root.empty?
+      previous_path = nil
       caller_locations(2, 12).each do |location|
         path = location.absolute_path || location.path
+        next if path == previous_path
+        previous_path = path
         runtime = runtime_from_path(path)
         return runtime if runtime != nil
       end
@@ -1928,16 +1936,35 @@ module Programs
 
     def runtime_from_path(path)
       return nil if path == nil
-      normalized = path.to_s.tr("\\", "/")
-      @@runtime_by_prefix.each do |prefix, runtime|
-        return runtime if normalized.start_with?(prefix)
+      path = path.to_s
+      cache = @@runtime_path_cache
+      return cache[path] if cache.key?(path)
+      if path.start_with?("eltenapp:")
+        prefix = path.tr("\\", "/")[%r{\Aeltenapp://[^/]+/}]
+        runtime = @@runtime_by_prefix[prefix]
+        return runtime if runtime != nil
       end
-      physical = File.expand_path(path).tr("\\", "/").downcase rescue nil
-      return nil if physical == nil
-      @@runtime_by_root.each do |root, runtime|
-        return runtime if physical == root || physical.start_with?(root + "/")
+      return nil if @@runtime_by_root.empty?
+      if path.start_with?("~") || path.match?(%r{\A[A-Za-z]:(?![/\\])})
+        path = File.expand_path(path) rescue nil
+        return nil if path == nil
       end
-      nil
+      directory = (File.absolute_path?(path) ? nil : Dir.pwd) rescue nil
+      key = directory == nil ? path : [directory, path.dup.freeze]
+      cache.fetch(key) do
+        physical = File.expand_path(path, directory).tr("\\", "/").downcase rescue nil
+        runtime = nil
+        if physical != nil
+          @@runtime_by_root.each do |root, candidate|
+            if physical == root || (physical.start_with?(root) && physical.getbyte(root.bytesize) == 47)
+              runtime = candidate
+              break
+            end
+          end
+        end
+        cache.shift if cache.size >= 4096
+        cache[key] = runtime
+      end
     end
 
     def runtime_for(target)
@@ -2195,6 +2222,7 @@ module Programs
       @@runtimes.clear
       @@runtime_by_prefix.clear
       @@runtime_by_root.clear
+      @@runtime_path_cache = {}
       remove_all_program_namespaces
       count
     end
