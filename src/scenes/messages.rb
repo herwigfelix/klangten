@@ -606,24 +606,15 @@ def deleteconversation(c)
        end
 @messages_more=result.more if !complete
 @messages_name=utf8(result.name)
-curids=[]
-@messages.each {|m| curids.push(m.id)}
-result.messages.each do |m|
-  if !(complete and curids.include?(m.id))
-    o=(complete)?0:(@messages.size)
-    @messages.insert(o,m)
-  end
-end
+    known_ids = @messages.to_h { |message| [message.id, true] }
+    new_messages = result.messages.uniq(&:id).reject { |message| known_ids[message.id] }
+    @messages = new_messages + @messages
          selt=[]
          states=[]
          audio_urls=[]
          audio_autoplay=[]
          audio_completion_labels=[]
-    for m in @messages
-      if !curids.include?(m.id)
-      if complete
-      play_sound("messages_update")
-    end
+    new_messages.each do |m|
         m.date=Time.now if m.date==0
             sender=EltenAPI::SpeechSequence.new(utf8(m.sender))
             sender << attachment_message_command if m.attachments.size>0
@@ -643,7 +634,6 @@ end
               subject=utf8(m.subject)
               selt[-1]+=":\r\n"+((sp!=nil and sp!="new")?(subject+":\r\n"):"")+text.split("")[0...5000].join+((text.size>5000)?"... #{p_("Messages", "Open this message to read more")}":"")+"\r\n"+format_date(m.date)+"\r\n"
             end
-            end
     end
     selt.push(p_("Messages", "Show older")) if @messages_more and !complete
     if !complete
@@ -658,9 +648,11 @@ end
     @sel_messages.bind_context{|menu|context_messages(menu)}
         @form_messages=Form.new([@sel_messages,nil,nil,EditBox.new(p_("Messages", "Your reply"),type: EditBox::Flags::MultiLine,text: "",quiet: true),nil,Button.new(p_("Messages", "Compose"))],index: 0,silent: true)
   @form_messages.fields[3..5]=[nil,nil,nil] if !result.can_reply or @messages_sp=='flagged' or @messages_sp=='search'
-  else
+  elsif !new_messages.empty?
+    index = @sel_messages.options.empty? ? 0 : @sel_messages.index + selt.size
     @sel_messages.prepend_options(selt, states, audio_urls, audio_autoplay, audio_completion_labels)
-    @sel_messages.index+=selt.size
+    @sel_messages.index = index
+    play_sound("messages_update")
   end
       end
   def update_messages
