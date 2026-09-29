@@ -24857,3 +24857,7 @@ msgstr "Zurück zum Assistenten"
 msgctxt "Settings"
 msgid "Read message subjects"
 msgstr "Betreff der Nachrichten vorlesen"
+
+msgctxt "Blog"
+msgid "No new followers."
+msgstr "Keine neuen Follower."
