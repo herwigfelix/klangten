@@ -19,7 +19,12 @@ if(PLATFORM STREQUAL "windows")
   set(desired_marker "${desired_marker}nokogiri_msys_patch=${NOKOGIRI_MSYS_PATCH}\n")
   set(desired_marker "${desired_marker}nokogiri_build_options=${NOKOGIRI_BUILD_OPTIONS}\n")
 elseif(PLATFORM STREQUAL "osx")
+  # The macOS 27 SDK exposes these APIs even when targeting macOS 26, where
+  # calling them crashes miniruby. Keep Ruby's fallback implementations.
+  # https://bugs.ruby-lang.org/issues/22311
+  set(osx_ruby_configure_env "ac_cv_func_dup3=no" "ac_cv_func_pipe2=no")
   set(desired_marker "${desired_marker}osx_configure_options=${OSX_RUBY_CONFIGURE_OPTIONS}\n")
+  set(desired_marker "${desired_marker}osx_configure_env=${osx_ruby_configure_env}\n")
 elseif(PLATFORM STREQUAL "linux")
   set(desired_marker "${desired_marker}url=${LINUX_RUBY_URL}\n")
   set(desired_marker "${desired_marker}linux_configure_options=${LINUX_RUBY_CONFIGURE_OPTIONS}\n")
@@ -524,6 +529,7 @@ elseif(PLATFORM STREQUAL "osx")
     if(osx_ruby_configure_args)
       message(STATUS "macOS Ruby configure options: ${OSX_RUBY_CONFIGURE_OPTIONS}")
     endif()
+    message(STATUS "macOS Ruby configure environment: ${osx_ruby_configure_env}")
     set(ruby_install_command
       "${RUBY_INSTALL_EXECUTABLE}"
       ruby
@@ -534,7 +540,7 @@ elseif(PLATFORM STREQUAL "osx")
     if(osx_ruby_configure_args)
       list(APPEND ruby_install_command -- ${osx_ruby_configure_args})
     endif()
-    run_checked(${ruby_install_command})
+    run_checked("${CMAKE_COMMAND}" -E env ${osx_ruby_configure_env} ${ruby_install_command})
   endif()
 elseif(PLATFORM STREQUAL "linux")
   set(linux_ruby_configure_args)
