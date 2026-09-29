@@ -24837,3 +24837,19 @@ msgstr "Vorschau des Audiothemas %{theme}; zum Abspielen Leertaste drücken"
 msgctxt "Sounds"
 msgid "Keep"
 msgstr "Behalten"
+
+msgctxt "WelcomeWizard"
+msgid "You have not completed all sections of the wizard; what would you like to do?"
+msgstr "Sie haben nicht alle Abschnitte des Assistenten abgeschlossen. Was möchten Sie tun?"
+
+msgctxt "WelcomeWizard"
+msgid "Exit and save changes made so far"
+msgstr "Beenden und die bisherigen Änderungen speichern"
+
+msgctxt "WelcomeWizard"
+msgid "Exit without saving changes"
+msgstr "Ohne Speichern beenden"
+
+msgctxt "WelcomeWizard"
+msgid "Complete the wizard"
+msgstr "Zurück zum Assistenten"
