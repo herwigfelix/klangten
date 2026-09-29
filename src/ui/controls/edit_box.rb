@@ -1273,6 +1273,7 @@ def remove_speak_callbacks
   @speak_callbacks_generation=@speak_callbacks_generation.to_i+1
 end
 def set_text(text,reset=true,reset_speak_callbacks: true)
+  @text_generation=@text_generation.to_i+1
   remove_speak_callbacks if reset_speak_callbacks
   @isaudio=false
   text=text.to_s.dup
@@ -1571,6 +1572,7 @@ def value
       return speak(head) if @text=="" and head!="" and head!=nil
       return if @text==""
 
+      text_generation = @text_generation
       index = clamp_text_index(index)
       len = text_len
       read_limit = defined?(EltenAPI::Speech::DEFAULT_SPEECH_TEXT_LIMIT) ? EltenAPI::Speech::DEFAULT_SPEECH_TEXT_LIMIT.to_i : 75_000
@@ -1607,7 +1609,7 @@ def value
         fragment_byte = break_byte
       end
       append_read_text_fragment(commands, fragment_char, fragment_byte, end_byte, head)
-      cmd = SpeechCommands::CustomCommand.new(limit_end) {|pos|@index=pos}
+      cmd = SpeechCommands::CustomCommand.new(limit_end) {|pos|@index=pos if @text_generation==text_generation}
         commands.push(cmd)
 
         seq = SpeechSequence.new(commands)
@@ -1619,7 +1621,8 @@ def value
         fragment.force_encoding(@text.encoding)
         fragment = fragment.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
         fragment = head.to_s + "\n" + fragment if head!=nil && head!=""
-        cmd = SpeechCommands::CustomCommand.new(position) {|pos|@index=pos if pos!=0}
+        text_generation=@text_generation
+        cmd = SpeechCommands::CustomCommand.new(position) {|pos|@index=pos if pos!=0 && @text_generation==text_generation}
         commands.push(cmd)
         callbacks=(@speak_callbacks||{})[position]
         if callbacks!=nil && callbacks.size>0
