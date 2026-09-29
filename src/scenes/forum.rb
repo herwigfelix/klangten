@@ -2314,9 +2314,14 @@ break
     @thrsel = TableBox.new(thrselh, thrselt, index: index, header: header, quiet: true, flags: ListBox::Flags::Tagged)
     @sthreads.each_with_index do |thread, i|
       apply_thread_row_states(i, thread, id)
-      # Klangten: voice threads play their recorded title when focused
-      @thrsel.set_row_audio(i, thread.audio_name) if thread.audio_name.to_s != ""
+      # Klangten: voice threads play their recorded title when focused; the
+      # author and counters follow once the title has been played.
+      if thread.audio_name.to_s != ""
+        @thrsel.set_row_audio(i, thread.audio_name)
+        @thrsel.defer_row_details(i)
+      end
     end
+    @thrsel.reload if @sthreads.any? { |thread| thread.audio_name.to_s != "" }
     @thrsel.trigger(:move)
     @thrsel.column = LocalConfig["ForumColumnThread", type: :numeric] if LocalConfig["ForumColumnThread", type: :numeric] != nil
           @thrsel.bind_context(p_("Forum", "Forum")) { |menu| context_threads(menu) }

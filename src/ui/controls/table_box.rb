@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: row details spoken after the row's audio.
 
 module EltenAPI
   module Controls
@@ -160,9 +160,11 @@ module EltenAPI
 alias sayoption say_option
            def format_rows(col=0)
            opts=[]
-           for r in @rows
+           @rows.each_with_index do |r, row_index|
              if r==nil or r.count(nil)==r.size
                o=nil
+             elsif col==0 && @deferred_rows!=nil && @deferred_rows[row_index]==true
+               o=deferred_row_speech(r, row_index)
                               else
              o=""
                           o=row_speech_value(r[col]) if r[col]!=nil
@@ -179,6 +181,19 @@ alias sayoption say_option
            end
                                  return opts
          end
+         def deferred_row_speech(r, row_index)
+           head=row_speech_value(r[0])
+           details=""
+           for c in 1...@columns.size
+             next if r[c]==nil
+             details+=", " if details!="" || head.to_s!=""
+             details+=text_utf8(@columns[c].to_s)+": " if @columns[c].to_s!=""
+             details+=text_utf8(r[c].is_a?(SpeechSequence) ? r[c].to_s : r[c])
+           end
+           @row_audio_completion_labels[row_index]=details.sub(/\A[, ]+/, "")
+           return head if details==""
+           SpeechSequence.new(head, EltenAPI::SpeechCommands::SilentTextCommand.new(details))
+         end
          def index
            return @sel.index
          end
@@ -193,6 +208,14 @@ alias sayoption say_option
            apply_row_states
            apply_row_audio
            @column=c
+         end
+         # Klangten: the other columns of this row are shown and brailled, but
+         # spoken only after the row's audio (e.g. a recorded thread title)
+         # has played — instead of talking over it. Call reload afterwards.
+         def defer_row_details(id, on=true)
+           return if id==nil || id<0
+           @deferred_rows||=[]
+           @deferred_rows[id]=on
          end
          def reload
            @sel.options=format_rows(@column)
