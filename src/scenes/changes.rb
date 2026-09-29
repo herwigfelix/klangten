@@ -139,6 +139,8 @@ class Scene_Changes
 # Klangten: everything above is the history of upstream Elten and keeps its
 # name; the fork's own versions carry theirs, given as the third element.
 ["0.1", "2026-09-17", Klangten::Config::PRODUCT_NAME],
+["0.2", "2026-09-24", Klangten::Config::PRODUCT_NAME],
+["0.21", "2026-09-29", Klangten::Config::PRODUCT_NAME],
 ]
 @changes=versions.map{|v|
 verdots=v[0].delete(".").split("").join(".")
