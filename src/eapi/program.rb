@@ -1728,6 +1728,7 @@ module Programs
       runtime.close_sound_pool if runtime.respond_to?(:close_sound_pool)
       MediaEncoders.unregister_owner(runtime) if defined?(MediaEncoders) && MediaEncoders.respond_to?(:unregister_owner)
       Extensions.unregister_runtime(runtime, reason) if defined?(Extensions)
+      remove_program_locale(runtime) if respond_to?(:remove_program_locale, true)
       @@runtimes.delete(runtime.entry_id) if @@runtimes[runtime.entry_id].equal?(runtime)
       @@runtime_by_prefix.delete(runtime.virtual_prefix)
       root = File.expand_path(runtime.root).tr("\\", "/").downcase rescue nil
@@ -2190,6 +2191,7 @@ module Programs
       count = @@programs.size
       unregister(@@programs[0]) while @@programs.size > 0
       @@configs.clear
+      @@runtimes.each_value { |runtime| remove_program_locale(runtime) } if respond_to?(:remove_program_locale, true)
       @@runtimes.clear
       @@runtime_by_prefix.clear
       @@runtime_by_root.clear
@@ -3078,11 +3080,9 @@ module Programs
     end
 
     def load_runtime_locale(runtime)
-      return if Configuration.language == nil
-      data = runtime.language_data(Configuration.language)
-      loadmo(data, false) if data != nil && respond_to?(:loadmo, true)
-    rescue Exception => e
-      Log.warning("Cannot load program locale #{runtime.entry_id}: #{e.class}: #{e.message}")
+      load_program_locale(runtime, Configuration.language) if respond_to?(:load_program_locale, true)
+    rescue StandardError => e
+      Log.warning("Cannot load program locale #{runtime.entry_id}: #{e.class}: #{e.message}") if defined?(Log)
     end
   end
 end
