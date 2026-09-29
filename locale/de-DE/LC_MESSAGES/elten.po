@@ -1056,6 +1056,11 @@ msgctxt "MainMenu"
 msgid "Notification hi&story"
 msgstr "Benachrichtigungs&verlauf"
 
+#: src/eapi/mainmenu.rb
+msgctxt "MainMenu"
+msgid "What's &new?"
+msgstr "Was gibt's &Neues?"
+
 #: src/eapi/mainmenu.rb:67
 msgctxt "MainMenu"
 msgid "No&tes"
@@ -1949,6 +1954,101 @@ msgstr "Premium-pakete"
 msgctxt "EAPI_QuickActions"
 msgid "What's new"
 msgstr "Was gibt's Neues"
+
+#: src/eapi/quickactions.rb
+msgctxt "EAPI_QuickActions"
+msgid "Notification history"
+msgstr "Benachrichtigungsverlauf"
+
+#: src/eapi/quickactions.rb
+msgctxt "EAPI_QuickActions"
+msgid "Notifications"
+msgstr "Benachrichtigungen"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New messages"
+msgstr "Neue Nachrichten"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New posts in followed threads"
+msgstr "Neue Beiträge in verfolgten Themen"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New posts on the followed blogs"
+msgstr "Neue Einträge in verfolgten Blogs"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New comments on your blog"
+msgstr "Neue Kommentare in Ihrem Blog"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New threads on followed forums"
+msgstr "Neue Themen in verfolgten Foren"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New posts on followed forums"
+msgstr "Neue Beiträge in verfolgten Foren"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New friends"
+msgstr "Neue Freunde"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "Friends' birthday"
+msgstr "Geburtstage von Freunden"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "Mentions"
+msgstr "Erwähnungen"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New comments to followed blog posts"
+msgstr "Neue Kommentare zu verfolgten Blogeinträgen"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "New blog followers"
+msgstr "Neue Blog-Follower"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "Blog mentions"
+msgstr "Blog-Erwähnungen"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "Awaiting group invitations"
+msgstr "Ausstehende Gruppeneinladungen"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "Updates available"
+msgstr "Updates verfügbar"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "Other notifications"
+msgstr "Weitere Benachrichtigungen"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "What's new"
+msgstr "Was gibt's Neues"
+
+#: src/scenes/whatsnew.rb
+msgctxt "WhatsNew"
+msgid "There is nothing new."
+msgstr "Es gibt nichts Neues."
 
 #: src/eapi/quickactions.rb:321
 msgctxt "EAPI_QuickActions"
@@ -21658,10 +21758,6 @@ msgstr "Um sich zu registrieren, müssen Sie den Nutzungsbedingungen des Klango-
 #~ msgstr "Beim Übersetzen ist ein Fehler aufgetreten."
 
 #~ msgctxt "MainMenu"
-#~ msgid "What's &new?"
-#~ msgstr "&Was ist neu?"
-
-#~ msgctxt "MainMenu"
 #~ msgid "Programs installation"
 #~ msgstr "Programme installieren"
 
@@ -21811,58 +21907,6 @@ msgstr "Um sich zu registrieren, müssen Sie den Nutzungsbedingungen des Klango-
 #~ msgctxt "SpeedTest"
 #~ msgid "Forum structure (uncompressed)"
 #~ msgstr "Forenstruktur (unkomprimiert)"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "What's new"
-#~ msgstr "Was gibt's neues"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "New messages"
-#~ msgstr "Neue Nachrichten"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "New posts in followed threads"
-#~ msgstr "Neue Beiträge in verfolgten Themen"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "New posts on the followed blogs"
-#~ msgstr "Neue Einträge in verfolgten Blogs"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "New comments on your blog"
-#~ msgstr "Neue Kommentare in Ihrem Blog"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "New threads on followed forums"
-#~ msgstr "Neue Themen in verfolgten foren"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "New posts on followed forums"
-#~ msgstr "Neue beiträge in verfolgten Foren"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "New friends"
-#~ msgstr "Neue Freunde"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "Friends' birthday"
-#~ msgstr "Geburtstag eines Freundes"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "Mentions"
-#~ msgstr "Erwähnungen"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "New comments to followed blog posts"
-#~ msgstr "Neue Kommentare zu verfolgten Blogeinträgen"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "Blog mentions"
-#~ msgstr "Blog-Erwähnungen"
-
-#~ msgctxt "WhatsNew"
-#~ msgid "Awaiting group invitations"
-#~ msgstr "Ausstehende Gruppeneinladungen"
 
 #~ msgctxt "Settings"
 #~ msgid "Sound theme"

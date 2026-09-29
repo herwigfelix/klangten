@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new.
 
 module GlobalMenu
   def self.developer_mode?
@@ -65,6 +65,8 @@ module GlobalMenu
         # Klangten: conferences need an account (token from the server).
         m.scene(p_("MainMenu", "&Conferences"), Scene_Conference) if Session.logged?
             if Session.logged?
+            # Klangten: the classic overview of Elten 2 next to the notifications.
+            m.scene(p_("MainMenu", "What's &new?"), Scene_WhatsNew)
             m.scene(p_("MainMenu", "Notification hi&story"), Scene_Notifications)
         m.scene(p_("MainMenu", "No&tes"), Scene_Notes)
     m.scene(p_("MainMenu", "Po&lls"), Scene_Polls)

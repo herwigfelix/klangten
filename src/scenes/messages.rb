@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; new messages return to What's new when opened from there.
 
 class Scene_Messages
     def utf8(value)
@@ -87,7 +87,7 @@ end
  end
 def notifications_return_scene
   return Scene_Main.new if @close_to_main
-  @wn == true ? Scene_Notifications.new : Scene_Main.new
+  @wn == true ? whatsnew_return_scene : Scene_Main.new
 end
 
 def export

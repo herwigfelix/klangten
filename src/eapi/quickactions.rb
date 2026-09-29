@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium, auctions, sponsors, calendar and tasks removed.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium, auctions, sponsors, calendar and tasks removed; classic What's new on F10, notification history on Control+F10.
 
 module EltenAPI
   module QuickActions
@@ -65,10 +65,18 @@ module EltenAPI
       def call_symbol
         case @action
         when :whatsnew
+          # Klangten: the classic "What's new" overview of Elten 2.
+          if !GlobalMenu.opened?
+            scene = Scene_WhatsNew.whatsnew
+            scene == nil ? alert(p_("WhatsNew", "There is nothing new."), false) : insert_scene(scene)
+          end
+        when :notifications
           if !GlobalMenu.opened?
             scene = Scene_Notifications.whatsnew
             scene == nil ? alert(p_("Notifications", "There is nothing new."), false) : insert_scene(scene)
           end
+        when :notificationhistory
+          insert_scene(Scene_Notifications.new) if !GlobalMenu.opened?
         when :context
                    $opencontextmenu=true if !GlobalMenu.opened?
         when :lastspeech
@@ -241,6 +249,7 @@ end
         register(*action) if action!=nil
       end
       delete_legacy_data_file
+      migrated=true if add_notification_history_hotkey
       save_actions if migrated
     rescue Exception => e
       Log.error("Quick actions JSON load failed: #{e.class}: #{e.message}") if defined?(Log)
@@ -286,6 +295,7 @@ end
     def default_actions
       [
       whatsnew_action(10, false),
+      notification_history_action(22, false),
             [Scene_Contacts, p_("EAPI_QuickActions", "My contacts"), [], 9],
       [Scene_Online, p_("EAPI_QuickActions", "Who is online?"), [], -9],
       [Scene_Messages, p_("EAPI_QuickActions", "Messages"), [], -11],
@@ -296,6 +306,14 @@ end
     end
     def whatsnew_action(key=0, show=false)
       [:whatsnew, p_("EAPI_QuickActions", "What's new"), [], key, show]
+    end
+    # Klangten: notification history on Control+F10 (Command+F10 on macOS);
+    # Shift+F10 stays the context menu.
+    def notification_history_action(key=0, show=false)
+      [:notificationhistory, p_("EAPI_QuickActions", "Notification history"), [], key, show]
+    end
+    def notifications_action(key=0, show=false)
+      [:notifications, p_("EAPI_QuickActions", "Notifications"), [], key, show]
     end
     def register_proc(program, ident, label, proc)
             s=program.to_s+"__"+ident.to_s
@@ -323,7 +341,11 @@ end
       [:donotdisturb, p_("EAPI_QuickActions", "Switch \"Do not disturb\" mode"), [], -2, false],
       [:feed, p_("EAPI_QuickActions", "Publish to a feed"), [], 4, false],
       ]
-      a.unshift(whatsnew_action) if defaults!=true
+      if defaults!=true
+        a.unshift(notifications_action)
+        a.unshift(notification_history_action)
+        a.unshift(whatsnew_action)
+      end
       a.delete_if{|action| action[0]==:tray} if !tray_supported?
       a.delete_if{|action| action[0]==:srsapi} if !defined?(NVDA) && !defined?(Sapi)
       if defaults!=true
@@ -534,6 +556,20 @@ end
       # Klangten: saved actions for removed sections (premium, auctions, sponsors, calendar, tasks) are dropped.
       return nil if REMOVED_SCENES.include?(action.to_s)
       [action, label, params, key, show]
+    end
+    # Klangten 0.2.1: installations from before get the notification history
+    # on Control+F10 once — unless that key is already taken. Later changes
+    # by the user are kept (the mark is set either way).
+    def add_notification_history_hotkey
+      return false if LocalConfig["KlangtenNotificationHistoryHotkey", type: :numeric].to_i == 1
+      LocalConfig["KlangtenNotificationHistoryHotkey"] = 1
+      return false if @@actions.any? { |a| a.action == :notificationhistory }
+      key = @@actions.any? { |a| a.key.to_i == 22 } ? 0 : 22
+      register(*notification_history_action(key, false))
+      true
+    rescue Exception => e
+      Log.error("Quick actions: adding the notification history failed: #{e.class}: #{e.message}") if defined?(Log)
+      false
     end
     def legacy_whatsnew_record?(record)
       action = if record.is_a?(Hash)

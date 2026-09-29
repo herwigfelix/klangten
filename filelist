@@ -133,6 +133,7 @@ src/ri/__ri.rb
 src/scenes/admins.rb
 src/eapi/notificationgroups.rb
 src/scenes/notifications.rb
+src/scenes/whatsnew.rb
 src/scenes/usersaddedmetocontacts.rb
 src/scenes/blog.rb
 src/scenes/ban.rb

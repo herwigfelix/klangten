@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; guests only read.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; guests only read; the "new ..." views return to What's new when opened from there.
 
 class Scene_Blog
   def initialize(index=0)
@@ -299,19 +299,19 @@ if @topage==0
         end
 if @post.size==0 and @id=="NEW"
   alert(p_("Blog", "No new comments on your blog."))
-  $scene=Scene_Notifications.new
+  $scene=whatsnew_return_scene
   return
   elsif @post.size==0 and @id=="NEWFOLLOWED"
   alert(p_("Blog", "No new comments on blog posts you follow."))
-  $scene=Scene_Notifications.new
+  $scene=whatsnew_return_scene
   return
   elsif @post.size==0 and @id=="NEWFOLLOWEDBLOGS"
   alert(p_("Blog", "No new posts on followed blogs."))
-  $scene=Scene_Notifications.new
+  $scene=whatsnew_return_scene
   return
   elsif @post.size==0 and @id=="NEWMENTIONED"
   alert(p_("Blog", "No new blog mentions."))
-  $scene=Scene_Notifications.new
+  $scene=whatsnew_return_scene
   return
 end
 @sel.index=@postselindex
@@ -330,7 +330,7 @@ def update
   if key_pressed?(:key_escape) or (key_pressed?(:key_left) and !key_held?(0x10))
     if @id!=-1
     if @id == "NEW" or @id == "NEWFOLLOWED" or @id=="NEWFOLLOWEDBLOGS"
-      $scene = Scene_Notifications.new
+      $scene = whatsnew_return_scene
       elsif @id == "FOLLOWED"
       $scene = Scene_Blog.new(7)
       elsif @id == "MENTIONED"
