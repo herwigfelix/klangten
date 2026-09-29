@@ -3,7 +3,8 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: built-in programs are loaded first and shadow installed copies.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: built-in programs are loaded first and shadow installed copies;
+# a manifest with Windows line endings (CRLF) is closed by its "=end" line as well.
 
 require_relative "programsigning" if !defined?(Programs::ProgramSigning)
 require_relative "program_package_metadata" if !defined?(Programs::ProgramPackageMetadata)
@@ -18,7 +19,9 @@ module Programs
   ELTEN_API_VERSION = "3.0.3".freeze
   ELTENLINK_CONTRACT_VERSION = "3.0".freeze
   MANIFEST_BEGIN = /^\=begin[ \t]+Elten3AppInfo[ \t]*\r?\n/.freeze
-  MANIFEST_END = /^\=end[ \t]+Elten3AppInfo[ \t]*$/m.freeze
+  # Klangten: "\r?" - a checkout with CRLF line endings (the Windows CI build)
+  # otherwise leaves every manifest "unclosed", and no built-in program loads.
+  MANIFEST_END = /^\=end[ \t]+Elten3AppInfo[ \t]*\r?$/m.freeze
   UUID_PATTERN = /\A[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i.freeze
   SOUND_EXTENSIONS = %w[.ogg .opus .wav .wave .mp3 .flac .aac .m4a .wma .spx .webm].freeze
 
