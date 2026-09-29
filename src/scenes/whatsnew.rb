@@ -74,17 +74,20 @@ class Scene_WhatsNew
       return
     end
     cats = self.class.categories
-    @sel = ListBox.new(cats.each_with_index.map { |c, i| "#{c[1]} (#{@counts[i]})" }, p_("WhatsNew", "What's new"))
+    first = @counts.index { |c| c > 0 } || 0
+    index = (@index != nil && @counts[@index].to_i > 0) ? @index : first
+    @sel = ListBox.new(cats.each_with_index.map { |c, i| "#{c[1]} (#{@counts[i]})" },
+                       header: p_("WhatsNew", "What's new"), index: index, quiet: false)
+    # Greyed-out items are hidden in Elten 3: only categories with news remain.
     cats.each_index { |i| @sel.disable_item(i) if @counts[i] <= 0 }
-    first = @counts.index { |c| c > 0 }
-    @sel.index = @index || first || 0
     @sel.focus
     loop do
       loop_update
       @sel.update
-      if escape
+      # Elten 3 keys (Elten 2's escape/enter/arrow_right helpers are gone).
+      if key_pressed?(:key_escape) || @sel.collapsed?
         $scene = Scene_Main.new
-      elsif enter or arrow_right
+      elsif @sel.selected? || @sel.expanded?
         @index = @sel.index
         open_category(@sel.index)
       end
