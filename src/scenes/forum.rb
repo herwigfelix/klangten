@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; read-only guest access.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; read-only guest access; voice threads play their recorded title.
  
 module ForumSceneClient
   def forum_fetch(default = nil, error_message = _("Error"))
@@ -214,7 +214,11 @@ class Scene_Forum
   end
 
   def thread_row_title(thread, list_id=@forum)
-    name_parts = [thread.name+""]
+    # A voice thread is announced by its recorded title (set_row_audio in
+    # the thread list); its text title is often only a placeholder such as
+    # "Voice discussion", so it stays visible but is not spoken.
+    voice_title = thread.audio_name.to_s != ""
+    name_parts = [voice_title ? EltenAPI::SpeechCommands::SilentTextCommand.new(thread.name) : thread.name+""]
     name_parts << forum_closed_command if thread.closed
     name_parts << forum_pinned_command if thread.pinned
     if list_id == -7 or list_id==-11
@@ -224,7 +228,7 @@ class Scene_Forum
     if list_id == -1 or list_id == -3 or list_id == -6 or list_id == -7 or list_id == -10 or list_id == -12
       name_parts << " (#{thread.forum.fullname}, #{thread.forum.group.name})"
     end
-    name_parts.size==1 ? name_parts[0] : EltenAPI::SpeechSequence.new(name_parts)
+    (name_parts.size==1 && !voice_title) ? name_parts[0] : EltenAPI::SpeechSequence.new(name_parts)
   end
 
   def refresh_forum_row(index=nil)
@@ -2303,6 +2307,8 @@ break
     @thrsel = TableBox.new(thrselh, thrselt, index: index, header: header, quiet: true, flags: ListBox::Flags::Tagged)
     @sthreads.each_with_index do |thread, i|
       apply_thread_row_states(i, thread, id)
+      # Klangten: voice threads play their recorded title when focused
+      @thrsel.set_row_audio(i, thread.audio_name) if thread.audio_name.to_s != ""
     end
     @thrsel.trigger(:move)
     @thrsel.column = LocalConfig["ForumColumnThread", type: :numeric] if LocalConfig["ForumColumnThread", type: :numeric] != nil
@@ -5192,6 +5198,8 @@ class Struct_Forum_Thread
   attr_accessor :closed
 attr_accessor :marked
 attr_accessor :offered
+  # Klangten: recorded title of a voice thread (URL), "" if there is none
+  attr_accessor :audio_name
 
   def initialize(id = 0, name = "")
     @id = id
@@ -5206,6 +5214,7 @@ attr_accessor :offered
     @closed = false
     @marked=false
     @offered=0
+    @audio_name=""
   end
 end
 

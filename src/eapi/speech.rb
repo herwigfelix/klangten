@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: long texts are spoken in parts.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: long texts are spoken in parts; silent display text.
 
 module EltenAPI
   module Speech
@@ -477,6 +477,30 @@ class SpeechCommand
       Configuration.soundthemeactivation==true
     end
   end
+  # Text that is shown and brailled but not spoken, e.g. the title of a
+  # voice thread whose recording plays instead (Klangten).
+  class SilentTextCommand < SpeechCommand
+    def initialize(text)
+      @text=text.to_s
+    end
+
+    def immediate?
+      true
+    end
+
+    def speech_text
+      ""
+    end
+
+    def braille_text
+      @text
+    end
+
+    def to_s
+      @text
+    end
+  end
+
   class CustomCommand < SpeechCommand
     def initialize(*arg, immediate: false, &p)
       @arg=arg

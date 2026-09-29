@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: recorded titles of voice threads.
 
 require "digest"
 require "json"
@@ -784,6 +785,7 @@ module EltenLink
           thread.posts = row["posts"].to_i
           thread.readposts = row["readposts"].to_i
           thread.offered = row["offered"].to_i
+          thread.audio_name = row["audio_name"].to_s if thread.respond_to?(:audio_name=)
           thread
         end
       end
