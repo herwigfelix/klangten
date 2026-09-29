@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 class Scene_SoundThemes
   def main
@@ -70,13 +71,13 @@ stdownload
           menu.option(p_("SoundThemes", "New"), nil, "n") {
                         $scene=Scene_Sounds.new("")
           }
-          if @sel.index<@soundthemes.size-1
+          theme=@soundthemes[@sel.index]
+          if theme!=nil && theme.file!=nil && theme.file!=""
           menu.option(p_("SoundThemes", "Edit"), nil, "e") {
-                        $scene=Scene_Sounds.new(@soundthemes[@sel.index].file)
+                        $scene=Scene_Sounds.new(theme.file)
           }
           menu.option(p_("SoundThemes", "Delete"), nil, :del) {
-                          confirm(p_("SoundThemes", "Are you sure you want to delete the sound theme %{soundtheme}?")%{ :soundtheme => @soundthemes[@sel.index].name}) {
-                theme=@soundthemes[@sel.index]
+                          confirm(p_("SoundThemes", "Are you sure you want to delete the sound theme %{soundtheme}?")%{ :soundtheme => theme.name}) {
                 File.delete(theme.file)
                 if Configuration.soundtheme!=nil && File.basename(theme.file, ".elsnd")==Configuration.soundtheme
                   Configuration.soundtheme=nil
