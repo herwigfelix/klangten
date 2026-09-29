@@ -1,3 +1,4 @@
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 if(NOT PLATFORM OR NOT ARCH OR NOT RUBY_VERSION OR NOT RUNTIME_ROOT OR NOT PROJECT_ROOT)
   message(FATAL_ERROR "prepare_ruby_runtime.cmake requires PLATFORM, ARCH, RUBY_VERSION, RUNTIME_ROOT and PROJECT_ROOT")
 endif()
@@ -335,6 +336,39 @@ function(repair_msys2_toolchain_links)
   if(NOT EXISTS "${mingw_bin}/ld.exe")
     message(FATAL_ERROR "MSYS2 linker was not prepared: ${mingw_bin}/ld.exe")
   endif()
+
+  if(NOT ARCH STREQUAL "arm64")
+    # GCC packages use hardlinks for compiler aliases and the LTO plugin.
+    # Shared filesystems may leave only the original file from each group.
+    # Older packages use gcc/g++ as the originals; newer ones use cc/c++.
+    copy_file_if_missing("${mingw_bin}/cc.exe" "${mingw_bin}/gcc.exe")
+    copy_file_if_missing("${mingw_bin}/gcc.exe" "${mingw_bin}/cc.exe")
+    copy_file_if_missing("${mingw_bin}/c++.exe" "${mingw_bin}/g++.exe")
+    copy_file_if_missing("${mingw_bin}/g++.exe" "${mingw_bin}/c++.exe")
+    foreach(tool cc gcc c++ g++ gcc-ar gcc-nm gcc-ranlib)
+      if(NOT EXISTS "${mingw_bin}/${tool}.exe")
+        message(FATAL_ERROR "MSYS2 compiler tool was not prepared: ${mingw_bin}/${tool}.exe")
+      endif()
+      copy_file_if_missing("${mingw_bin}/${tool}.exe" "${mingw_bin}/${target_triplet}-${tool}.exe")
+    endforeach()
+
+    file(GLOB gcc_version_dirs LIST_DIRECTORIES true
+      "${msys_root}/${mingw_prefix}/lib/gcc/${target_triplet}/*")
+    foreach(gcc_version_dir IN LISTS gcc_version_dirs)
+      if(NOT IS_DIRECTORY "${gcc_version_dir}")
+        continue()
+      endif()
+      get_filename_component(gcc_version "${gcc_version_dir}" NAME)
+      copy_file_if_missing("${mingw_bin}/gcc.exe" "${mingw_bin}/${target_triplet}-gcc-${gcc_version}.exe")
+      set(gcc_lto_plugin "${gcc_version_dir}/liblto_plugin.dll")
+      set(bfd_lto_plugin "${msys_root}/${mingw_prefix}/lib/bfd-plugins/liblto_plugin.dll")
+      copy_file_if_missing("${bfd_lto_plugin}" "${gcc_lto_plugin}")
+      copy_file_if_missing("${gcc_lto_plugin}" "${bfd_lto_plugin}")
+      if(NOT EXISTS "${gcc_lto_plugin}")
+        message(FATAL_ERROR "MSYS2 GCC LTO plugin was not prepared: ${gcc_lto_plugin}")
+      endif()
+    endforeach()
+  endif()
 endfunction()
 
 runtime_ruby_path(ruby_exe)
@@ -457,7 +491,10 @@ if(PLATFORM STREQUAL "windows")
       -lc
       "pacman --color never --noconfirm --needed -Sy ${MSYS2_PACKAGES}"
     )
-    repair_msys2_toolchain_links()
+  endif()
+  # Also repair runtimes installed before these checks were added.
+  repair_msys2_toolchain_links()
+  if(NOT EXISTS "${msys_stamp}")
     file(WRITE "${msys_stamp}" "${msys_marker}")
   endif()
 elseif(PLATFORM STREQUAL "osx")
