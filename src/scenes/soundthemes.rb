@@ -5,6 +5,8 @@
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
+require "fileutils"
+
 class Scene_SoundThemes
   def main
     @return = false
@@ -181,6 +183,27 @@ menu.option(p_("SoundThemes", "Download")) {
           sel.rows=sts
           sel.reload
           }
+}
+menu.option(p_("SoundThemes", "Review sound theme"), nil, "p") {
+  dest = EltenPath.join(Dirs.soundthemes, st.file.delete("/\\"))
+  temp = EltenPath.join(Dirs.temp, "preview_#{st.file.delete('/\\')}")
+  file = File.file?(dest) ? dest : temp
+  if file == dest || download_file(EltenLink::SoundThemes.download_url(st), temp, use_waiting: true, can_cancel: true, override: true)
+    kept = false
+    on_keep = (file == dest) ? true : proc {
+      FileUtils.mv(temp, dest, force: true)
+      @soundthemes.delete_if { |s| s.file && File.basename(s.file) == File.basename(st.file) }.push(st)
+      alert(_("Saved"))
+      kept = true
+    }
+    begin
+      Scene_Sounds.new(file, on_keep: on_keep).main
+    ensure
+      FileUtils.rm_f(temp) unless kept
+    end
+    (rfr.call; sel.rows = sts; sel.reload) if kept
+    sel.focus
+  end
 }
 if st.user==Session.name || Session.moderator==1
 menu.option(p_("SoundThemes", "Delete"), nil, :del) {

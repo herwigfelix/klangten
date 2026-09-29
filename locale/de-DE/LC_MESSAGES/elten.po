@@ -24825,3 +24825,15 @@ msgstr "Erlaube Klangten auf der eben geöffneten Seite, Apps zu installieren. S
 msgctxt "Loading"
 msgid "The update could not be installed."
 msgstr "Das Update konnte nicht installiert werden."
+
+msgctxt "SoundThemes"
+msgid "Review sound theme"
+msgstr "Audiothema überprüfen"
+
+msgctxt "Sounds"
+msgid "Previewing sound theme %{theme}; press Space to play"
+msgstr "Vorschau des Audiothemas %{theme}; zum Abspielen Leertaste drücken"
+
+msgctxt "Sounds"
+msgid "Keep"
+msgstr "Behalten"
