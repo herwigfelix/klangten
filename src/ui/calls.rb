@@ -14,10 +14,12 @@ module EltenAPI
     class CallWindow
       attr_reader :room_id, :username
 
-      def initialize(call)
+      def initialize(call, ringtone=nil)
         @room_id = call[:room_id]
         @username = call[:username].to_s
         name = call[:nickname].to_s == "" ? @username : call[:nickname].to_s
+        @ringtone = ringtone || "ringing"
+        @ringing = nil
         @handled = false
         @form = Form.new([
           @st_caller = Static.new(p_("EAPI_UI", "%{user} is calling you") % { :user => name }),
@@ -27,6 +29,11 @@ module EltenAPI
       end
 
       def update
+        ringing = !EltenAPI::UI.calls_muted?
+        if !handled? && @ringing != ringing
+          ringing ? call_sound_start(@ringtone) : EltenAPI::UI.call_sound_stop
+          @ringing = ringing
+        end
         @form.update
         if @btn_reject.pressed?
           @handled = true
@@ -106,8 +113,12 @@ module EltenAPI
       class << self
         def incoming(call, ringtone)
           return if @@call_window != nil && @@call_window.room_id == call[:room_id]
-          call_sound_start(ringtone || "ringing")
-          @@call_window = CallWindow.new(call)
+          # The window starts the ringtone itself, so Do not disturb can silence it.
+          @@call_window = CallWindow.new(call, ringtone)
+        end
+
+        def active?
+          @@call_window != nil || (@@missed_window != nil && @@missed_window.active == true)
         end
 
         def close_incoming

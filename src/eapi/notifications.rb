@@ -870,7 +870,7 @@ module EltenAPI
       end
       
       def mastodon_sound_allowed?(event)
-        return false if $donotdisturb == true
+        return false if EltenAPI::UI.notifications_muted?
         return false if event["mastodon"] == "home" && Configuration.disablefeednotifications == true
         true
       end

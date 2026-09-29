@@ -148,13 +148,17 @@ module EltenAPI
   writeconfig("Interface","MainVolume",Configuration.volume)
   play_sound("listbox_focus")
   when :donotdisturb
-    if $donotdisturb!=true
-      $donotdisturb=true
-      alert(p_("EAPI_Common", "Do not disturb is on"))
-    else
-      $donotdisturb=false
-      alert(p_("EAPI_Common", "Do not disturb is off"))
-    end
+    message = case EltenAPI::UI.cycle_do_not_disturb
+              when 0
+                p_("EAPI_Common", "Do not disturb is off")
+              when 1
+                p_("EAPI_Common", "Do not disturb: notifications muted")
+              when 2
+                p_("EAPI_Common", "Do not disturb: calls muted")
+              when 3
+                p_("EAPI_Common", "Do not disturb: all muted")
+              end
+    alert(message)
     when :conference_streaming
       if Conference.opened?
         if Conference.streaming?

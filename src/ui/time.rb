@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   TICK_MS = 10
@@ -191,7 +192,7 @@ module EltenAPI
               else
                 false
               end
-        return nil if due != true || $donotdisturb == true
+        return nil if due != true || EltenAPI::UI.notifications_muted?
         [
           type == :voice_and_sound || type == :sound_only,
           (type == :voice_and_sound || type == :voice_only) ? sprintf("%02d:%02d", now.hour, now.min) : nil

@@ -124,7 +124,7 @@ end
 
              $main_notifications_changed = true
              Session.notifications_update
-             next if presentation.default_suppressed? || $donotdisturb == true
+             next if presentation.default_suppressed? || EltenAPI::UI.notifications_muted?
 
              event = {
                "func" => "notif",
@@ -142,12 +142,12 @@ end
                $main_notifications_changed = true
                Session.notifications_update
              end
-             next if $donotdisturb == true
+             next if EltenAPI::UI.notifications_muted?
              dispatch_notification(d, batch_sounds)
            elsif d['func']=='msg'
              $notification_msg_count=d['msgs'].to_i
             elsif d['func']=='sig'
-              play_sound('right')
+              play_sound('right') unless EltenAPI::UI.notifications_muted?
               if $scene.class.ancestors.include?(Program) and d['appid'].to_s == $scene.class.app_uuid.to_s
                 begin
                   $scene.signaled(d['sender'], JSON.parse(d['packet'].to_s))
@@ -317,6 +317,7 @@ if $agalarm==true and $alarmproc!=true
     loop_update
     $alarmproc=false
   end
+  process_quick_action_hotkeys(only: :donotdisturb) if CallUI.active?
   if CallUI.update_windows
   EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
     end

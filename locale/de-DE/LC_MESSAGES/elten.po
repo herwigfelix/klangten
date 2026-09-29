@@ -24865,3 +24865,15 @@ msgstr "Keine neuen Follower."
 msgctxt "Elten"
 msgid "Error in Elten"
 msgstr "Fehler in Elten"
+
+msgctxt "EAPI_Common"
+msgid "Do not disturb: notifications muted"
+msgstr "Nicht stören: Benachrichtigungen stummgeschaltet"
+
+msgctxt "EAPI_Common"
+msgid "Do not disturb: calls muted"
+msgstr "Nicht stören: Anrufe stummgeschaltet"
+
+msgctxt "EAPI_Common"
+msgid "Do not disturb: all muted"
+msgstr "Nicht stören: alles stummgeschaltet"
