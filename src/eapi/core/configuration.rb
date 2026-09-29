@@ -75,12 +75,12 @@ module EltenAPI
   Configuration.soundcard = readconfig("SoundCard", "SoundCard", "")
   if Configuration.soundcard==""
                 Sapi.set_device(-1) if defined?(Sapi)
-                  Bass.setdevice(-1)
+                  Bass.setdevice(-1, force: false)
                 else
     sc=Bass.soundcards
   for i in 0...sc.size
     if sc[i].name==Configuration.soundcard
-    Bass.setdevice(i)
+    Bass.setdevice(i, force: false)
     end
   end
     devices=defined?(Sapi) ? Sapi.devices : []
@@ -95,13 +95,13 @@ Configuration.microphone = readconfig("SoundCard", "Microphone", "")
   mc=Bass.microphones
   for i in 0...mc.size
     if mc[i].name==Configuration.microphone
-          Bass.setrecorddevice(i)
+          Bass.setrecorddevice(i, force: false)
     s=true
     end
   end
   if s==false
     defl=mc.index(mc.find{|m|m.default?})||-1
-  Bass.setrecorddevice(defl)
+  Bass.setrecorddevice(defl, force: false)
   end
     Configuration.controlspresentation = load_configuration_choice("Interface", "ControlsPresentation", [:voice_and_sound, :sound_only, :voice_only], :voice_and_sound)
   Configuration.contextmenubar = load_configuration_boolean("Interface", "ContextMenuBar", true)

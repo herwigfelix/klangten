@@ -541,11 +541,15 @@ module Bass
       false
     end
     
-    def self.setdevice(d,hWnd=nil, samplerate=48000)
+    def self.setdevice(d,hWnd=nil, samplerate=48000, force: true)
+      @@device=d
+      if force==false && @init==true
+        card=soundcards.find{|dev| d==-1 ? dev.enabled? && dev.default? : dev.id==d}
+        return BASS_SetDevice.call(@output_device_id) if card!=nil && card.enabled? && card.initialized? && card.id==@output_device_id
+      end
       $soundthemesounds.values.each {|g| g.close if g!=nil and !g.closed?} if $soundthemesounds!=nil
       $soundthemesounds={}
             hWnd||=$wnd||0
-            @@device=d
             if @init==true
             BASS_SetDevice.call(@output_device_id) if @output_device_id != nil
             BASS_Free.call
@@ -581,7 +585,8 @@ module Bass
     
     @@recorddevice=-1
     @@recordinit=false
-    def self.setrecorddevice(i)
+    def self.setrecorddevice(i, force: true)
+      return if force==false && i==@@recorddevice
       @@recorddevice=i
       BASS_RecordFree.call if @@recordinit
       @@recordinit=false
