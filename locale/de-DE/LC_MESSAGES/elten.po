@@ -24853,3 +24853,7 @@ msgstr "Ohne Speichern beenden"
 msgctxt "WelcomeWizard"
 msgid "Complete the wizard"
 msgstr "Zurück zum Assistenten"
+
+msgctxt "Settings"
+msgid "Read message subjects"
+msgstr "Betreff der Nachrichten vorlesen"
