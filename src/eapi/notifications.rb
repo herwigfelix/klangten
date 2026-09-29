@@ -14,6 +14,7 @@ module EltenAPI
       NOTIFICATION_QUERY_OVERLAP = 86_400
       NOTIFICATION_DEDUP_LIMIT = 8_192
       VIRTUAL_UPDATE_CHECK_INTERVAL = 600.0
+      VIRTUAL_UPDATE_RETRY_INTERVAL = 60.0
       INITIAL_RUNTIME_STATE_TIMEOUT = 5.0
       STREAM_CONTROL_INTERVAL = 6.0
       STREAM_CONTROL_TIMEOUT = 2.5
@@ -879,7 +880,7 @@ module EltenAPI
 
         @virtual_update_request_pending = true
         @virtual_update_request_started_at = now
-        @next_virtual_update_check_at = now + VIRTUAL_UPDATE_CHECK_INTERVAL
+        @next_virtual_update_check_at = now + VIRTUAL_UPDATE_RETRY_INTERVAL
         name, = key
         params = {
           "branch" => get_updatesbranch,
@@ -909,6 +910,7 @@ module EltenAPI
 
         response_data = payload["data"].is_a?(Hash) ? payload["data"] : {}
         NotificationGroups.refresh_virtual_notifications(system_updates_from_response(response_data))
+        @next_virtual_update_check_at = monotonic_time + VIRTUAL_UPDATE_CHECK_INTERVAL
       rescue JSON::ParserError
         Log.warning("Notification virtual update JSON parse error")
       rescue Exception
