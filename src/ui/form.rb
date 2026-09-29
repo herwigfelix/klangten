@@ -160,24 +160,26 @@ class FormTimer
   attr_reader :time, :repeat, :starttime
   def initialize(time, repeat: false, autostart: true, &action)
     @time, @repeat = time, repeat
-    @starttime=nil
+    @starttime=@monotonic_starttime=nil
     @completed=false
     @action=action
     start if autostart
   end
   def start
     @starttime=Time.now.to_f
+    @monotonic_starttime=Process.clock_gettime(Process::CLOCK_MONOTONIC)
     @completed=false
   end
   def stop
-    @starttime=nil
+    @starttime=@monotonic_starttime=nil
   end
   def update
-    return if @starttime==nil || @completed==true
-    if Time.now.to_f-@starttime>=@time
+    starttime=@monotonic_starttime
+    return if starttime==nil || @completed==true
+    if Process.clock_gettime(Process::CLOCK_MONOTONIC)-starttime>=@time
       @action.call if @completed==false && @action!=nil
       @completed=true
-      @starttime=nil
+      @starttime=@monotonic_starttime=nil
       start if repeat
       end
     end
