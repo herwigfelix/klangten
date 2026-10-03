@@ -1,7 +1,7 @@
 name: Klangten
 options:
   bundleIdPrefix: it.sixdots
-  deploymentTarget: { iOS: "18.0" }
+  deploymentTarget: { iOS: "18.5" }
   createIntermediateGroups: true
 targets:
   Klangten:

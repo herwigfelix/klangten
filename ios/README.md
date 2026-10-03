@@ -45,6 +45,34 @@ Verified: the project **builds for the simulator and for a physical device
 (`arm64`, produces `Klangten.app`)** — only your signing is missing. Signing and the
 on-device run happen on your Mac/iPhone (I can't do those for you).
 
+## TestFlight
+
+The app record is **Klangten** (`it.sixdots.klangten`, App Store Connect app id
+6818789420, team XJ3N4HV6L6); internal testers are in the TestFlight group
+"Intern", which receives every uploaded build automatically. A release:
+
+```bash
+cd ios/Klangten
+BUILD_NUMBER=2 ./assemble.sh     # version comes from src/eltenlink/klangten_config.rb
+xcodebuild -project Klangten.xcodeproj -scheme Klangten -configuration Release \
+  -destination 'generic/platform=iOS' -archivePath build-rel/Klangten.xcarchive \
+  -allowProvisioningUpdates archive
+xcodebuild -exportArchive -archivePath build-rel/Klangten.xcarchive \
+  -exportOptionsPlist build-rel/ExportOptions.plist -exportPath build-rel/export \
+  -allowProvisioningUpdates          # method app-store-connect, destination upload
+```
+
+- `BUILD_NUMBER` must grow with every upload of the same version; it starts at 1
+  for each new version.
+- Signing is automatic through the Apple account signed in to Xcode; the
+  distribution certificate and profile are created on the first export.
+- `ITSAppUsesNonExemptEncryption` is false (only standard TLS), so no export
+  compliance question blocks the build. The app is iPhone only and needs iOS 18.5
+  (the prebuilt OpenSSL in libruby is built for 18.5).
+- The missing dSYMs for the BASS frameworks are only warnings.
+- Klangten has no visual interface (the screen stays black), so simulator
+  screenshots show nothing; the App Store listing will need illustrative images.
+
 ## Architecture
 
 ```
