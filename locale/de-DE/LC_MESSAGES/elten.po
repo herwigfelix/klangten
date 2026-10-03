@@ -1084,7 +1084,7 @@ msgstr "&Umfragen"
 #: src/eapi/mainmenu.rb:72
 msgctxt "MainMenu"
 msgid "&Users"
-msgstr "&nutzer"
+msgstr "&Nutzer"
 
 #: src/eapi/mainmenu.rb:74
 msgctxt "MainMenu"
@@ -1309,7 +1309,7 @@ msgstr "&Beenden"
 #: src/eapi/mainmenu.rb:165
 msgctxt "MainMenu"
 msgid "&Restart"
-msgstr "&neustart"
+msgstr "&Neustart"
 
 #: src/eapi/mainmenu.rb:171
 msgctxt "MainMenu"

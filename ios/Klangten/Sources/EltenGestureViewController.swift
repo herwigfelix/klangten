@@ -21,6 +21,11 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
 
     private var keyboardActive = false
     private let textEntryField = UITextField(frame: .zero)
+    // What Klangten is saying, as large text for sighted helpers (and for
+    // screenshots). Only the view itself is an accessibility element, so
+    // VoiceOver never reads these labels.
+    private let titleLabel = UILabel()
+    private let captionLabel = UILabel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,6 +35,7 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
         view.accessibilityTraits = [.allowsDirectInteraction]
         view.accessibilityLabel = "Klangten"
         installGestures()
+        installCaption()
         installTextEntryField()
         NotificationCenter.default.addObserver(self, selector: #selector(didBecomeActive),
                                                name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -43,6 +49,80 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
     // Legacy Elten key-grid keyboard mode (fallback hosts only); toggled by
     // Ruby via the "keyboard" host callback.
     func setKeyboardActive(_ active: Bool) { keyboardActive = active }
+
+    // MARK: - caption
+
+    private func installCaption() {
+        titleLabel.text = "Klangten"
+        titleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
+        titleLabel.textColor = UIColor(red: 1.0, green: 0.77, blue: 0.24, alpha: 1)
+        captionLabel.font = UIFont.preferredFont(forTextStyle: .title1)
+        captionLabel.adjustsFontForContentSizeCategory = true
+        captionLabel.textColor = .white
+        captionLabel.numberOfLines = 0
+        captionLabel.lineBreakMode = .byWordWrapping
+        for label in [titleLabel, captionLabel] {
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.isAccessibilityElement = false
+            view.addSubview(label)
+        }
+        let guide = view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: guide.topAnchor, constant: 24),
+            titleLabel.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
+            titleLabel.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -24),
+            captionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 32),
+            captionLabel.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
+            captionLabel.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -24),
+            captionLabel.bottomAnchor.constraint(lessThanOrEqualTo: guide.bottomAnchor, constant: -24),
+        ])
+    }
+
+    // The last utterances, newest last. An interrupting utterance starts a new
+    // entry, a queued one continues the current entry.
+    private var spoken: [String] = []
+
+    // Called on the main thread for every utterance.
+    func showSpokenText(_ text: String, interrupt: Bool) {
+        if interrupt || spoken.isEmpty {
+            spoken.append(text)
+        } else {
+            spoken[spoken.count - 1] += " " + text
+        }
+        if spoken.count > 12 { spoken.removeFirst(spoken.count - 12) }
+        // Drop the oldest entries until the rest fits below the title, so the
+        // newest utterance is always visible.
+        var caption = captionText(from: 0)
+        let width = max(view.bounds.width - 48, 100)
+        let height = view.bounds.height - view.safeAreaInsets.top - view.safeAreaInsets.bottom - 140
+        var first = 0
+        while first < spoken.count - 1 &&
+              caption.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
+                                   options: [.usesLineFragmentOrigin], context: nil).height > height {
+            first += 1
+            caption = captionText(from: first)
+        }
+        captionLabel.attributedText = caption
+    }
+
+    func clearSpokenText() {
+        spoken = []
+        captionLabel.attributedText = nil
+    }
+
+    private func captionText(from first: Int) -> NSAttributedString {
+        let caption = NSMutableAttributedString()
+        let font = UIFont.preferredFont(forTextStyle: .title1)
+        for index in first..<spoken.count {
+            let latest = index == spoken.count - 1
+            let line = String(spoken[index].prefix(latest ? 700 : 160)) + (latest ? "" : "\n")
+            caption.append(NSAttributedString(string: line, attributes: [
+                .font: latest ? UIFont.systemFont(ofSize: font.pointSize, weight: .semibold) : font,
+                .foregroundColor: latest ? UIColor.white : UIColor(white: 0.55, alpha: 1),
+            ]))
+        }
+        return caption
+    }
 
     // MARK: - native system keyboard
 

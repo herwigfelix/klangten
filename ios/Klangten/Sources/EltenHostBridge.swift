@@ -63,6 +63,7 @@ public func elten_host_speech_speak(_ text: UnsafePointer<CChar>?, _ voice: Unsa
         utterance.volume = max(0, min(100, Float(volume))) / 100.0
         utterance.pitchMultiplier = 0.5 + max(0, min(100, Float(pitch))) / 100.0
         hostSpeech.speak(utterance)
+        EltenGestureViewController.current?.showSpokenText(string, interrupt: interrupt != 0)
     }
 }
 

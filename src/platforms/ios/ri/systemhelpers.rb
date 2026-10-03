@@ -46,6 +46,9 @@ module EltenSystemHelpers
 
     # Name a files tree shows for one of logical_drives; nil keeps the path.
     def drive_label(path)
+      # iOS: the one drive is the app's Documents folder ("On My iPhone >
+      # Klangten" in the Files app); its path means nothing to the user.
+      return p_("Klangten", "Klangten folder") if !android? && same_path?(path, documents_dir)
       return nil if !android?
       storage = android_storage
       return p_("Klangten", "Internal storage") if same_path?(path, storage[:shared])
@@ -59,7 +62,8 @@ module EltenSystemHelpers
     # keeps the default (Desktop, Documents, Music). On Android these are the
     # shared folders other apps use too; folders that do not exist are left out.
     def file_shortcuts
-      return nil if !android?
+      # iOS: Desktop, Documents and Music would all be the same folder again.
+      return [] if !android?
       shared = android_storage[:shared]
       return [] if shared == ""
       [
