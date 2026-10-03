@@ -49,7 +49,9 @@ on-device run happen on your Mac/iPhone (I can't do those for you).
 
 The app record is **Klangten** (`it.sixdots.klangten`, App Store Connect app id
 6818789420, team XJ3N4HV6L6); internal testers are in the TestFlight group
-"Intern", which receives every uploaded build automatically. A release:
+"Intern", which receives every uploaded build automatically. The external group
+"Öffentlich" has the public link https://testflight.apple.com/join/6N4eHApX; every
+build added to it goes through Beta App Review first. A release:
 
 ```bash
 cd ios/Klangten
