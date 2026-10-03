@@ -149,6 +149,11 @@ $SIGN
         MARKETING_VERSION: "$MARKETING_VERSION"
         CURRENT_PROJECT_VERSION: "$BUILD_NUMBER"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Kein strip beim Archivieren: er entfernt aus der ausfuehrbaren Datei auch
+        # die exportierten elten_host_*-Einstiege, die der Ruby-Kern per dlsym sucht
+        # (-export_dynamic hilft dagegen nicht). Die TestFlight-Builds 1 und 2 beendeten
+        # sich deshalb sofort nach dem Start; Debug-Builds strippen nicht.
+        STRIP_INSTALLED_PRODUCT: "NO"
         SWIFT_VERSION: "5.0"
         ENABLE_DEBUG_DYLIB: "NO"
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Elten-Bridging-Header.h
