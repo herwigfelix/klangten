@@ -58,7 +58,7 @@ xcodebuild -project Klangten.xcodeproj -scheme Klangten -configuration Release \
   -destination 'generic/platform=iOS' -archivePath build-rel/Klangten.xcarchive \
   -allowProvisioningUpdates archive
 xcodebuild -exportArchive -archivePath build-rel/Klangten.xcarchive \
-  -exportOptionsPlist build-rel/ExportOptions.plist -exportPath build-rel/export \
+  -exportOptionsPlist ExportOptions.plist -exportPath build-rel/export \
   -allowProvisioningUpdates          # method app-store-connect, destination upload
 ```
 
