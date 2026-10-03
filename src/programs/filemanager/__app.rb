@@ -1,7 +1,8 @@
 # FileManager - a former Elten component (author: pajper), Copyright (C) Dawid Pieper.
 # Licensed under the GNU General Public License, version 3.
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: built into Klangten and opened from the
-# Files menu (hidden from the Programs menu); "Set as audio avatar" for audio files.
+# Files menu (hidden from the Programs menu); "Set as audio avatar" for audio files; asks for access
+# to the shared storage on Android.
 =begin Elten3AppInfo
 {
   "id": "8c8d86ce-dc24-453f-a388-e9b5e8626c5c",
@@ -232,6 +233,7 @@ class ProgramFileManager < Program
 
   def program_main
     return edit_playlist(playlist_store.current_playlist, storage: :current) if @mode == :playlist
+    offer_storage_access
     @tree = FilesTree.new(_("FileManager"), path: @startpath, hide_files: false, quiet: false, use_sounds: true)
     bind_tree_menus
     runner = Runner.new
@@ -277,7 +279,27 @@ class ProgramFileManager < Program
     menu.option(_("New PLS playlist")) { create_playlist_file(:pls) }
   end
 
+  # Klangten: Android shows Klangten only its own files in the shared storage
+  # until the user grants access to all files. Asked once per session when the
+  # file manager opens; afterwards the context menu offers it.
+  def offer_storage_access
+    return if !storage_access_missing? || self.class.instance_variable_get(:@storage_access_offered)
+    self.class.instance_variable_set(:@storage_access_offered, true)
+    request_storage_access if confirm(p_("Klangten", "Klangten can only see its own files in the internal storage. To browse Downloads, Music and all your other files, allow Klangten access to all files. Android asks for this on a system settings page, which Klangten cannot read aloud: turn on TalkBack there if you need it, switch the access on and come back to Klangten. Open the settings page now?"), default_yes: true)
+  end
+
+  def storage_access_missing?
+    EltenSystemHelpers.respond_to?(:storage_access_missing?) && EltenSystemHelpers.storage_access_missing?
+  rescue Exception
+    false
+  end
+
+  def request_storage_access
+    alert(p_("Klangten", "The settings page cannot be opened.")) if EltenSystemHelpers.request_storage_access == :failed
+  end
+
   def build_context_menu(menu)
+    menu.option(p_("Klangten", "Allow access to all files")) { request_storage_access } if storage_access_missing?
     if !playlist_store.current_playlist.empty?
       menu.option(_("Open playlist")) do
         self.class.open_playlist_scene

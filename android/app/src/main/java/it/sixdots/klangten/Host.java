@@ -5,7 +5,7 @@
 //
 // Host services for the embedded Ruby core, called from host_bridge.c
 // (elten_host_*). The counterpart of EltenHostBridge.swift on iOS: speech,
-// clipboard, URLs, microphone permission, locale and the system keyboard.
+// clipboard, URLs, microphone permission, locale, storage and the system keyboard.
 // All methods are called from Ruby threads; UI work is posted to the main thread.
 package it.sixdots.klangten;
 
@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class Host {
     private static final String TAG = "Klangten";
     static final int MICROPHONE_REQUEST = 4201;
+    static final int STORAGE_REQUEST = 4202;
 
     private static final Handler main = new Handler(Looper.getMainLooper());
     private static volatile MainActivity activity;
@@ -343,6 +344,66 @@ final class Host {
         microphoneGranted = granted;
         CountDownLatch latch = microphoneLatch;
         if (latch != null) latch.countDown();
+    }
+
+    // --- storage (file manager, file dialogs) ---------------------------------------------
+
+    // What the file manager can browse: the shared storage ("Internal storage"
+    // in Android's own Files app), Klangten's own folder on it
+    // (Android/data/<package>/files, created here, reachable over USB without any
+    // permission) and whether Klangten may read and write all of the shared
+    // storage. Without that access Android shows Klangten only its own files and,
+    // in Music and the like, nothing that belongs to other apps.
+    static String storageJson() {
+        JSONObject o = new JSONObject();
+        try {
+            java.io.File shared = android.os.Environment.getExternalStorageDirectory();
+            java.io.File own = app.getExternalFilesDir(null);
+            o.put("shared", shared == null ? "" : shared.getAbsolutePath());
+            o.put("app", own == null ? "" : own.getAbsolutePath());
+            o.put("access", storageAccess());
+        } catch (Exception e) {
+            Log.w(TAG, "storage", e);
+        }
+        return o.toString();
+    }
+
+    private static boolean storageAccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return android.os.Environment.isExternalStorageManager();
+        return app.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    // Asks for access to all of the shared storage: Android 11 and newer grant it
+    // on a settings page ("All files access"), older versions in the runtime
+    // permission dialog. 1 = access is already there, 2 = the page or dialog was
+    // opened (the answer is read again the next time), 0 = failure.
+    static int storageRequest() {
+        if (storageAccess()) return 1;
+        Activity current = activity;
+        Context context = current != null ? current : app;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:" + app.getPackageName()));
+                if (current == null) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    context.startActivity(intent);
+                } catch (android.content.ActivityNotFoundException e) {
+                    // Some vendors only offer the list of all apps.
+                    Intent list = new Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    if (current == null) list.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(list);
+                }
+                return 2;
+            }
+            if (current == null) return 0;
+            main.post(() -> current.requestPermissions(new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, STORAGE_REQUEST));
+            return 2;
+        } catch (Exception e) {
+            Log.w(TAG, "storageRequest", e);
+            return 0;
+        }
     }
 
     // --- system keyboard ------------------------------------------------------------------

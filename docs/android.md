@@ -8,6 +8,18 @@ real devices. Distribution is planned as our own APK
 Google Play. TalkBack has to be switched off while Klangten runs (v1 decision):
 Klangten speaks for itself, like on the desktop.
 
+**TalkOver** can stay on: add Klangten to its gaming mode (Settings → Gaming
+mode). While Klangten's window is active, TalkOver then ignores its own
+gestures and locks the whole screen as a touch-exploration pass-through region,
+so `GestureView` receives the raw touches (all one- to four-finger gestures).
+While the system keyboard is open TalkOver works normally, so the keyboard can
+be explored and typed on. This needs a TalkOver whose `GamingModeManager` locks
+that region (fixed in October 2026). Older builds only ignored their gestures
+in gaming mode and kept explore-by-touch: no one-finger swipe or double tap
+reaches Klangten, and a two-finger swipe arrives as a one-finger one
+(TalkOver's two-finger drag). An app cannot request pass-through itself, so
+nothing on Klangten's side can work around such a build.
+
 ## Build
 
 Needs the Android SDK with NDK r28 (`~/Library/Android/sdk`), Java 17, a host
@@ -48,6 +60,18 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
   microphone permission, locale, system keyboard). `GestureView.java` recognises
   the iOS gesture vocabulary (1–4 fingers, swipes, taps, double taps, long press)
   and feeds the input queue that `IOSTouchInput` drains. The Back key is Escape.
+- **Files.** HOME is the app's private `files` directory, so the iOS idea of
+  "Documents as the only root" does not carry over (the file manager and every
+  file dialog used to start in a `files/Documents` that did not exist). On
+  Android `EltenSystemHelpers.logical_drives` lists the shared storage
+  ("Internal storage") and Klangten's own folder on it
+  (`Android/data/it.sixdots.klangten/files`, `Host.storageJson`), followed by
+  Download, Documents and Music. Seeing other apps' files needs "All files
+  access" (`MANAGE_EXTERNAL_STORAGE`, a settings page; storage permissions below
+  Android 11): the file manager offers it once per session and in its context
+  menu (`Host.storageRequest`). That page needs TalkBack. Fine for our own APK;
+  Google Play would restrict this permission. "Open in an associated
+  application" does not work yet (it would need a `content://` FileProvider).
 - `android_boot.rb` rebuilds the CA bundle from the system roots into
   `resources/ssl/cert.pem` at every start, where `src/eapi/tls.rb` reads it.
 - `app/src/main/cpp/klangten_jni.c` → `libklangten.so`: the JNI entry point plus
@@ -87,7 +111,7 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
 ## Next steps
 
 1. Walk through first-run setup, login and the main scenes on a real device;
-   fix what the iOS layer assumes about iOS (paths, file manager root, audio focus).
+   fix what the iOS layer assumes about iOS (paths, audio focus).
 2. Hardware keyboard: map Android key events to the virtual keys the scenes read.
 3. YouTube via NewPipeExtractor (see below).
 4. Release signing, more ABIs, update path for side-loaded APKs.

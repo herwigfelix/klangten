@@ -7,6 +7,13 @@
     <!-- Self-update from the GitHub releases (Host.installPackage): the system
          package installer asks the user before anything is installed. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- File manager: the whole shared storage (Downloads, Music, ...). Android 11
+         and newer grant it on a settings page ("All files access"), older versions
+         through the storage permissions (Host.storageRequest). Without it the file
+         manager still browses Klangten's own folder. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
 
     <!-- Android 11 and newer hide other apps: without this Klangten only ever
          sees Google's engine, not Samsung/Vocalizer or any other installed one. -->
@@ -19,7 +26,8 @@
     <application
         android:label="Klangten"
         android:extractNativeLibs="false"
-        android:allowBackup="false">
+        android:allowBackup="false"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

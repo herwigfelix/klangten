@@ -6,8 +6,10 @@
 // Full-screen touch surface. Recognises the same gesture vocabulary as the iOS
 // host (swipes and taps with one to four fingers, double taps, long press) and
 // pushes the same names ("gesture:two_finger_swipe_up", ...) into the input
-// queue; src/platforms/ios/ui/touchinput.rb maps them to keys. TalkBack must be
-// off: with explore-by-touch the system would consume these touches.
+// queue; src/platforms/ios/ui/touchinput.rb maps them to keys. A screen reader
+// must be off or pass the touches through (TalkOver's gaming mode with Klangten
+// selected): with explore-by-touch the system turns them into hover events or
+// its own gestures, and nothing arrives here.
 package it.sixdots.klangten;
 
 import android.content.Context;

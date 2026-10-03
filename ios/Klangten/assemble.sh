@@ -28,6 +28,10 @@ CRUBY="$HERE/vendor/cruby"
 #   BUNDLE_ID=it.sixdots.klangten          # optional, a unique bundle id
 [ -f "$HERE/signing.env" ] && . "$HERE/signing.env"
 BUNDLE_ID="${BUNDLE_ID:-it.sixdots.klangten}"
+# Die Fassung kommt aus derselben Quelle wie auf den anderen Plattformen; die
+# Build-Nummer muss fuer jeden Upload zu App Store Connect steigen.
+MARKETING_VERSION="$(sed -n 's/.*VERSION = "\([0-9.]*\)".*/\1/p' "$REPO/src/eltenlink/klangten_config.rb" | head -1)"
+BUILD_NUMBER="${BUILD_NUMBER:-1}"
 SIGN=""
 if [ -n "${DEVELOPMENT_TEAM:-}" ]; then
   SIGN=$(printf '        DEVELOPMENT_TEAM: %s\n        CODE_SIGN_STYLE: Automatic' "$DEVELOPMENT_TEAM")
@@ -98,7 +102,7 @@ cat <<YAML
 name: Klangten
 options:
   bundleIdPrefix: it.sixdots
-  deploymentTarget: { iOS: "18.0" }
+  deploymentTarget: { iOS: "18.5" }
   createIntermediateGroups: true
 targets:
   Klangten:
@@ -131,15 +135,20 @@ targets:
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         UIBackgroundModes: [audio]
+        # Nur HTTPS/TLS des Systems und von OpenSSL: von der Exportmeldung befreit.
+        ITSAppUsesNonExemptEncryption: false
         NSMicrophoneUsageDescription: Klangten uses the microphone for voice messages and conferences.
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $BUNDLE_ID
 $SIGN
-        TARGETED_DEVICE_FAMILY: "1,2"
-        MARKETING_VERSION: "0.2.0"
-        CURRENT_PROJECT_VERSION: "1"
+        # Nur iPhone: eine iPad-App muesste alle vier Ausrichtungen koennen und
+        # braeuchte eigene Bildschirmfotos; auf dem iPad laeuft sie trotzdem.
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: "$MARKETING_VERSION"
+        CURRENT_PROJECT_VERSION: "$BUILD_NUMBER"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.0"
         ENABLE_DEBUG_DYLIB: "NO"
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Elten-Bridging-Header.h

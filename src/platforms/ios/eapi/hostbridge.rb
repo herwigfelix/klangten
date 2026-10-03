@@ -116,6 +116,29 @@ module IOSHostBridge
       true
     end
 
+    # Android only: { shared:, app:, access: } - the shared storage root,
+    # Klangten's own folder on it and whether all of the shared storage may be
+    # read and written. nil where the host has no such entry point (iOS).
+    def storage_info
+      json = call_string(:storage_json)
+      return nil if json == ""
+      require "json" unless defined?(JSON)
+      data = JSON.parse(json)
+      { shared: data["shared"].to_s, app: data["app"].to_s, access: data["access"] == true }
+    rescue Exception
+      nil
+    end
+
+    # Android only: :granted, :opened (the settings page or permission dialog
+    # was shown; the answer comes later) or :failed.
+    def request_storage_access
+      case call_int(:storage_request)
+      when 1 then :granted
+      when 2 then :opened
+      else :failed
+      end
+    end
+
     def current_locale_name
       call_string(:locale)
     end

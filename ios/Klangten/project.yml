@@ -34,6 +34,8 @@ targets:
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         UIBackgroundModes: [audio]
+        # Nur HTTPS/TLS des Systems und von OpenSSL: von der Exportmeldung befreit.
+        ITSAppUsesNonExemptEncryption: false
         NSMicrophoneUsageDescription: Klangten uses the microphone for voice messages and conferences.
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
     settings:
@@ -41,9 +43,12 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: it.sixdots.klangten
         DEVELOPMENT_TEAM: XJ3N4HV6L6
         CODE_SIGN_STYLE: Automatic
-        TARGETED_DEVICE_FAMILY: "1,2"
-        MARKETING_VERSION: "0.2.0"
+        # Nur iPhone: eine iPad-App muesste alle vier Ausrichtungen koennen und
+        # braeuchte eigene Bildschirmfotos; auf dem iPad laeuft sie trotzdem.
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: "0.2.3"
         CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.0"
         ENABLE_DEBUG_DYLIB: "NO"
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Elten-Bridging-Header.h

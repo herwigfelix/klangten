@@ -109,10 +109,15 @@ module EltenAPI
 
       # Only where the output can say whether it is still speaking; NVDA and
       # other screen readers keep their own queue and handle long text fine.
+      # Outputs are classes whose methods are singleton methods, so the
+      # fallback lives in SpeechOutput's singleton class, not in SpeechOutput:
+      # comparing against SpeechOutput let NVDA through, every part replaced
+      # the one before, and NVDA started reading in the middle of the text.
       def speech_stream_supported?(output = speech_output)
         return false if output == nil
         return false unless output.respond_to?(:speaking?)
-        output.method(:speaking?).owner != SpeechOutput
+        owner = output.method(:speaking?).owner
+        owner != SpeechOutput && owner != SpeechOutput.singleton_class
       rescue Exception
         false
       end

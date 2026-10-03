@@ -63,7 +63,7 @@ static jstring jstr(JNIEnv *env, const char *value) {
 
 // Returned strings stay valid until the same function is called again, like
 // the CStringHolder on iOS.
-enum { S_VOICES, S_ENGINES, S_ENGINE, S_CLIPBOARD, S_LOCALE, S_OS, S_LIBDIR, S_INPUT, S_YOUTUBE, S_COUNT };
+enum { S_VOICES, S_ENGINES, S_ENGINE, S_CLIPBOARD, S_LOCALE, S_OS, S_LIBDIR, S_INPUT, S_YOUTUBE, S_STORAGE, S_COUNT };
 static char *g_strings[S_COUNT];
 static pthread_mutex_t g_strings_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -247,6 +247,13 @@ EXPORT int elten_host_microphone_request(double timeout) {
     clear_exception(env);
     return result;
 }
+
+// --- storage (file manager, file dialogs; Android only) --------------------------------
+// {"shared": <shared storage root>, "app": <Klangten's own folder>, "access": true|false}
+
+EXPORT const char *elten_host_storage_json(void) { return call_string(S_STORAGE, "storageJson"); }
+// 1 = access granted, 2 = settings page / permission dialog opened, 0 = failure.
+EXPORT int elten_host_storage_request(void) { return call_int("storageRequest"); }
 
 // --- system on-screen keyboard ---------------------------------------------------------
 

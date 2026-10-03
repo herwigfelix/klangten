@@ -30,10 +30,64 @@ module EltenSystemHelpers
     # the Files app (UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace),
     # so it is the only sensible root: everything the user can reach from outside
     # the app is here, and nothing above it is writable anyway.
+    #
+    # Android has no such directory: HOME is the app's private files directory,
+    # where nothing can be seen or put from outside, and HOME/Documents does
+    # not even exist - so the file manager and every file dialog started in a
+    # directory that was not there and could not open anything. Android lists
+    # the shared storage and Klangten's own folder on it instead (see
+    # android_storage below).
     def logical_drives
+      return android_logical_drives if android?
       [documents_dir]
     rescue Exception
       [container_root]
+    end
+
+    # Name a files tree shows for one of logical_drives; nil keeps the path.
+    def drive_label(path)
+      return nil if !android?
+      storage = android_storage
+      return p_("Klangten", "Internal storage") if same_path?(path, storage[:shared])
+      return p_("Klangten", "Klangten folder") if same_path?(path, storage[:app])
+      nil
+    rescue Exception
+      nil
+    end
+
+    # Shortcuts a files tree lists after the drives, as [label, path]; nil
+    # keeps the default (Desktop, Documents, Music). On Android these are the
+    # shared folders other apps use too; folders that do not exist are left out.
+    def file_shortcuts
+      return nil if !android?
+      shared = android_storage[:shared]
+      return [] if shared == ""
+      [
+        [p_("Klangten", "Downloads"), "Download"],
+        [p_("EAPI_Form", "Documents"), "Documents"],
+        [p_("EAPI_Form", "Music"), "Music"]
+      ].map { |label, name| [label, File.join(shared, name)] }.select { |_label, path| File.directory?(path) }
+    rescue Exception
+      nil
+    end
+
+    # Android only: true while Klangten sees just its own files in the shared
+    # storage and the user could grant more (see request_storage_access).
+    def storage_access_missing?
+      return false if !android?
+      storage = android_storage
+      storage[:shared] != "" && storage[:access] != true
+    rescue Exception
+      false
+    end
+
+    # Android only: opens the system page (or dialog) that grants access to all
+    # files. :granted, :opened or :failed; see IOSHostBridge.request_storage_access.
+    def request_storage_access
+      return :failed if !android? || !defined?(IOSHostBridge) || !IOSHostBridge.respond_to?(:request_storage_access)
+      IOSHostBridge.request_storage_access
+    rescue Exception
+      :failed
     end
 
     def appdata_dir
@@ -44,15 +98,20 @@ module EltenSystemHelpers
       home_dir
     end
 
+    # On Android file dialogs start here: the shared folder when Klangten may
+    # use it, otherwise Klangten's own folder.
     def documents_dir
+      return android_shared_dir("Documents") if android?
       File.join(home_dir, "Documents")
     end
 
     def desktop_dir
+      return android_shared_dir("Download") if android?
       documents_dir
     end
 
     def music_dir
+      return android_shared_dir("Music") if android?
       documents_dir
     end
 
@@ -336,6 +395,39 @@ module EltenSystemHelpers
       home_dir
     rescue Exception
       "/"
+    end
+
+    # Android: { shared:, app:, access: } from the host. Without a host (tools,
+    # an older APK) the app folder falls back to HOME/Documents.
+    def android_storage
+      info = defined?(IOSHostBridge) && IOSHostBridge.respond_to?(:storage_info) ? IOSHostBridge.storage_info : nil
+      info ||= { shared: "", app: "", access: false }
+      if info[:app] == "" || !File.directory?(info[:app])
+        fallback = File.join(home_dir, "Documents")
+        Dir.mkdir(fallback) rescue nil
+        info = info.merge(app: fallback)
+      end
+      info = info.merge(shared: "") if info[:shared] != "" && !File.directory?(info[:shared])
+      info
+    end
+
+    def android_logical_drives
+      storage = android_storage
+      [storage[:shared], storage[:app]].reject { |path| path.to_s == "" }
+    end
+
+    def android_shared_dir(name)
+      storage = android_storage
+      if storage[:access] && storage[:shared] != ""
+        path = File.join(storage[:shared], name)
+        return path if File.directory?(path)
+      end
+      storage[:app]
+    end
+
+    def same_path?(a, b)
+      return false if a.to_s == "" || b.to_s == ""
+      a.to_s.tr("\\", "/").chomp("/") == b.to_s.tr("\\", "/").chomp("/")
     end
 
     def frameworks_dirs

@@ -66,12 +66,15 @@ class Clipboard
       value
     end
 
+    # The system pasteboard carries no file paths here, so files copied in a
+    # files tree are kept inside Klangten until they are pasted. Without this
+    # "Copy" announced success and "Paste" silently did nothing.
     def files
-      []
+      Array(@files).select { |path| File.exist?(path) }
     end
 
-    def files=(_paths)
-      nil
+    def files=(paths)
+      @files = Array(paths).map(&:to_s).reject(&:empty?)
     end
 
     private

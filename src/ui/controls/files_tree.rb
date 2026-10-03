@@ -1,5 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
@@ -109,13 +110,23 @@ super
               if @path == ""
           @disks=EltenSystemHelpers.logical_drives
 drive_files=@disks.map{|drive|tree_root_path(drive)}
+# Klangten: a platform may name its drives and choose the shortcuts below them
+# (Android: "Internal storage", "Klangten folder", then Downloads, Documents and
+# Music of the shared storage); the others keep paths and Desktop/Documents/Music.
+shortcuts=EltenSystemHelpers.respond_to?(:file_shortcuts) ? EltenSystemHelpers.file_shortcuts : nil
+if shortcuts!=nil
+@adds=shortcuts.map{|item|item[0]}
+@addfiles=shortcuts.map{|item|item[1]}
+else
 @adds=[p_("EAPI_Form", "Desktop"),p_("EAPI_Form", "Documents"),p_("EAPI_Form", "Music")]
 @addfiles=[Dirs.desktop,Dirs.documents,Dirs.music]
+end
+drive_labels=@disks.map{|drive|(EltenSystemHelpers.respond_to?(:drive_label) && EltenSystemHelpers.drive_label(drive)) || drive}
 ind=drive_files.find_index(tree_root_path(@file))
 ind=0 if ind==nil
                 h=""
 h=@header if init==true
-@sel=ListBox.new(@disks+@adds, header: h, index: ind, flags: 0, quiet: false)
+@sel=ListBox.new(drive_labels+@adds, header: h, index: ind, flags: 0, quiet: false)
 @sel.on(:move) {|arg|trigger(:move, arg)}
       @sel.silent=true if @specialvoices
       @files=drive_files+@addfiles
@@ -189,7 +200,13 @@ if (key_pressed?(:key_right) or @go == true) and File.directory?(cfile(true))
     end
 if key_pressed?(:key_left) and @path.size>0
   p=tree_path_with_separator(@path)
-  if tree_root_path?(p)
+  # Klangten: a drive that is a directory (Android's storage roots) leads back to
+  # the drive list as well, not into parents the app may not read.
+  drive=platform_drive(p)
+  if drive!=nil
+    @file=drive
+    @path=""
+  elsif tree_root_path?(p)
     @file=tree_root_path(p)
     @path=""
   else
@@ -204,6 +221,19 @@ end
 end
 $filestrees[@id]=[@path,@file]
 end
+
+# Klangten: the entry of EltenSystemHelpers.logical_drives that path is, or nil.
+# Only for platforms whose drives are app folders (iOS, Android: those naming
+# their drives); desktop volumes keep leading up into their parent directory.
+def platform_drive(path)
+  return nil if !EltenSystemHelpers.respond_to?(:drive_label)
+  value=EltenPath.normalize(path).chomp("/")
+  return nil if value==""
+  EltenSystemHelpers.logical_drives.map{|drive|tree_root_path(drive)}.find{|drive|drive.chomp("/")==value}
+rescue StandardError
+  nil
+end
+private :platform_drive
 
 def current_directory_available?
   File.directory?(@path)

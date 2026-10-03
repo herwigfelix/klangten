@@ -24877,3 +24877,27 @@ msgstr "Nicht stören: Anrufe stummgeschaltet"
 msgctxt "EAPI_Common"
 msgid "Do not disturb: all muted"
 msgstr "Nicht stören: alles stummgeschaltet"
+
+msgctxt "Klangten"
+msgid "Internal storage"
+msgstr "Interner Speicher"
+
+msgctxt "Klangten"
+msgid "Klangten folder"
+msgstr "Klangten-Ordner"
+
+msgctxt "Klangten"
+msgid "Downloads"
+msgstr "Downloads"
+
+msgctxt "Klangten"
+msgid "Allow access to all files"
+msgstr "Zugriff auf alle Dateien erlauben"
+
+msgctxt "Klangten"
+msgid "The settings page cannot be opened."
+msgstr "Die Einstellungsseite kann nicht geöffnet werden."
+
+msgctxt "Klangten"
+msgid "Klangten can only see its own files in the internal storage. To browse Downloads, Music and all your other files, allow Klangten access to all files. Android asks for this on a system settings page, which Klangten cannot read aloud: turn on TalkBack there if you need it, switch the access on and come back to Klangten. Open the settings page now?"
+msgstr "Klangten sieht im internen Speicher nur seine eigenen Dateien. Um Downloads, Musik und alle anderen Dateien zu durchsuchen, erlauben Sie Klangten den Zugriff auf alle Dateien. Android fragt danach auf einer Einstellungsseite, die Klangten nicht vorlesen kann: Schalten Sie dort bei Bedarf TalkBack ein, aktivieren Sie den Zugriff und kehren Sie zu Klangten zurück. Einstellungsseite jetzt öffnen?"

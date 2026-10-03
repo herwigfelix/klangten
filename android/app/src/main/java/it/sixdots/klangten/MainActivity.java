@@ -5,7 +5,8 @@
 //
 // The Android host: a full-screen gesture surface plus a hidden text field for
 // the system keyboard, and the embedded Ruby core on its own thread
-// (app/ruby/android_boot.rb). Klangten speaks for itself; TalkBack must be off.
+// (app/ruby/android_boot.rb). Klangten speaks for itself; TalkBack must be off
+// (TalkOver may stay on with Klangten in its gaming mode, see docs/android.md).
 //
 // For automated tests the entry script and gestures can be driven by intents:
 //   adb shell am start -n it.sixdots.klangten/.MainActivity --es entry probe.rb
