@@ -28,6 +28,14 @@ private final class CStringHolder {
 
 private let hostSpeech = AVSpeechSynthesizer()
 
+// Debug builds only: KLANGTEN_MUTE=1 silences speech and every BASS sound, for
+// automated simulator runs on a machine where someone is working.
+#if DEBUG
+let hostMuted = ProcessInfo.processInfo.environment["KLANGTEN_MUTE"] == "1"
+#else
+let hostMuted = false
+#endif
+
 private func mapRate(_ rate: Int32) -> Float {
     // Elten rate 0..100 -> AVSpeechUtterance min..max
     let clamped = max(0, min(100, Int(rate)))
@@ -60,7 +68,7 @@ public func elten_host_speech_speak(_ text: UnsafePointer<CChar>?, _ voice: Unsa
         let utterance = AVSpeechUtterance(string: string)
         if !voiceId.isEmpty { utterance.voice = AVSpeechSynthesisVoice(identifier: voiceId) }
         utterance.rate = mapRate(rate)
-        utterance.volume = max(0, min(100, Float(volume))) / 100.0
+        utterance.volume = hostMuted ? 0 : max(0, min(100, Float(volume))) / 100.0
         utterance.pitchMultiplier = 0.5 + max(0, min(100, Float(pitch))) / 100.0
         hostSpeech.speak(utterance)
         EltenGestureViewController.current?.showSpokenText(string, interrupt: interrupt != 0)
@@ -158,6 +166,13 @@ public func elten_host_system_keyboard_show() {
     DispatchQueue.main.async { EltenGestureViewController.current?.showSystemKeyboard() }
 }
 
+// The same keyboard for a password field: typed text is hidden and kept out of
+// suggestions and the keyboard's learning.
+@_cdecl("elten_host_system_keyboard_show_secure")
+public func elten_host_system_keyboard_show_secure() {
+    DispatchQueue.main.async { EltenGestureViewController.current?.showSystemKeyboard(secure: true) }
+}
+
 @_cdecl("elten_host_system_keyboard_hide")
 public func elten_host_system_keyboard_hide() {
     DispatchQueue.main.async { EltenGestureViewController.current?.hideSystemKeyboard() }
@@ -180,7 +195,8 @@ public func eltenHostBridgeKeepAlive() {
         elten_host_speech_resume, elten_host_clipboard_get, elten_host_clipboard_set,
         elten_host_open_url, elten_host_microphone_request, elten_host_locale,
         elten_host_os_version, elten_host_frameworks_path, elten_host_next_input,
-        elten_host_system_keyboard_show, elten_host_system_keyboard_hide,
+        elten_host_system_keyboard_show, elten_host_system_keyboard_show_secure,
+        elten_host_system_keyboard_hide,
         elten_host_system_keyboard_visible,
     ]
     if keep.count == 0 { fatalError() } // never true; prevents the array being optimised away

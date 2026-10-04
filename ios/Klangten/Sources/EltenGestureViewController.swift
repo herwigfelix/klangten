@@ -128,7 +128,7 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
 
     var systemKeyboardVisible: Bool { textEntryField.isFirstResponder }
 
-    func showSystemKeyboard() {
+    func showSystemKeyboard(secure: Bool = false) {
         // Hand the screen over to the system keyboard: the self-voicing surface
         // must stop swallowing touches (direct interaction) and VoiceOver focus
         // must land on the text field, otherwise blind users cannot type.
@@ -139,6 +139,15 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
                                       width: view.bounds.width - 32, height: 44)
         textEntryField.isHidden = false
         textEntryField.isAccessibilityElement = true
+        textEntryField.isSecureTextEntry = secure
+        #if DEBUG
+        NSLog("[Klangten] system keyboard, secure: %@", secure ? "yes" : "no")
+        #endif
+        textEntryField.textContentType = secure ? .password : nil
+        textEntryField.autocorrectionType = secure ? .no : .default
+        let german = Locale.preferredLanguages.first?.hasPrefix("de") == true
+        textEntryField.accessibilityLabel = secure ? (german ? "Passwort" : "Password")
+                                                   : (german ? "Texteingabe" : "Text input")
         textEntryField.text = ""
         textEntryField.becomeFirstResponder()
         UIAccessibility.post(notification: .screenChanged, argument: textEntryField)
@@ -211,7 +220,10 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
         addSwipe(.up, 2, "two_finger_swipe_up")
         addSwipe(.right, 3, "three_finger_swipe_right"); addSwipe(.left, 3, "three_finger_swipe_left")
         addSwipe(.up, 3, "three_finger_swipe_up"); addSwipe(.down, 3, "three_finger_swipe_down")
-        addTap(2, 3, "three_finger_double_tap")
+        let threeDouble = addTap(2, 3, "three_finger_double_tap")
+        // Space. Waits until a double tap is ruled out, otherwise opening the
+        // keyboard with a three-finger double tap would type a space first.
+        addTap(1, 3, "three_finger_tap").require(toFail: threeDouble)
     }
 
     private func addSwipe(_ dir: UISwipeGestureRecognizer.Direction, _ fingers: Int, _ name: String) {
@@ -221,11 +233,13 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
         view.addGestureRecognizer(g)
     }
 
-    private func addTap(_ taps: Int, _ fingers: Int, _ name: String) {
+    @discardableResult
+    private func addTap(_ taps: Int, _ fingers: Int, _ name: String) -> UITapGestureRecognizer {
         let g = UITapGestureRecognizer(target: self, action: #selector(onTap(_:)))
         g.numberOfTapsRequired = taps; g.numberOfTouchesRequired = fingers
         g.name = name
         view.addGestureRecognizer(g)
+        return g
     }
 
     @objc private func onSwipe(_ g: UISwipeGestureRecognizer) { if let n = g.name { EltenInputQueue.shared.pushGesture(n) } }

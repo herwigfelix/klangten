@@ -54,8 +54,16 @@ true
 rescue Exception
 false
 end
+    # Klangten: whether a password field had the focus a moment ago. An edit
+    # box only updates while it has the focus, so the touch layer can tell the
+    # system keyboard to hide what is typed.
+    def self.password_focused?(within = 0.5)
+      @@password_focused_at ||= nil
+      @@password_focused_at != nil && Process.clock_gettime(Process::CLOCK_MONOTONIC) - @@password_focused_at <= within
+    end
     def update
 super
+@@password_focused_at = (@flags&Flags::Password)!=0 ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : nil
 focus if @audioplayer==nil and @audiotext!="" and @audiotext!=nil
 if @selected==true
 play_sound("editbox_textselected")
@@ -70,7 +78,7 @@ end
       oldtext=@text.dup
       if @audioplayer!=nil and key_pressed?(:key_escape)
           blur
-      elsif @audioplayer!=nil && key_first_pressed?(0x20)
+      elsif @audioplayer!=nil && (key_first_pressed?(0x20) || touch_activate!)
         if @audioplayer.paused?
           Programs.emit_event(:player_play)
           dialog_mute
@@ -1813,6 +1821,8 @@ end
       end
     end
     def key_processed(k)
+      # Klangten: on touch devices a double tap plays or pauses an attached recording.
+      return true if k==:enter && @audioplayer!=nil && touch_ui?
       return false if k==:enter && (modifier_held?(:main_modifier) || (@flags&Flags::MultiLine)==0)
      return true
    end
@@ -1829,8 +1839,11 @@ end
      end
      def tips
                 tips=[]
-       # Keyboard-only quick navigation; there are no gestures for it.
-       return tips if touch_ui?
+       if touch_ui?
+         # Keyboard-only quick navigation has no gestures.
+         tips.push(p_("EAPI_Form", "Double tap to play or pause the recording")) if @audioplayer!=nil
+         return tips
+       end
        if (@flags&Flags::HTML)>0 || (@flags&Flags::MarkDown)>0
          tips.push(p_("EAPI_Form", "Use H or the number keys 1 to 6 to navigate to the next heading"))
          tips.push(p_("EAPI_Form", "Use k to navigate to the next link"))

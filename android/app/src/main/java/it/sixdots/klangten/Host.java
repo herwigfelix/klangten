@@ -410,7 +410,14 @@ final class Host {
 
     static void keyboardShow() {
         MainActivity current = activity;
-        if (current != null) main.post(current::showKeyboard);
+        if (current != null) main.post(() -> current.showKeyboard(false));
+    }
+
+    // A password field has the focus: the keyboard hides what is typed and
+    // offers no suggestions.
+    static void keyboardShowSecure() {
+        MainActivity current = activity;
+        if (current != null) main.post(() -> current.showKeyboard(true));
     }
 
     static void keyboardHide() {

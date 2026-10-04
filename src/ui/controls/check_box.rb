@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: a double tap ticks and unticks on touch devices.
 
 module EltenAPI
   module Controls
@@ -29,7 +30,7 @@ module EltenAPI
         def update
 super
   focus(nil, nil, true,false) if key_held?(0x2D) and key_pressed?(:key_up)
-          if key_pressed?(:key_space)
+          if key_pressed?(:key_space) || touch_activate!
             if @checked == true
               @checked = false
               alert(p_("EAPI_Form", "unchecked"), false)
@@ -64,7 +65,8 @@ super
         end
 
         def key_processed(k)
-          if k==:space
+          # On touch the double tap (Enter) ticks the box instead of submitting the form.
+          if k==:space || (k==:enter && touch_ui?)
             return true
           else
             return false

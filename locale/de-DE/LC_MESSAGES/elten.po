@@ -24901,3 +24901,31 @@ msgstr "Die Einstellungsseite kann nicht geöffnet werden."
 msgctxt "Klangten"
 msgid "Klangten can only see its own files in the internal storage. To browse Downloads, Music and all your other files, allow Klangten access to all files. Android asks for this on a system settings page, which Klangten cannot read aloud: turn on TalkBack there if you need it, switch the access on and come back to Klangten. Open the settings page now?"
 msgstr "Klangten sieht im internen Speicher nur seine eigenen Dateien. Um Downloads, Musik und alle anderen Dateien zu durchsuchen, erlauben Sie Klangten den Zugriff auf alle Dateien. Android fragt danach auf einer Einstellungsseite, die Klangten nicht vorlesen kann: Schalten Sie dort bei Bedarf TalkBack ein, aktivieren Sie den Zugriff und kehren Sie zu Klangten zurück. Einstellungsseite jetzt öffnen?"
+
+msgctxt "EAPI_Form"
+msgid "Double tap to tick or untick an item"
+msgstr "Doppeltippen hakt einen Eintrag an oder ab"
+
+msgctxt "EAPI_Form"
+msgid "Tap with three fingers to play the recording of an item"
+msgstr "Tippen mit drei Fingern spielt die Aufnahme eines Eintrags ab"
+
+msgctxt "EAPI_Form"
+msgid "Double tap to play or pause"
+msgstr "Doppeltippen spielt ab oder pausiert"
+
+msgctxt "EAPI_Form"
+msgid "Press and hold for the player menu: position, duration, chapters"
+msgstr "Lange drücken öffnet das Player-Menü: Position, Dauer, Kapitel"
+
+msgctxt "EAPI_Form"
+msgid "Double tap to play or pause the recording"
+msgstr "Doppeltippen spielt die Aufnahme ab oder pausiert sie"
+
+msgctxt "WelcomeWizard"
+msgid "Swipe right and left with three fingers to move between the fields and buttons on a page, and double tap to activate the one you hear: a double tap also ticks or unticks a checkbox, and an item in a list where several can be chosen. Use the Next and Back buttons to move between pages; skip anything that does not interest you. Nothing is applied until you choose Finish on the last page, and you can leave at any time by swiping left with two fingers."
+msgstr "Mit drei Fingern nach rechts oder links wischen Sie zwischen den Feldern und Schaltflächen einer Seite, mit einem Doppeltippen aktivieren Sie das, was Sie gerade hören: Ein Doppeltippen hakt auch ein Kontrollkästchen an oder ab, ebenso einen Eintrag in einer Liste, in der man mehrere auswählen kann. Mit Weiter und Zurück wechseln Sie zwischen den Seiten; alles, was Sie nicht interessiert, können Sie überspringen. Es wird nichts übernommen, bevor Sie auf der letzten Seite Fertig stellen wählen, und Sie können den Assistenten jederzeit mit einem Wisch nach links mit zwei Fingern verlassen."
+
+msgctxt "WelcomeWizard"
+msgid "Voice messages, audio blog posts and other recordings all share the same player. Double tap to play or pause, swipe left or right to skip backwards or forwards, swipe up or down to change the volume, and swipe up or down with two fingers to change the pitch. Press and hold to open the player menu, which reads the position, the duration and the chapters. A tap with three fingers works like the space bar: in a list it plays the recorded title of an entry, and in the file manager it plays the selected file."
+msgstr "Sprachnachrichten, Audio-Blogbeiträge und andere Aufnahmen teilen sich denselben Player. Doppeltippen spielt ab oder pausiert, nach links oder rechts wischen springt zurück oder vor, nach oben oder unten wischen ändert die Lautstärke, und mit zwei Fingern nach oben oder unten wischen ändert die Tonhöhe. Lange drücken öffnet das Player-Menü, das Position, Dauer und Kapitel ansagt. Tippen mit drei Fingern wirkt wie die Leertaste: In einer Liste spielt es den aufgenommenen Titel eines Eintrags ab, im Dateimanager die ausgewählte Datei."

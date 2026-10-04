@@ -3760,7 +3760,7 @@ if post.edited && !post.locked
               cur -= 2
               cur = -1 if cur < -1
             end
-            if key_pressed?(:key_space)
+            if key_pressed?(:key_space) || touch_activate!
               speech_togglepause
             end
             if key_pressed?(:key_escape)

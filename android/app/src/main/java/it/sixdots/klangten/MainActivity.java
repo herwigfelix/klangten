@@ -119,7 +119,10 @@ public final class MainActivity extends Activity {
         return super.onKeyDown(keyCode, event);
     }
 
-    void showKeyboard() {
+    void showKeyboard(boolean secure) {
+        textField.setInputType(secure
+                ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD
+                : InputType.TYPE_CLASS_TEXT);
         textField.setText("");
         textField.requestFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);

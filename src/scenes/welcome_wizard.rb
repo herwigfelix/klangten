@@ -3,7 +3,7 @@
 
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: fork notice, EltenLink-only pages and links removed; conference, feed, source code and thanks pages describe Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: fork notice, EltenLink-only pages and links removed; conference, feed, source code and thanks pages describe Klangten; touch hints for the double tap and the three-finger tap.
 
 require "date"
 
@@ -99,7 +99,7 @@ class Scene_WelcomeWizard
   # How to move around a wizard page: keys on the desktop, gestures on a phone.
   def navigation_hint
     if touch_ui?
-      p_("WelcomeWizard", "Swipe right and left with three fingers to move between the fields and buttons on a page, double tap to activate the one you hear, and use the Next and Back buttons to move between pages; skip anything that does not interest you. Nothing is applied until you choose Finish on the last page, and you can leave at any time by swiping left with two fingers.")
+      p_("WelcomeWizard", "Swipe right and left with three fingers to move between the fields and buttons on a page, and double tap to activate the one you hear: a double tap also ticks or unticks a checkbox, and an item in a list where several can be chosen. Use the Next and Back buttons to move between pages; skip anything that does not interest you. Nothing is applied until you choose Finish on the last page, and you can leave at any time by swiping left with two fingers.")
     else
       p_("WelcomeWizard", "Use Tab and Shift+Tab to move between the fields and buttons on a page, and the Next and Back buttons to move between pages; skip anything that does not interest you. Nothing is applied until you choose Finish on the last page, and you can leave at any time by pressing Escape.")
     end
@@ -320,7 +320,7 @@ class Scene_WelcomeWizard
       "Ctrl"
     end
     text = if touch_ui?
-      p_("WelcomeWizard", "Voice messages, audio blog posts and other recordings all share the same player. Swipe left or right to skip backwards or forwards, swipe up or down to change the volume, and swipe up or down with two fingers to change the pitch. Press and hold to open the player menu, which plays and pauses and reads the position, the duration and the chapters.")
+      p_("WelcomeWizard", "Voice messages, audio blog posts and other recordings all share the same player. Double tap to play or pause, swipe left or right to skip backwards or forwards, swipe up or down to change the volume, and swipe up or down with two fingers to change the pitch. Press and hold to open the player menu, which reads the position, the duration and the chapters. A tap with three fingers works like the space bar: in a list it plays the recorded title of an entry, and in the file manager it plays the selected file.")
     else
       p_("WelcomeWizard", "Voice messages, audio blog posts and other recordings all share the same player controls. The spacebar pauses and resumes playback, the Left and Right Arrows skip backwards or forwards, and the Up and Down Arrows adjust the playback volume. Holding %{modifier} with the Up and Down Arrows speeds a recording up or slows it down, and Backspace restores the default playback settings.") % { modifier: modifier }
     end

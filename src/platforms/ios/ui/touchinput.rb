@@ -33,6 +33,7 @@ module IOSTouchInput
   ENDKEY = 0x23
   PAGEUP = 0x21
   PAGEDOWN = 0x22
+  SPACE = 0x20
 
   # gesture symbol => [action, *args]. This is the complete "everything the
   # keyboard does" surface, grouped by finger count so it stays memorable.
@@ -59,6 +60,9 @@ module IOSTouchInput
     three_finger_swipe_up:    [:tap, HOME],
     three_finger_swipe_down:  [:tap, ENDKEY],
     three_finger_double_tap:  [:toggle_keyboard],
+    # Space where it does something besides the double tap: the recording of a
+    # list item, previewing a file, pausing a running read-out.
+    three_finger_tap:         [:tap, SPACE],
 
     # four fingers — page / keyboard fallback
     four_finger_swipe_up:     [:tap, PAGEUP],
@@ -99,6 +103,7 @@ module IOSTouchInput
     three_finger_swipe_up: "First (Home)",
     three_finger_swipe_down: "Last (End)",
     three_finger_double_tap: "Toggle on-screen keyboard",
+    three_finger_tap: "Space (play a recording, preview a file)",
     four_finger_swipe_up: "Page up",
     four_finger_swipe_down: "Page down",
     four_finger_double_tap: "Toggle on-screen keyboard"
@@ -148,13 +153,20 @@ module IOSTouchInput
         if IOSHostBridge.system_keyboard_visible?
           IOSHostBridge.system_keyboard_hide
         else
-          IOSHostBridge.system_keyboard_show
+          IOSHostBridge.system_keyboard_show(password_field_focused?)
         end
         return true
       end
       return false unless defined?(OnScreenKeyboard)
       keyboard_active? ? OnScreenKeyboard.hide : OnScreenKeyboard.show
       true
+    end
+
+    def password_field_focused?
+      defined?(EltenAPI::Controls::EditBox) && EltenAPI::Controls::EditBox.respond_to?(:password_focused?) &&
+        EltenAPI::Controls::EditBox.password_focused?
+    rescue Exception
+      false
     end
 
     def system_keyboard?

@@ -205,6 +205,24 @@ Bass::BASS_ChannelSetAttribute.call(stream, 2, volume.to_f/100.0)
       false
     end
 
+    # A double tap arrives as Enter. Where the keyboard toggles, plays or ticks
+    # with the Space bar and Enter does nothing of its own (checkboxes,
+    # multi-select lists, players, recordings in text fields), the control asks
+    # this as well, so the double tap does what Space would do.
+    def touch_activate_pressed?
+      touch_ui? && key_pressed?(:key_enter)
+    end
+
+    # The same, for the control that acts on it: the double tap is then used up
+    # for the rest of this frame. Scenes that save a whole form on Enter (the
+    # program settings, for instance) would otherwise save and close it while
+    # the double tap only ticked a box.
+    def touch_activate!
+      return false if !touch_activate_pressed?
+      $touch_enter_consumed_serial = $input_frame_serial
+      true
+    end
+
     def keyboard_action_label(action)
       binding = EltenAPI::KeyboardScheme.binding(action)
       return "" if binding == nil
@@ -265,6 +283,7 @@ Bass::BASS_ChannelSetAttribute.call(stream, 2, volume.to_f/100.0)
     end
 
     def enter_pressed?
+    return false if $touch_enter_consumed_serial != nil && $touch_enter_consumed_serial == $input_frame_serial
     raw_key_first_pressed?(:key_enter)
     end
 

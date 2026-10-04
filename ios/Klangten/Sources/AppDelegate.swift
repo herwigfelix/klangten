@@ -22,13 +22,27 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         RubyRuntime.shared.start()
         #if DEBUG
         scheduleTestGestures()
+        if hostMuted { muteBass() }
         #endif
         return true
     }
 
     #if DEBUG
+    // KLANGTEN_MUTE=1: BASS global volumes (stream 5, sample 4, music 6) to zero,
+    // repeated for a while in case the core sets them while it starts.
+    private func muteBass() {
+        typealias SetConfig = @convention(c) (UInt32, UInt32) -> Int32
+        for delay in [0.5, 2, 5, 10, 20] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                guard let sym = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "BASS_SetConfig") else { return }
+                let set = unsafeBitCast(sym, to: SetConfig.self)
+                for option: UInt32 in [4, 5, 6] { _ = set(option, 0) }
+            }
+        }
+    }
+
     // Test facility (debug builds only): KLANGTEN_GESTURES="8:swipe_down,2:double_tap"
-    // ("clear" empties the caption instead of sending a gesture)
+    // ("clear" empties the caption, "text=abc" types abc as the system keyboard would)
     // pushes each gesture after waiting the given seconds, the way the Android
     // host takes --es gesture. Set it with SIMCTL_CHILD_KLANGTEN_GESTURES for
     // `xcrun simctl launch`; used for screenshots without touching the simulator.
@@ -43,6 +57,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 NSLog("[Klangten] test gesture %@", gesture)
                 if gesture == "clear" { EltenGestureViewController.current?.clearSpokenText(); return }
+                if gesture.hasPrefix("text=") { EltenInputQueue.shared.pushKeyboardText(String(gesture.dropFirst(5))); return }
                 EltenInputQueue.shared.pushGesture(gesture)
             }
         }

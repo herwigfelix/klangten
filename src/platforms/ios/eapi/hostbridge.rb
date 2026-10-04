@@ -167,8 +167,15 @@ module IOSHostBridge
       false
     end
 
-    def system_keyboard_show
-      call_void(:system_keyboard_show)
+    # secure: a password field has the focus; the host hides what is typed and
+    # keeps the text out of suggestions. Hosts without the secure entry point
+    # fall back to the ordinary keyboard.
+    def system_keyboard_show(secure = false)
+      if secure && func(:system_keyboard_show_secure, [], Fiddle::TYPE_VOID) != nil
+        call_void(:system_keyboard_show_secure)
+      else
+        call_void(:system_keyboard_show)
+      end
     end
 
     def system_keyboard_hide

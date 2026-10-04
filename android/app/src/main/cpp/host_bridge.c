@@ -258,5 +258,6 @@ EXPORT int elten_host_storage_request(void) { return call_int("storageRequest");
 // --- system on-screen keyboard ---------------------------------------------------------
 
 EXPORT void elten_host_system_keyboard_show(void) { call_void("keyboardShow"); }
+EXPORT void elten_host_system_keyboard_show_secure(void) { call_void("keyboardShowSecure"); }
 EXPORT void elten_host_system_keyboard_hide(void) { call_void("keyboardHide"); }
 EXPORT int elten_host_system_keyboard_visible(void) { return call_int("keyboardVisible"); }

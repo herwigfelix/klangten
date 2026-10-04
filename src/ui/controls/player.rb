@@ -79,6 +79,10 @@ def update
 super
   @@focused_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
   return if @sound!=nil && @sound.closed?
+  # Klangten: on touch devices a double tap plays and pauses, as Space does.
+  if get_sound!=nil && touch_activate!
+    @pause==true ? play : pause
+  end
     boundary_action=keyboard_action_pressed?(:player_start, :player_end)
     if boundary_action==:player_start && get_sound!=nil
       get_sound.position=0
@@ -367,6 +371,11 @@ def jump_to_position
   loop_update
 end
 
+# Klangten: the double tap belongs to the player on touch devices, not to the form.
+def key_processed(k)
+  k==:enter && touch_ui?
+end
+
 def context(menu, submenu=false)
   if get_sound!=nil && !get_sound.closed?
     menu.option(p_("EAPI_Form", "Play/pause"), nil, :space) {
@@ -465,10 +474,11 @@ h=d/3600
     # On a touch device the keyboard hints would name keys that are not there;
     # these are the gestures of src/platforms/ios/ui/touchinput.rb instead.
     if touch_ui?
+      tips.push(p_("EAPI_Form", "Double tap to play or pause"))
       tips.push(p_("EAPI_Form", "Swipe left or right to seek"))
       tips.push(p_("EAPI_Form", "Swipe up or down to change playback volume"))
       tips.push(p_("EAPI_Form", "Swipe up or down with two fingers to change pitch"))
-      tips.push(p_("EAPI_Form", "Press and hold for the player menu: play or pause, position, duration, chapters"))
+      tips.push(p_("EAPI_Form", "Press and hold for the player menu: position, duration, chapters"))
       return tips
     end
     tips.push(p_("EAPI_Form", "Press the Space bar to play or pause"))

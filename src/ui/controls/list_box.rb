@@ -976,7 +976,7 @@ loop do
       @selected_now = true
       @requested_select = false
     end
-        if @selected_now || key_pressed?(:key_enter)
+        if @selected_now || (key_pressed?(:key_enter) && !touch_multi_toggle?)
       play_sound("listbox_select") if @silent == false
       trigger(:select, self.index)
     end
@@ -1023,7 +1023,7 @@ elsif oldindex == self.index and @run == true and (k.chrsize<=1 or (@options[sel
     else
       toggle_item_audio(self.index)
     end
-  elsif key_pressed?(:key_space) and @multi == true and @index>=0 and @index<@options.size
+  elsif @multi == true and (key_pressed?(:key_space) || touch_activate!) and @index>=0 and @index<@options.size
     if @selected[@index] == false
       if select_multiselection_indices([@index])!=:limit
       play_sound("listbox_statechecked", volume: 100, pitch: 100, pan: self.index.to_f/(options.size-1).to_f*100.0)
@@ -1172,7 +1172,7 @@ def tag
   return ar
   end
 def selected?
-  return ((@selected_now == true || key_pressed?(:key_enter)) && @options.size>0 && self.index>=0 && !hidden?(self.index))
+  return ((@selected_now == true || (key_pressed?(:key_enter) && !touch_multi_toggle?)) && @options.size>0 && self.index>=0 && !hidden?(self.index))
 end
 def expanded?
   return !key_held?(0x10) && ((@lr && key_pressed?(:key_down)) || (!@lr && key_pressed?(:key_right)))
@@ -1186,6 +1186,11 @@ def wait_item_available?(id)
 end
 def wait_item_at(id)
   @options[id]
+end
+# Klangten: in a multi-select list a double tap ticks the item; there is no
+# Space bar on touch devices, and Enter would otherwise submit the list.
+def touch_multi_toggle?
+  @multi==true && touch_ui?
 end
 public
 def key_processed(k)
@@ -1201,14 +1206,20 @@ def key_processed(k)
     return true
   elsif @multi==true and k==:space
     return true
+  elsif k==:enter && touch_multi_toggle?
+    return true
   else
     return false
     end
   end
   def tips
     tps=[]
-    # Selecting, filtering and the item-number keys have no gesture yet.
-    return tps if touch_ui?
+    if touch_ui?
+      # Filtering and the item-number keys have no gesture.
+      tps.push(p_("EAPI_Form", "Double tap to tick or untick an item")) if @multi
+      tps.push(p_("EAPI_Form", "Tap with three fingers to play the recording of an item")) if item_audio?(self.index)
+      return tps
+    end
         if @multi
       tps.push(p_("EAPI_Form", "Press Space to select or deselect items"))
       end
