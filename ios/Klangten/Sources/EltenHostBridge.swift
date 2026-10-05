@@ -173,6 +173,15 @@ public func elten_host_system_keyboard_show_secure() {
     DispatchQueue.main.async { EltenGestureViewController.current?.showSystemKeyboard(secure: true) }
 }
 
+// The keyboard for an edit box that already holds text: it starts with that
+// text and Return sends back the edited text, which replaces it. The string is
+// copied here, before the pointer goes back to Ruby.
+@_cdecl("elten_host_system_keyboard_show_text")
+public func elten_host_system_keyboard_show_text(_ text: UnsafePointer<CChar>?) {
+    let value = text.map { String(cString: $0) } ?? ""
+    DispatchQueue.main.async { EltenGestureViewController.current?.showSystemKeyboard(text: value) }
+}
+
 @_cdecl("elten_host_system_keyboard_hide")
 public func elten_host_system_keyboard_hide() {
     DispatchQueue.main.async { EltenGestureViewController.current?.hideSystemKeyboard() }
@@ -196,7 +205,7 @@ public func eltenHostBridgeKeepAlive() {
         elten_host_open_url, elten_host_microphone_request, elten_host_locale,
         elten_host_os_version, elten_host_frameworks_path, elten_host_next_input,
         elten_host_system_keyboard_show, elten_host_system_keyboard_show_secure,
-        elten_host_system_keyboard_hide,
+        elten_host_system_keyboard_show_text, elten_host_system_keyboard_hide,
         elten_host_system_keyboard_visible,
     ]
     if keep.count == 0 { fatalError() } // never true; prevents the array being optimised away

@@ -153,13 +153,52 @@ module IOSTouchInput
         if IOSHostBridge.system_keyboard_visible?
           IOSHostBridge.system_keyboard_hide
         else
-          IOSHostBridge.system_keyboard_show(password_field_focused?)
+          show_system_keyboard
         end
         return true
       end
       return false unless defined?(OnScreenKeyboard)
       keyboard_active? ? OnScreenKeyboard.hide : OnScreenKeyboard.show
       true
+    end
+
+    # Opens the system keyboard with the text already in the focused edit box
+    # (the paragraph under the cursor in a multi-line box), so it can be
+    # corrected; confirming replaces that text (finish_keyboard_text). Password
+    # and read-only fields, and hosts without the prefill entry point, get the
+    # empty keyboard whose text is typed at the cursor.
+    def show_system_keyboard
+      @keyboard_session = nil
+      box = editable_box
+      if box != nil && IOSHostBridge.respond_to?(:system_keyboard_prefill_available?) &&
+         IOSHostBridge.system_keyboard_prefill_available?
+        segment = box.keyboard_segment
+        @keyboard_session = [box, segment]
+        IOSHostBridge.system_keyboard_show_text(segment[2])
+      else
+        IOSHostBridge.system_keyboard_show(password_field_focused?)
+      end
+    end
+
+    # Text confirmed on the system keyboard. A keyboard opened with the field's
+    # text replaces that text, provided the same edit box still has the focus;
+    # otherwise the text is typed as before.
+    def finish_keyboard_text(text)
+      session = @keyboard_session
+      @keyboard_session = nil
+      if session != nil && editable_box(2.0).equal?(session[0])
+        session[0].keyboard_replace(session[1], text)
+      elsif text.to_s != ""
+        IOSWindowNative.type_character(text)
+      end
+      true
+    end
+
+    def editable_box(within = 0.5)
+      return nil unless defined?(EltenAPI::Controls::EditBox) && EltenAPI::Controls::EditBox.respond_to?(:keyboard_box)
+      EltenAPI::Controls::EditBox.keyboard_box(within)
+    rescue Exception
+      nil
     end
 
     def password_field_focused?
@@ -221,7 +260,7 @@ module IOSTouchInput
     #   "kpoint:<x>,<y>"      -> keyboard explore
     #   "kcommit"             -> type the explored key
     #   "kcancel"             -> close the keyboard
-    #   "ktext:<text>"        -> text typed on the system keyboard (Return pressed)
+    #   "ktext:<text>"        -> text confirmed on the system keyboard (Return pressed)
     #   "ksys:0" / "ksys:1"   -> system keyboard hidden / shown
     #   "active:0" / "active:1" -> host foreground state
     def dispatch_token(token)
@@ -238,13 +277,14 @@ module IOSTouchInput
       when "kcancel"
         keyboard_cancel
       when "ktext"
-        # The system keyboard was dismissed with Return; hand the collected
-        # text to the focused control as typed characters.
-        IOSWindowNative.type_character(rest) if rest.to_s != ""
-        true
+        # The system keyboard was dismissed with Return; the text replaces
+        # what the keyboard was opened with, or is typed at the cursor.
+        finish_keyboard_text(rest)
       when "ksys"
-        # System keyboard visibility changed; state lives in the host, nothing
-        # to track here.
+        # System keyboard visibility changed; the state lives in the host. A
+        # keyboard closed without Return leaves the field unchanged (the host
+        # sends the text before it reports the keyboard hidden).
+        @keyboard_session = nil if rest.to_s == "0"
         true
       when "active"
         IOSWindowNative.set_active(rest.to_s != "0")

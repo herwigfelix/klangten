@@ -34,7 +34,7 @@ module Klangten
     PRODUCT_NAME = "Klangten".freeze
     # Lower-case identifier used for file, directory and registry names.
     PRODUCT_ID = "klangten".freeze
-    VERSION = "0.2.3".freeze
+    VERSION = "0.3.0".freeze
     VENDOR = "sixdotsIT".freeze
     COPYRIGHT = "Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT)".freeze
     UPSTREAM_NAME = "Elten".freeze

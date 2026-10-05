@@ -11,7 +11,9 @@
 // Text entry uses the native iOS on-screen keyboard: Ruby asks the host to
 // show it (elten_host_system_keyboard_show), a hidden text field becomes first
 // responder, and pressing Return dismisses the keyboard and hands the typed
-// text back to Ruby as a "ktext:" input token.
+// text back to Ruby as a "ktext:" input token. For an edit box that already
+// holds text, Ruby opens the keyboard with that text
+// (elten_host_system_keyboard_show_text) and replaces it with what comes back.
 
 import UIKit
 
@@ -128,7 +130,7 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
 
     var systemKeyboardVisible: Bool { textEntryField.isFirstResponder }
 
-    func showSystemKeyboard(secure: Bool = false) {
+    func showSystemKeyboard(secure: Bool = false, text: String = "") {
         // Hand the screen over to the system keyboard: the self-voicing surface
         // must stop swallowing touches (direct interaction) and VoiceOver focus
         // must land on the text field, otherwise blind users cannot type.
@@ -148,8 +150,11 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
         let german = Locale.preferredLanguages.first?.hasPrefix("de") == true
         textEntryField.accessibilityLabel = secure ? (german ? "Passwort" : "Password")
                                                    : (german ? "Texteingabe" : "Text input")
-        textEntryField.text = ""
+        textEntryField.text = text
         textEntryField.becomeFirstResponder()
+        // The cursor goes to the end, so typing continues the existing text.
+        let end = textEntryField.endOfDocument
+        textEntryField.selectedTextRange = textEntryField.textRange(from: end, to: end)
         UIAccessibility.post(notification: .screenChanged, argument: textEntryField)
     }
 
@@ -188,11 +193,14 @@ final class EltenGestureViewController: UIViewController, UITextFieldDelegate {
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        // Return closes the keyboard and hands the collected text to Ruby.
+        // Return closes the keyboard and hands the collected text to Ruby. The
+        // text goes first: resigning reports the keyboard hidden ("ksys:0"),
+        // and Ruby ends a prefilled session there. An empty text is sent too,
+        // it clears a field the keyboard was opened with.
         let text = textField.text ?? ""
         textField.text = ""
+        EltenInputQueue.shared.pushKeyboardText(text)
         textField.resignFirstResponder()
-        if !text.isEmpty { EltenInputQueue.shared.pushKeyboardText(text) }
         return false
     }
 

@@ -12,9 +12,9 @@ class Scene_WelcomeWizard
   View = Struct.new(:fields, :capture, keyword_init: true)
   BlogSuggestion = Struct.new(:user, :blog, keyword_init: true)
 
+  # Klangten: YouTube, the file manager and the FFmpeg/MP3 encoders are Klangten's
+  # own core features now, so only MCP is still a program.
   APP_IDS = {
-    ffmpeg: "f2e2661b-f6b2-4b32-8c38-62e890a13c41",
-    file_manager: "8c8d86ce-dc24-453f-a388-e9b5e8626c5c",
     mcp: "bf4dbbd4-cadc-4ab2-8738-7340677de1e2"
   }.freeze
 
@@ -88,7 +88,7 @@ class Scene_WelcomeWizard
     # Klangten: program pages need the EltenLink program repository; donation,
     # premium and GitHub-star promotion pages are EltenLink/Elten specific.
     APP_IDS.each_key { |kind| add_app_page(kind) } if Klangten::Config.program_store_enabled?
-    # Klangten: FFmpeg encoders, File Manager, MCP and YouTube are built in (Programs::BuiltIns).
+    # Klangten: YouTube, file manager, playlist and encoders are core features; MCP is a built-in program.
     add_builtin_programs_page if !Klangten::Config.program_store_enabled?
     add_platforms_page if @first_run
     add_open_source_page
@@ -1028,18 +1028,6 @@ end
 
   def app_copy(kind)
     case kind
-    when :ffmpeg
-      {
-        title: p_("WelcomeWizard", "FFmpeg encoders"),
-        name: p_("WelcomeWizard", "FFmpeg encoders"),
-        text: p_("WelcomeWizard", "FFmpeg encoders extend Elten's recording and media-conversion tools with additional output formats, including MP3, AAC, FLAC, WMA, AVI, MP4, MOV and MPG. Install them if you expect to save recordings or conversions in any of these formats. The program works in the background and adds no menu items of its own.")
-      }
-    when :file_manager
-      {
-        title: p_("WelcomeWizard", "File Manager"),
-        name: p_("WelcomeWizard", "File Manager"),
-        text: p_("WelcomeWizard", "File Manager adds a file browser to the Programs menu, driven with the familiar Elten controls. It can open and preview supported files, play audio, make recordings, rename and copy items, and create or extract ZIP archives. Install it if you would like to manage local files without leaving Elten.")
-      }
     when :mcp
       {
         title: p_("WelcomeWizard", "MCP integration for advanced users"),
@@ -1051,12 +1039,12 @@ end
     end
   end
 
-  # Klangten: the former Elten programs are part of Klangten, nothing has to be installed.
+  # Klangten: these features are part of Klangten, nothing has to be installed.
   def add_builtin_programs_page
     add_info_page(
       :builtin_programs,
       p_("Klangten", "Media, files and MCP"),
-      p_("Klangten", "Klangten already includes programs that had to be installed separately in Elten. The Media menu contains the Klango media catalog with radio stations and podcasts, and YouTube (the yt-dlp tool is downloaded on first use). The Files menu contains the file manager and the FFmpeg encoders for additional audio and video formats (on Windows, FFmpeg is downloaded on first use; on macOS and Linux, an installed FFmpeg is used). Klangten MCP lets AI assistants on this computer use selected Klangten features with your permission; it stays disabled until you enable it in Program settings.")
+      p_("Klangten", "Klangten already includes features that had to be installed as separate programs in Elten. The Media menu contains the Klango media catalog with radio stations and podcasts, and YouTube with search, playback and downloads (on the first use, Klangten asks before downloading the tools yt-dlp and Deno that it needs). The Files menu contains the file manager and the playlist, which keeps playing in the background. Recordings and conversions can be saved as MP3 without any additional software. On computers, FFmpeg adds further formats such as AAC, M4A, FLAC, WMA and video files: on Windows, Klangten downloads FFmpeg the first time you choose one of these formats; on macOS and Linux, an FFmpeg installed on the system is used. Klangten MCP lets AI assistants on this computer use selected Klangten features with your permission; it stays disabled until you enable it in Program settings.")
     )
   end
 

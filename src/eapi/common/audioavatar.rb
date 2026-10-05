@@ -45,7 +45,11 @@ module EltenAPI
       File.delete(output) if File.file?(output)
       waiting
       begin
-        Recorder.encode_opus_file(source, output, 64, 60, 2049, 1, Scene_Account_AudioAvatar::TIME_LIMIT)
+        Recorder.encode_opus_file(
+          source, output,
+          Scene_Account_AudioAvatar::BITRATE, Scene_Account_AudioAvatar::FRAME_SIZE,
+          Scene_Account_AudioAvatar::APPLICATION_AUDIO, 1, Scene_Account_AudioAvatar::TIME_LIMIT
+        )
         if !File.file?(output) || File.size(output) <= 0
           waiting_end
           alert(p_("Klangten", "This file could not be converted to audio."))

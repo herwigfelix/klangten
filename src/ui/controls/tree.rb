@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
 
 module EltenAPI
   module Controls
@@ -150,6 +151,66 @@ return ret
         rescue Exception
           return nil
         ensure
+          ft.close_preview if ft!=nil
+        end
+      end
+
+      # Klangten: opens a folder selection window and returns the chosen folder,
+      # or nil. Only folders are listed. Enter selects the focused folder (in an
+      # empty folder the folder itself), Shift+Enter or "Select this folder" in
+      # the context menu the opened one; Right opens a folder, Left goes up.
+      #
+      # @param header [String] a window caption
+      # @param path [String] the folder to start in
+      # @return [String, nil] an absolute folder path
+      def get_folder(header="", path: "")
+        ft=nil
+        chosen=nil
+        begin
+          dialog_open
+          loop_update
+          ft=FilesTree.new(header, path: path, hide_files: true, quiet: true, use_sounds: true, handle_file_previews: false)
+          ft.add_tip(p_("Klangten", "Press Enter to select the focused folder or Shift+Enter to select the opened folder."))
+          ft.bind_menu {|menu|
+            menu.option(p_("Klangten", "Select the focused folder")) {
+              f=ft.selected
+              chosen=f if f!="" && File.directory?(f)
+            }
+            if ft.path.to_s!=""
+              menu.option(p_("Klangten", "Select this folder")) { chosen=ft.path }
+            end
+          }
+          ft.focus
+          loop do
+            loop_update
+            ft.update
+            if chosen==nil && key_pressed?(:key_enter)
+              if raw_key_held?(:key_shift)
+                chosen=ft.path if ft.path.to_s!=""
+              else
+                f=ft.selected
+                if ft.file.to_s!="" && File.directory?(f)
+                  chosen=f
+                elsif ft.path.to_s!=""
+                  chosen=ft.path
+                end
+              end
+              play_sound("border") if chosen==nil
+            end
+            if chosen!=nil
+              f=EltenPath.normalize(chosen)
+              f=f[0...-1] if f.end_with?("/") && f.size>1 && !f.match?(/\A[A-Za-z]:\/\z/)
+              return f
+            end
+            return nil if key_pressed?(:key_escape)
+          end
+        rescue Exception => e
+          raise if e.is_a?(SystemExit) || (defined?(Reset) && e.is_a?(Reset))
+          Log.warning("Folder selection failed: #{e.class}: #{e.message}") if defined?(Log)
+          return nil
+        ensure
+          dialog_close
+          loop_update
           ft.close_preview if ft!=nil
         end
       end

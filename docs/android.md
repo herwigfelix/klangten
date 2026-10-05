@@ -113,7 +113,7 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
 1. Walk through first-run setup, login and the main scenes on a real device;
    fix what the iOS layer assumes about iOS (paths, audio focus).
 2. Hardware keyboard: map Android key events to the virtual keys the scenes read.
-3. YouTube via NewPipeExtractor (see below).
+3. YouTube via NewPipeExtractor (see below; test on devices).
 4. Release signing, more ABIs, update path for side-loaded APKs.
 
 ## YouTube (research, September 2026)
@@ -133,7 +133,9 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
   headers appended to the URL), fetch the URL right before playing and again on
   HTTP 403 (URLs carry `expire=` and are bound to the IP). Long audio is safer
   through a small chunking proxy on 127.0.0.1.
-- Plan: Java facade (`search`, `audioUrl` returning JSON) called over JNI from a
-  Ruby port of `src/programs/youtube`; about 4–5 days to search plus playback.
+- Implemented as a Java facade (`YouTube.java`, JSON over the host bridge,
+  `src/platforms/ios/eapi/youtube_host.rb`) that Klangten's own YouTube backend
+  (`KlangtenYouTube` in `src/eapi/youtube.rb`, screens in `src/scenes/youtube.rb`)
+  uses instead of yt-dlp.
 - iOS cannot use it (J2ObjC/GraalVM/TeaVM do not fit Rhino); the realistic path
   there is YouTubeKit (Swift), optionally with its self-hostable remote fallback.

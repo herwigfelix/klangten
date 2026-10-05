@@ -321,13 +321,25 @@ module EltenLink
         data["thread"].to_i
       end
 
-      def create_audio_thread(client, forumid:, name:, audio:, follow: false)
+      # name_audio: recorded thread title (Klangten extension). The body then
+      # carries both recordings back to back, title first, and
+      # name_audio_size tells the server where the title ends - one request,
+      # so a thread never exists without its recorded title. The text name
+      # may then be empty or hold only tag prefixes.
+      def create_audio_thread(client, forumid:, name:, audio:, follow: false, name_audio: nil)
+        body = audio.to_s.b
+        params = { "forum" => forumid.to_i, "thread_name" => name, "audio" => 1, "follow" => truth_param(follow) }
+        if name_audio.to_s != ""
+          title = name_audio.to_s.b
+          body = title + body
+          params["name_audio_size"] = title.bytesize
+        end
         data = client.api_binary_data(
           "POST",
           "/api/v1/forum",
-          audio.to_s.b,
+          body,
           { "Content-Type" => "application/octet-stream" },
-          clean_hash("forum" => forumid.to_i, "thread_name" => name, "audio" => 1, "follow" => truth_param(follow))
+          clean_hash(params)
         )
         data["thread"].to_i
       end

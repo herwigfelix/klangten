@@ -303,22 +303,22 @@ class Scene_MediaCatalog
     player(url, label: item.title)
   end
 
-  # Klangten: the YouTube program does not run everywhere - its manifest excludes
-  # iOS, where neither yt-dlp nor its JavaScript runtime can be executed. There
+  # Klangten: YouTube does not run everywhere (Scene_YouTube.available? is false
+  # on iOS, where neither yt-dlp nor a JavaScript runtime can be executed). There
   # the action is left out of the item menu entirely instead of offering an entry
   # that only announces its own absence.
   def youtube_available?
-    program = defined?(Programs::BuiltIns) ? Programs::BuiltIns.program_class(:youtube) : nil
-    program != nil && program.respond_to?(:yplayer)
+    defined?(Scene_YouTube) != nil && Scene_YouTube.respond_to?(:available?) && Scene_YouTube.available? == true
+  rescue Exception
+    false
   end
 
   def open_youtube(item)
-    program = defined?(Programs::BuiltIns) ? Programs::BuiltIns.program_class(:youtube) : nil
-    if program == nil || !program.respond_to?(:yplayer)
+    if !youtube_available? || !Scene_YouTube.respond_to?(:open_url)
       alert(p_("Klangten", "This feature is not available on this system."))
       return
     end
-    program.yplayer(item.url)
+    Scene_YouTube.open_url(item.url)
   end
 
   def toggle_favorite(item)

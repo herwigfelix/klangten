@@ -47,18 +47,25 @@ Klangten modifies Elten as follows. Every changed source file carries a "Modifie
 - **Conferences and calls:** Elten's own VoIP engine (`conferencecore`, `voip`), conference resources, the program relay protocol and the REST call endpoints were replaced by TeamConference, the conference system of Klango (MIT, see `THIRD-PARTY-NOTICES.md`): `src/eapi/teamconference.rb`, `src/eapi/conference.rb`, `src/scenes/conference.rb`, `src/ui/calls.rb`. Positional audio, cards, dice, whisper, recording, VST effects and shoutcast streaming are not available; the call history is kept locally.
 - **Removed sections:** premium packages, payments, auctions, sponsors, calendar and tasks were removed; every former premium feature (formatting, translation and spell checking, audio options, forum and message conveniences, conference extras) is available to everyone.
 
-## Former Elten programs included under GPLv3
+## Former Elten program included under GPLv3
 
-Klangten includes four programs that were previously distributed for Elten through the EltenLink program repository. According to the project owner they are former Elten components and are licensed under the GNU General Public License, version 3, Copyright (C) Dawid Pieper. They are built into Klangten (not installed from a program store): their unpacked sources are in `src/programs/`, their translations in `locale/programs/`, and they are loaded as trusted built-in programs by `src/eapi/program_builtins.rb`. Their program UUIDs are unchanged; their data lives in Klangten's own data directory (`apps/data/builtin-<name>`).
+Klangten includes one program that was previously distributed for Elten through the EltenLink program repository. According to the project owner it is a former Elten component and is licensed under the GNU General Public License, version 3, Copyright (C) Dawid Pieper. It is built into Klangten (not installed from a program store): its unpacked sources are in `src/programs/`, and it is loaded as a trusted built-in program by `src/eapi/program_builtins.rb`. Its program UUID is unchanged; its data lives in Klangten's own data directory (`apps/data/builtin-<name>`).
 
 | Program | Original program UUID | Author as stated in the package | Location in Klangten | Klangten changes |
 | --- | --- | --- | --- | --- |
-| YouTube | `7c8e3f91-40a7-45af-8758-99d67a602e41` | pajper | `src/programs/youtube/`, `locale/programs/youtube/` | opened from the Media menu (hidden from the Programs menu); Linux support; yt-dlp downloads verified against the release's `SHA2-256SUMS`; own user agent |
-| FileManager | `8c8d86ce-dc24-453f-a388-e9b5e8626c5c` | pajper | `src/programs/filemanager/` (with the bundled gems in `gems/`), `locale/programs/filemanager/` | opened from the Files menu (hidden from the Programs menu) |
-| FFMPEGEncoders | `f2e2661b-f6b2-4b32-8c38-62e890a13c41` | pajper | `src/programs/ffmpeg/` | all platforms; `ffmpeg.exe` is no longer shipped: on Windows a pinned FFmpeg build is downloaded on first use and checked with SHA-256, on macOS and Linux the system FFmpeg is used; status and setup entry in the Files menu. Encoder registration is unchanged |
 | MCP | `bf4dbbd4-cadc-4ab2-8738-7340677de1e2` | Dawid Pieper (GPLv3 headers in the code) | `src/programs/mcp/` | rebranded "Klangten MCP" (server name `klangten`, tools `klangten_*`, resources `klangten://`); default port 37383 instead of 37373 and client configuration entries named `klangten`, so it can run next to an Elten MCP without touching its `elten` entries; the organizer permission became a notes permission; calendar, task, feed, sponsor, premium and updater parts were removed together with those Klangten features; user-facing texts name Klangten and the Klango server |
 
-YouTube, FileManager and FFMPEGEncoders contained no licence note in their packages; a header naming their origin and licence was added to the changed files. Changed files of MCP keep their original headers plus a Klangten modification line. The "Elten media catalog" program is not used; Klangten's media catalog (`src/scenes/mediacatalog.rb`, `src/eltenlink/media.rb`) is new code using the Klango catalog API.
+Changed files of MCP keep their original headers plus a Klangten modification line. The "Elten media catalog" program is not used; Klangten's media catalog (`src/scenes/mediacatalog.rb`, `src/eltenlink/media.rb`) is new code using the Klango catalog API.
+
+## YouTube, file manager, playlist and encoders: Klangten's own implementations
+
+Earlier Klangten versions shipped three further programs from the Elten program catalogue (YouTube, FileManager and FFMPEGEncoders). Their packages carried no licence, so they were removed. YouTube, the file manager, the playlist and the FFmpeg and MP3 encoding are Klangten's own implementations, written in 2026 without using the former Elten programs' code:
+
+- YouTube: `src/eapi/youtube.rb`, `src/scenes/youtube.rb` (search, playback and downloads through yt-dlp and Deno, which are downloaded on first use; on Android through the host's NewPipeExtractor)
+- file manager, playlist and document reader: `src/scenes/filemanager.rb`, `src/scenes/playlist.rb`, `src/eapi/playlist.rb`, `src/eapi/document_text.rb`
+- encoders: `src/eapi/audio/encoders/mp3.rb` (MP3 through BASSenc_MP3 on every platform), `src/eapi/audio/encoders/ffmpeg.rb` (AAC, M4A, FLAC, WMA and video containers through an external FFmpeg)
+
+The UUIDs of the removed programs stay blocked (`Programs::BuiltIns::REPLACED_UUIDS`), so an old installed copy is never loaded next to the new features.
 
 ## Trademarks and names
 

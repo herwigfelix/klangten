@@ -8,10 +8,16 @@
 
 # Built-in programs.
 #
-# Klangten ships four former Elten programs (YouTube, FileManager, the FFmpeg
-# encoders and MCP) as part of the client instead of installing them from a
-# program repository. Their unpacked sources live in src/programs/<directory>/
-# and their gettext catalogues in locale/programs/<directory>/<LANG>.mo.
+# Klangten ships the former Elten program MCP as part of the client instead of
+# installing it from a program repository. Its unpacked sources live in
+# src/programs/<directory>/; gettext catalogues, if a built-in has any, would
+# live in locale/programs/<directory>/<LANG>.mo.
+#
+# YouTube, the file manager and the FFmpeg encoders used to be built-in programs
+# as well. They have been replaced by Klangten's own core features
+# (src/scenes/youtube.rb, src/scenes/filemanager.rb, src/scenes/playlist.rb,
+# src/eapi/audio/encoders/ffmpeg.rb and mp3.rb); their UUIDs stay listed in
+# REPLACED_UUIDS so that an old installed copy is never loaded next to them.
 #
 # Packaging needs no extra step: the launcher embeds every src/**/*.rb file and
 # every locale/**/*.mo file. In an embedded build the sources are read from the
@@ -35,10 +41,15 @@ module Programs
     end
 
     DEFINITIONS = [
-      Definition.new(key: :youtube, uuid: "7c8e3f91-40a7-45af-8758-99d67a602e41", directory: "youtube", main: "__app.rb"),
-      Definition.new(key: :ffmpeg, uuid: "f2e2661b-f6b2-4b32-8c38-62e890a13c41", directory: "ffmpeg", main: "ffmpeg.rb"),
-      Definition.new(key: :filemanager, uuid: "8c8d86ce-dc24-453f-a388-e9b5e8626c5c", directory: "filemanager", main: "__app.rb"),
       Definition.new(key: :mcp, uuid: "bf4dbbd4-cadc-4ab2-8738-7340677de1e2", directory: "mcp", main: "__app.rb")
+    ].freeze
+
+    # Former Elten programs replaced by Klangten's own features (YouTube, FFmpeg
+    # encoders, file manager). Installed copies are still refused.
+    REPLACED_UUIDS = [
+      "7c8e3f91-40a7-45af-8758-99d67a602e41",
+      "f2e2661b-f6b2-4b32-8c38-62e890a13c41",
+      "8c8d86ce-dc24-453f-a388-e9b5e8626c5c"
     ].freeze
 
     SOURCE_PREFIX = "src/programs".freeze
@@ -57,9 +68,11 @@ module Programs
         DEFINITIONS.map(&:uuid)
       end
 
+      # True for built-in and replaced program UUIDs: neither may be loaded
+      # from the programs directory.
       def uuid?(uuid)
         value = uuid.to_s.downcase
-        value != "" && uuids.include?(value)
+        value != "" && (uuids.include?(value) || REPLACED_UUIDS.include?(value))
       end
 
       def entry?(entry)

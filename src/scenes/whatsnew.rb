@@ -73,16 +73,16 @@ class Scene_WhatsNew
       $scene = Scene_Main.new
       return
     end
-    cats = self.class.categories
-    first = @counts.index { |c| c > 0 } || 0
-    index = (@index != nil && @counts[@index].to_i > 0) ? @index : first
-    @sel = ListBox.new(cats.each_with_index.map { |c, i| "#{c[1]} (#{@counts[i]})" },
-                       header: p_("WhatsNew", "What's new"), index: index, quiet: false)
-    # Greyed-out items are hidden in Elten 3: only categories with news remain.
-    cats.each_index { |i| @sel.disable_item(i) if @counts[i] <= 0 }
+    build_list(false)
     @sel.focus
     loop do
       loop_update
+      # The views mark what they show as read on the server; the counters
+      # follow as soon as the notification state arrives.
+      if Session.notifications_updated?
+        reload_counts
+        break if $scene != self
+      end
       @sel.update
       # Elten 3 keys (Elten 2's escape/enter/arrow_right helpers are gone).
       if key_pressed?(:key_escape) || @sel.collapsed?
@@ -97,8 +97,37 @@ class Scene_WhatsNew
 
   private
 
-  # Opens the view for a category and marks its notifications as read — the
-  # counters come from them, and they would otherwise stay up forever.
+  def build_list(quiet)
+    cats = self.class.categories
+    first = @counts.index { |c| c > 0 } || 0
+    index = (@index != nil && @counts[@index].to_i > 0) ? @index : first
+    @sel = ListBox.new(cats.each_with_index.map { |c, i| "#{c[1]} (#{@counts[i]})" },
+                       header: p_("WhatsNew", "What's new"), index: index, quiet: quiet)
+    # Greyed-out items are hidden in Elten 3: only categories with news remain.
+    cats.each_index { |i| @sel.disable_item(i) if @counts[i] <= 0 }
+  end
+
+  def reload_counts
+    @index = @sel.index
+    old_counts = @counts
+    if !prepare
+      alert(p_("WhatsNew", "There is nothing new.")) if @quiet != true
+      $scene = Scene_Main.new
+      return
+    end
+    return if @counts == old_counts
+
+    build_list(true)
+    # Speak again only when the focused category changed or lost its news.
+    @sel.say_option if @sel.index != @index || @counts[@index].to_i != old_counts[@index].to_i
+  end
+
+  # Opens the view for a category. Categories whose views settle their
+  # notifications on the server (messages, forum, blogs: reading marks them)
+  # are left alone; on Klango, revoking them marks the content itself read,
+  # so the "new ..." view came up empty and said there was nothing new.
+  # Only the remaining categories are marked as read here; their views do
+  # not depend on it and the counters would otherwise stay up forever.
   def open_category(index)
     cats, _label, opener = self.class.categories[index]
     return if @counts[index].to_i <= 0
@@ -139,6 +168,8 @@ class Scene_WhatsNew
       $scene = scene || Scene_Main.new
       return
     end
+    return if (cats.to_a & NotificationGroups::NOTIFICATION_CATEGORIES_CLEARED_BY_VIEW).any?
+
     ids = @notifications.select { |n| cats.to_a.include?(n.cat.to_s) }.map { |n| n.id.to_i }.select(&:positive?)
     revoke_ids(ids)
   end

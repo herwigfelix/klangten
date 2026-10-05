@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; no extra re-encode of an untouched recording, tag edits keep the chosen encoder settings.
 
 module EltenAPI
   module Controls
@@ -462,9 +462,14 @@ form.resume
               @current_filename = @filename
               @last_tags = get_tags
     @form.hide(@btn_encodeplay)
-  elsif @last_tags!=get_tags
+  # Klangten: only re-encode when tags were actually edited (@tags is set by
+  # edit_tags alone). After a fresh recording @last_tags is still nil, so the
+  # old check re-encoded EVERY recording once more at 64 kbit/s speech profile
+  # CBR (copy_opus_file) before it was sent; with the chosen settings the
+  # extra pass costs (almost) nothing when tags really change.
+  elsif @tags!=nil && @last_tags!=get_tags
     @tempname = @filename+"_edtags.opus"
-    c=Recorder.copy_opus_file(@filename, @tempname, get_tags)
+    c=Recorder.encode_opus_file(@filename, @tempname, @bitrate, @framesize, @application, @usevbr, 0, get_tags)
     if c>0
     @last_tags=get_tags
     File.delete(@filename)

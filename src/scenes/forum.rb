@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; read-only guest access; voice threads play their recorded title.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; read-only guest access; voice threads play their recorded title, and in voice forums the title of a new thread is recorded.
  
 module ForumSceneClient
   def forum_fetch(default = nil, error_message = _("Error"))
@@ -107,6 +107,10 @@ end
 
 class Scene_Forum
   include ForumSceneClient
+
+  # Klangten: longest recorded thread title in seconds (Klango's own limit
+  # for voice thread titles is ten seconds as well).
+  VOICE_THREAD_TITLE_TIME_LIMIT = 10
 
   def select_group_ban_expiry
     duration = select_action(
@@ -2824,7 +2828,14 @@ form.wait
         end
       end
     end
-    fields = [EditBox.new(p_("Forum", "Thread name"), type: 0, text: "", quiet: true)]
+    # Klangten: in a voice forum the thread title is a recording as well,
+    # recorded with the same control as the post (sent as name_audio).
+    audio_title = (@forumtype == 1 && type == 1)
+    if audio_title
+      fields = [OpusRecordButton.new(p_("Forum", "Recorded thread name"), EltenPath.join(Dirs.temp, "audiothreadname.opus"), max_bitrate: 96, bitrate: 48, time_limit: VOICE_THREAD_TITLE_TIME_LIMIT)]
+    else
+      fields = [EditBox.new(p_("Forum", "Thread name"), type: 0, text: "", quiet: true)]
+    end
     if type == 0
       fields[1..6] = [EditBox.new(p_("Forum", "Post content"), type: EditBox::Flags::MultiLine, text: "", quiet: true), CheckBox.new(p_("Forum", "Use Markdown in this post")), nil, Button.new(p_("Forum", "Attach a poll")), nil, Button.new(p_("Forum", "Attach a file"))]
       else
@@ -2912,7 +2923,7 @@ form.wait
         form.fields[-2] = nil
       end
     elsif type==1
-      if form.fields[1].empty?
+      if form.fields[1].empty? || (audio_title && form.fields[0].empty?)
                 form.fields[-2] = nil
       else
         form.fields[-2] = Button.new(p_("Forum", "Send")) if form.fields[-2]==nil
@@ -3009,7 +3020,14 @@ form.wait
         end
       end
       if key_pressed?(:key_escape) or form.fields[-1].pressed?
-        if (!form.fields[1].is_a?(EditBox) && (form.fields[0].text=="" || confirm(p_("Forum", "Are you sure you want to cancel creating this thread?"))) && form.fields[1].delete_audio) or (form.fields[1].is_a?(EditBox) && ((form.fields[0].text=="" && form.fields[1].text=="") || confirm(p_("Forum", "Are you sure you want to cancel creating this thread?"))))
+        if audio_title
+          if (form.fields[0].empty? && form.fields[1].empty?) || confirm(p_("Forum", "Are you sure you want to cancel creating this thread?"))
+            form.fields[0].delete_audio(true)
+            form.fields[1].delete_audio(true)
+            loop_update
+            return
+          end
+        elsif (!form.fields[1].is_a?(EditBox) && (form.fields[0].text=="" || confirm(p_("Forum", "Are you sure you want to cancel creating this thread?"))) && form.fields[1].delete_audio) or (form.fields[1].is_a?(EditBox) && ((form.fields[0].text=="" && form.fields[1].text=="") || confirm(p_("Forum", "Are you sure you want to cancel creating this thread?"))))
         loop_update
         return
         break
@@ -3023,8 +3041,13 @@ form.wait
         name+="["+f.options[f.index]+"] "
         end
       end
+    if audio_title
+      # only the tag prefixes; the server puts a placeholder after them
+      name = name.strip
+    else
       name+=form.fields[0].text
       form.fields[0].set_text(name)
+    end
     if type == 0
       format=0
       format=form.fields[2].checked if form.fields[2]!=nil
@@ -3047,10 +3070,20 @@ if flp[0..3] != "OggS"
         alert(_("Error"))
         return $scene = Scene_Main.new
       end
+      title_audio = nil
+      if audio_title
+        tfl = form.fields[0].get_recording_file(true)
+        title_audio = (tfl != nil && FileTest.exists?(tfl)) ? File.binread(tfl) : ""
+        if title_audio[0..3] != "OggS"
+          alert(_("Error"))
+          return $scene = Scene_Main.new
+        end
+      end
       ft = forum_attempt(nil, p_("Forum", "Error creating thread!")) {
-        EltenLink::Forum.create_audio_thread(elten_link, forumid: forumclasses[form.fields[-3].index].id, name: form.fields[0].text, audio: flp, follow: form.fields[-4].checked)
+        EltenLink::Forum.create_audio_thread(elten_link, forumid: forumclasses[form.fields[-3].index].id, name: (audio_title ? name : form.fields[0].text), audio: flp, follow: form.fields[-4].checked, name_audio: title_audio)
       }
       form.fields[1].delete_audio(true)
+      form.fields[0].delete_audio(true) if audio_title
     end
     if ft
       alert(p_("Forum", "Thread has been created."))

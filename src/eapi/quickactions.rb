@@ -361,7 +361,8 @@ end
 [:alarm, p_("EAPI_QuickActions", "Add alarm"), [], 0, false],
         ]
         for ac in @@addprocs
-          a.push([ac[1], ac[2]])
+          # Klangten: a core proc may pass its label as a Proc, translated when the list is shown.
+          a.push([ac[1], ac[2].respond_to?(:call) ? ac[2].call : ac[2]])
           end
         end
       return a

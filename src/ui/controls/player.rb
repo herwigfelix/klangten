@@ -260,6 +260,8 @@ def savefile
         btn_cancel.on(:press) {form.resume}
         btn_save.on(:press) {
         encoder = encoders[lst_format.index]
+        # Klangten: an encoder may need a tool first (FFmpeg on Windows).
+        next if !(encoder::Extension.downcase==".opus" && is_opus?) && !MediaEncoders.prepare(encoder)
         pth=EltenPath.join(tr_path.selected, edt_filename.text)
                 r=true
         waiting {

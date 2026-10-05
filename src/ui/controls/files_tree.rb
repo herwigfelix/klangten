@@ -110,17 +110,19 @@ super
               if @path == ""
           @disks=EltenSystemHelpers.logical_drives
 drive_files=@disks.map{|drive|tree_root_path(drive)}
-# Klangten: a platform may name its drives and choose the shortcuts below them
-# (Android: "Internal storage", "Klangten folder", then Downloads, Documents and
-# Music of the shared storage); the others keep paths and Desktop/Documents/Music.
+# Klangten: a platform may name its drives (Android: "Internal storage",
+# "Klangten folder"). The shortcuts below them are the user's own list
+# (KlangtenFileShortcuts, "Manage shortcuts" in the context menu); its defaults
+# are the platform's shortcuts (Android: Downloads, Documents and Music of the
+# shared storage; desktops: Desktop, Documents, Music), Downloads and Klangten's
+# playlists folder.
+shortcuts=(KlangtenFileShortcuts.entries rescue nil)
+if shortcuts==nil
 shortcuts=EltenSystemHelpers.respond_to?(:file_shortcuts) ? EltenSystemHelpers.file_shortcuts : nil
-if shortcuts!=nil
+shortcuts||=[[p_("EAPI_Form", "Desktop"),Dirs.desktop],[p_("EAPI_Form", "Documents"),Dirs.documents],[p_("EAPI_Form", "Music"),Dirs.music]]
+end
 @adds=shortcuts.map{|item|item[0]}
 @addfiles=shortcuts.map{|item|item[1]}
-else
-@adds=[p_("EAPI_Form", "Desktop"),p_("EAPI_Form", "Documents"),p_("EAPI_Form", "Music")]
-@addfiles=[Dirs.desktop,Dirs.documents,Dirs.music]
-end
 drive_labels=@disks.map{|drive|(EltenSystemHelpers.respond_to?(:drive_label) && EltenSystemHelpers.drive_label(drive)) || drive}
 ind=drive_files.find_index(tree_root_path(@file))
 ind=0 if ind==nil
@@ -402,6 +404,17 @@ while name==""
     }
     @createmenus.each{|f| f.call(menu)}
     }
+    # Klangten: the shortcuts of the root are the user's own list.
+    shortcutpr=Proc.new {|menu|
+    if @path.to_s!=""
+      menu.option(p_("Klangten", "Add this folder to shortcuts")) {
+        add_folder_shortcut(@path)
+      }
+    end
+    menu.option(p_("Klangten", "Manage shortcuts")) {
+      manage_shortcuts
+    }
+    }
   if submenu==false
   s=p_("EAPI_Form", "File")
       menu.submenu(s) {|m|filepr.call(m)}
@@ -409,12 +422,14 @@ while name==""
     menu.submenu(s) {|m|editpr.call(m)}
     s=p_("EAPI_Form", "Create")
     menu.submenu(s) {|m|createpr.call(m)}
+    shortcutpr.call(menu)
     else
   s=@header+" - "+p_("EAPI_Form", "File tree")+" ("+_("Context menu")+")"
   menu.submenu(s){|m|
   filepr.call(m)
   editpr.call(m)
   createpr.call(m)
+  shortcutpr.call(m)
     }
   end
   @menus.each{|m| m.call(menu)}
@@ -559,6 +574,116 @@ end
     alert(p_("EAPI_Form", "Deleted"))
 }
 end
+# Klangten: adds folder to the user's shortcuts under a name the user chooses.
+def add_folder_shortcut(folder)
+  folder=EltenPath.normalize(folder.to_s)
+  folder=folder.chomp("/") if folder.size>1 && !tree_root_path?(folder)
+  name=input_text(p_("Klangten", "Shortcut name"), text: EltenPath.basename(folder), escapable: true)
+  return if name==nil || name.strip==""
+  items=KlangtenFileShortcuts.list
+  items.push({"id"=>nil, "name"=>name.strip, "path"=>folder})
+  KlangtenFileShortcuts.save(items)
+  alert(p_("Klangten", "The shortcut has been added."))
+  @sel=nil if @path==""
+end
+
+# Klangten: the shortcuts form (context menu "Manage shortcuts"): add, rename,
+# change the folder, remove, reorder or restore the defaults. Changes are saved
+# at once; the root of the tree shows them when the form is closed.
+def manage_shortcuts
+  items=KlangtenFileShortcuts.list
+  labels=Proc.new { items.map{|item| KlangtenFileShortcuts.label(item)+": "+item["path"].to_s} }
+  list=ListBox.new(labels.call, header: p_("Klangten", "Shortcuts"), empty_label: p_("Klangten", "There are no shortcuts."))
+  btn_add=Button.new(p_("Klangten", "Add"))
+  btn_rename=Button.new(p_("Klangten", "Rename"))
+  btn_change=Button.new(p_("Klangten", "Change folder"))
+  btn_remove=Button.new(p_("Klangten", "Remove"))
+  btn_up=Button.new(p_("Klangten", "Move up"))
+  btn_down=Button.new(p_("Klangten", "Move down"))
+  btn_defaults=Button.new(p_("Klangten", "Restore defaults"))
+  btn_close=Button.new(_("Close"))
+  form=Form.new([list, btn_add, btn_rename, btn_change, btn_remove, btn_up, btn_down, btn_defaults, btn_close], quiet: true)
+  form.cancel_button=btn_close
+  show=Proc.new {|index, speak_list|
+    list.options=labels.call
+    list.index=[[index.to_i, items.size-1].min, 0].max
+    KlangtenFileShortcuts.save(items)
+    form.index=0
+    form.focus if speak_list
+  }
+  current=Proc.new { items.empty? ? nil : items[list.index] }
+  btn_add.on(:press) {
+    folder=get_folder(p_("Klangten", "Choose the folder for the shortcut"), path: @path.to_s!="" ? @path : "")
+    if folder!=nil
+      name=input_text(p_("Klangten", "Shortcut name"), text: EltenPath.basename(folder), escapable: true)
+      if name!=nil && name.strip!=""
+        items.push({"id"=>nil, "name"=>name.strip, "path"=>folder})
+        show.call(items.size-1, true)
+      else
+        form.focus
+      end
+    else
+      form.focus
+    end
+  }
+  btn_rename.on(:press) {
+    item=current.call
+    if item!=nil
+      name=input_text(p_("Klangten", "Shortcut name"), text: KlangtenFileShortcuts.label(item), escapable: true)
+      item["name"]=name.strip if name!=nil && name.strip!=""
+      show.call(list.index, true)
+    end
+  }
+  btn_change.on(:press) {
+    item=current.call
+    if item!=nil
+      folder=get_folder(p_("Klangten", "Choose the folder for the shortcut"), path: item["path"].to_s)
+      item["path"]=folder if folder!=nil
+      show.call(list.index, true)
+    end
+  }
+  btn_remove.on(:press) {
+    item=current.call
+    if item!=nil && confirm(p_("Klangten", "Do you really want to remove the shortcut %{name}?")%{name: KlangtenFileShortcuts.label(item)})
+      items.delete_at(list.index)
+      show.call(list.index, true)
+    else
+      form.focus
+    end
+  }
+  btn_up.on(:press) {
+    index=list.index
+    if current.call!=nil && index>0
+      items[index-1], items[index]=items[index], items[index-1]
+      show.call(index-1, true)
+    else
+      play_sound("border")
+    end
+  }
+  btn_down.on(:press) {
+    index=list.index
+    if current.call!=nil && index<items.size-1
+      items[index+1], items[index]=items[index], items[index+1]
+      show.call(index+1, true)
+    else
+      play_sound("border")
+    end
+  }
+  btn_defaults.on(:press) {
+    if confirm(p_("Klangten", "Do you want to replace your shortcuts with the default ones?"))
+      items.replace(KlangtenFileShortcuts.defaults)
+      KlangtenFileShortcuts.reset
+      show.call(0, true)
+    else
+      form.focus
+    end
+  }
+  btn_close.on(:press) { form.resume }
+  form.wait
+  @sel=nil if @path==""
+  loop_update
+end
+
 def key_processed(k)
   if @sel!=nil
   return @sel.key_processed(k)
@@ -572,5 +697,125 @@ def hascontext
 end
 
 
+  end
+end
+
+# Klangten: the shortcuts every files tree lists below the drives. One ordered
+# list per user in file_shortcuts.json of the data directory; until the user
+# changes it the defaults apply (and follow the system, e.g. a Downloads folder
+# that appears later). Default entries keep an id instead of a name so their
+# label follows the interface language; a renamed entry gets a name.
+module KlangtenFileShortcuts
+  FILE_NAME = "file_shortcuts.json".freeze
+  VERSION = 1
+
+  class << self
+    def path
+      File.join(Dirs.eltendata, FILE_NAME)
+    end
+
+    # [{"id", "name", "path"}] - the saved list or the defaults.
+    def list
+      if File.file?(path)
+        data = JSON.parse(File.read(path, encoding: "UTF-8"))
+        items = Array(data.is_a?(Hash) ? data["shortcuts"] : nil).filter_map do |item|
+          next if !item.is_a?(Hash) || item["path"].to_s == ""
+          { "id" => item["id"], "name" => item["name"], "path" => item["path"].to_s }
+        end
+        return items
+      end
+      defaults
+    rescue StandardError => e
+      Log.warning("File shortcuts could not be read: #{e.class}: #{e.message}") if defined?(Log)
+      defaults
+    end
+
+    # [[label, path]] for the root of a files tree.
+    def entries
+      list.map do |item|
+        ensure_folder(item)
+        [label(item), item["path"].to_s]
+      end
+    end
+
+    def save(items)
+      data = { "version" => VERSION, "shortcuts" => items.map { |item| { "id" => item["id"], "name" => item["name"], "path" => item["path"].to_s } } }
+      FileUtils.mkdir_p(File.dirname(path))
+      temporary = "#{path}.tmp"
+      File.write(temporary, JSON.pretty_generate(data), encoding: "UTF-8")
+      File.rename(temporary, path)
+      true
+    rescue StandardError => e
+      Log.warning("File shortcuts could not be saved: #{e.class}: #{e.message}") if defined?(Log)
+      false
+    end
+
+    # Back to the defaults (the saved list is removed).
+    def reset
+      File.delete(path) if File.file?(path)
+    rescue StandardError
+      nil
+    end
+
+    def label(item)
+      name = item["name"].to_s
+      return name if name != ""
+      case item["id"].to_s
+      when "desktop" then p_("EAPI_Form", "Desktop")
+      when "documents" then p_("EAPI_Form", "Documents")
+      when "music" then p_("EAPI_Form", "Music")
+      when "downloads" then p_("Klangten", "Downloads")
+      when "playlists" then p_("Klangten", "Klangten playlists")
+      else File.basename(item["path"].to_s)
+      end
+    end
+
+    def defaults
+      items = []
+      platform = EltenSystemHelpers.respond_to?(:file_shortcuts) ? EltenSystemHelpers.file_shortcuts : nil
+      if platform != nil
+        platform.each do |name, folder|
+          id = { "download" => "downloads", "documents" => "documents", "music" => "music" }[File.basename(folder.to_s).downcase]
+          items << { "id" => id, "name" => id == nil ? name : nil, "path" => folder.to_s }
+        end
+      else
+        items << { "id" => "desktop", "name" => nil, "path" => Dirs.desktop }
+        items << { "id" => "documents", "name" => nil, "path" => Dirs.documents }
+        items << { "id" => "music", "name" => nil, "path" => Dirs.music }
+      end
+      downloads = downloads_dir
+      if downloads != nil && items.none? { |item| same_path?(item["path"], downloads) }
+        items << { "id" => "downloads", "name" => nil, "path" => downloads }
+      end
+      if defined?(KlangtenPlaylist)
+        items << { "id" => "playlists", "name" => nil, "path" => KlangtenPlaylist.playlists_dir }
+      end
+      items
+    end
+
+    private
+
+    def downloads_dir
+      return nil if EltenSystemHelpers.respond_to?(:platform_os) && ["ios", "android"].include?(EltenSystemHelpers.platform_os.to_s)
+      dir = File.join(Dirs.user, "Downloads")
+      File.directory?(dir) ? EltenPath.normalize(dir) : nil
+    rescue StandardError
+      nil
+    end
+
+    # Klangten's playlists folder is created when it is first listed.
+    def ensure_folder(item)
+      return if item["id"].to_s != "playlists" || !defined?(KlangtenPlaylist)
+      return if !same_path?(item["path"], KlangtenPlaylist.playlists_dir)
+      KlangtenPlaylist.playlists_dir(create: true)
+    rescue StandardError
+      nil
+    end
+
+    def same_path?(a, b)
+      EltenPath.normalize(a.to_s).chomp("/").casecmp?(EltenPath.normalize(b.to_s).chomp("/"))
+    rescue StandardError
+      a.to_s == b.to_s
+    end
   end
 end

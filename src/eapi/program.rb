@@ -2477,8 +2477,8 @@ module Programs
 
     def load_all
       Log.info("Loading programs")
-      # Klangten: former Elten programs are built in (src/eapi/program_builtins.rb).
-      # They are part of the client, not downloaded code, so they load on every
+      # Klangten: built-in programs (src/eapi/program_builtins.rb, currently MCP)
+      # are part of the client, not downloaded code, so they load on every
       # platform - including iOS. Which of them runs where is decided by each
       # program's own manifest ("platforms"), not here.
       BuiltIns.load_all if defined?(BuiltIns)

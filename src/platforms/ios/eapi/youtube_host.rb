@@ -8,9 +8,9 @@
 # The desktop client drives yt-dlp; that needs a JavaScript runtime and a
 # second process, neither of which exists on a phone. The Android host embeds
 # NewPipeExtractor instead (android/app/src/main/java/it/sixdots/klangten/YouTube.java)
-# and answers in JSON through the elten_host_youtube_* entry points. The YouTube
-# program (src/programs/youtube/__app.rb) keeps its screens and only takes its
-# data from here, so both platforms look and work the same.
+# and answers in JSON through the elten_host_youtube_* entry points. Klangten's
+# YouTube backend (KlangtenYouTube in src/eapi/youtube.rb) takes its data from
+# here on Android, so Scene_YouTube looks and works the same on both platforms.
 #
 # Every call blocks on the network and must run on a scene thread, never on the
 # main thread.

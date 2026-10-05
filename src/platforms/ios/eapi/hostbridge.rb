@@ -159,7 +159,7 @@ module IOSHostBridge
     # The host owns a hidden text field; showing it raises the native iOS
     # on-screen keyboard. Typed text comes back through the input queue as a
     # "ktext:<text>" token when the user presses Return (which also dismisses
-    # the keyboard).
+    # the keyboard), before the "ksys:0" that reports it hidden.
 
     def system_keyboard_available?
       func(:system_keyboard_show, [], Fiddle::TYPE_VOID) != nil
@@ -176,6 +176,19 @@ module IOSHostBridge
       else
         call_void(:system_keyboard_show)
       end
+    end
+
+    # The keyboard starts with `text` (cursor at the end) and Return sends the
+    # edited text back as "ktext:", even when it is empty. Never used for
+    # password fields.
+    def system_keyboard_prefill_available?
+      func(:system_keyboard_show_text, [Fiddle::TYPE_VOIDP], Fiddle::TYPE_VOID) != nil
+    rescue Exception
+      false
+    end
+
+    def system_keyboard_show_text(text)
+      call_set_string(:system_keyboard_show_text, text)
     end
 
     def system_keyboard_hide

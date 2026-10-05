@@ -1045,8 +1045,13 @@ module NotificationGroups
   def open_blog_post(payload, cat=nil)
     blog = payload["blog"].to_s
     post_id = payload["postid"].to_i
-    if blog.empty? || post_id <= 0
+    if blog.empty?
       insert_scene(Scene_Blog.new, true)
+      return
+    elsif post_id <= 0
+      # Klangten: older "new post" notifications name only the blog; open
+      # that blog instead of the blog overview.
+      insert_scene(Scene_Blog_Main.new(blog, 0, Scene_Main.new), true, return_to_main: true)
       return
     end
 
@@ -1070,11 +1075,50 @@ module NotificationGroups
     mention
   end
 
+  # Klangten: categories whose notifications the Klango server derives from
+  # the content's own read state. Revoking one marks that content read, and
+  # the view it opens marks exactly what was shown as read anyway.
+  NOTIFICATION_CATEGORIES_CLEARED_BY_VIEW = %w[
+    message
+    followedthread followedforum followedforumpost mention
+    followedblog blogcomment followedblogpost blogmention
+  ].freeze
+
+  # true when opening the group shows its content and that view settles the
+  # notification on the server. Revoking such a group before the view loads
+  # would mark the content read first: "new" views came up empty ("There is
+  # nothing new") and unread messages were lost without being read.
+  def notification_group_cleared_by_view?(group)
+    return false if group == nil || group.virtual? || group.action == nil
+    cat = group.cat.to_s
+    return false if !NOTIFICATION_CATEGORIES_CLEARED_BY_VIEW.include?(cat)
+
+    payload = group.payload.is_a?(Hash) ? group.payload : {}
+    case cat
+    when "message"
+      true
+    when "mention"
+      payload["threadid"].to_i > 0 && payload["postid"].to_i > 0 && payload["mentionid"].to_i > 0
+    when "blogmention"
+      !payload["blog"].to_s.empty? && payload["postid"].to_i > 0 && payload["mentionid"].to_i > 0
+    when "followedblog", "blogcomment", "followedblogpost"
+      !payload["blog"].to_s.empty? && payload["postid"].to_i > 0
+    else
+      payload["threadid"].to_i > 0
+    end
+  end
+
   def open_notification_group(group)
     return false if group == nil
 
     if group.action != nil
+      cleared_by_view = !group.revoked && notification_group_cleared_by_view?(group)
       group.action.call
+      if cleared_by_view
+        # The view marks what it shows as read; fetch the new state then.
+        EltenAPI::NotificationService.refresh_active_notifications
+        return true
+      end
       return revoke_notification_group(group) if !group.revoked && (group.ids.size > 0 || group.virtual?)
       return true
     elsif !group.revoked && (group.ids.size > 0 || group.virtual?)

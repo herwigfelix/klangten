@@ -285,36 +285,27 @@ SOFTWARE.
 - It uses only the Ruby standard library (`net/http`, `json`, `uri`, `cgi`, `securerandom`, `time`) and the components already listed above (OpenSSL, CA bundle). No additional gem or library is bundled.
 - "Mastodon" is a trademark of Mastodon gGmbH. Klangten uses the name only descriptively ("Mastodon account", "for Mastodon"); Klangten is not affiliated with or endorsed by Mastodon gGmbH.
 
-## Built-in former Elten programs
+## Media features: tools downloaded or used at run time
 
-The programs in `src/programs/` are former Elten components (GPL-3.0, see `NOTICE.md`). They bring or load the following third-party components.
+YouTube, the file manager, the playlist and the encoders are Klangten's own code (see `NOTICE.md`). They bring or load the following third-party components.
 
-### Gems bundled by FileManager (`src/programs/filemanager/gems/`)
+### Document reader — Klangten code, no bundled gems
 
-Only the `lib/` directories of these gems are included; their licence texts are not in the package and must be added to release packages. Licences as declared in the gem metadata on rubygems.org or in the project repository (checked September 2026):
+The document reader of the file manager (`src/eapi/document_text.rb`, including its PDF reader) is Klangten's own code. It bundles no third-party gems and uses only rubyzip and Nokogiri, listed above, and the Ruby standard library.
 
-| Gem | Version | Licence | Copyright / authors | Source |
-| --- | --- | --- | --- | --- |
-| pdf-reader | 2.15.1 | MIT | James Healy | <https://github.com/yob/pdf-reader> |
-| afm | 1.0.0 | MIT | Jan Krutisch | <https://github.com/halfbyte/afm> |
-| Ascii85 | 2.0.1 | MIT | Johannes Holzfuß | <https://github.com/DataWraith/ascii85gem> |
-| hashery | 2.1.2 | BSD-2-Clause | Trans, Kirk Haines, Robert Klemme, Jan Molic, George Moschovitis, Jeena Paradies, Erik Veenstra | <https://github.com/rubyworks/hashery> |
-| ruby-rc4 | 0.1.5 | MIT (licence file in the repository; no licence in the gem metadata) | Caige Nichols | <https://github.com/caiges/Ruby-RC4> |
-| ttfunk | 1.8.0 | Ruby licence ("Nonstandard"), GPL-2.0-only or GPL-3.0-only, at the user's choice; used under GPL-3.0-only | Alexander Mankuta, Gregory Brown, Brad Ediger, Daniel Nelson, Jonathan Greenberg, James Healy, Cameron Dutro | <https://github.com/prawnpdf/ttfunk> |
-| docx | 0.13.0 | MIT | Christopher Hunt, Marcus Ortiz, Higgins Dragon, Toms Mikoss, Sebastian Wittenkamp | <https://github.com/ruby-docx/docx> |
-| gepub | 2.0.1 | BSD-3-Clause | KOJIMA Satoshi | <https://github.com/skoji/gepub> |
-| ruby-rtf | 0.0.5 | MIT, Copyright (c) 2011 dan sinclair (licence file in the repository; no licence in the gem metadata) | dan sinclair | <https://github.com/dj2/ruby-rtf> |
+### FFmpeg (FFmpeg encoders) — not shipped
 
-FileManager also uses gems Klangten already ships (rubyzip, Nokogiri; see above). pdf-reader, afm, Ascii85, hashery, ruby-rc4 and ttfunk are dependencies of pdf-reader.
+- Klangten does **not** ship an FFmpeg binary. It runs FFmpeg as a separate process (`src/eapi/audio/encoders/ffmpeg.rb`) only for the additional formats AAC, M4A, FLAC, WMA, MP4, MKV, MOV and AVI; playback never uses it.
+- **Windows x64:** the first time the user chooses one of the FFmpeg formats (conversion, YouTube download, saving a stream), Klangten asks and then downloads FFmpeg 9.0.2 "essentials" by Gyan Doshi (a build linked from <https://ffmpeg.org/download.html>) from <https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip>, checks the SHA-256 checksum `60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba` and extracts only `ffmpeg.exe` and the build's `LICENSE` (plus a short `version.txt`) into `ffmpeg/` in Klangten's data directory. The build is configured with `--enable-gpl --enable-version3`, so this FFmpeg is licensed under the **GNU General Public License, version 3**; it includes further libraries (for example LAME, libx264, libvpx) under GPL/LGPL-compatible licences listed by the build. Source code: <https://ffmpeg.org/download.html>, build scripts and component list: <https://www.gyan.dev/ffmpeg/builds/>. No build is offered for 32-bit or ARM64 Windows.
+- **macOS and Linux:** an FFmpeg installed by the user (for example Homebrew, MacPorts, apt) is used; Klangten never downloads one there. Its licence depends on that installation.
+- **iOS and Android:** not available.
 
-### FFmpeg (FFMPEGEncoders) — not shipped
+### MP3 encoding — BASSenc_MP3
 
-- Klangten does **not** ship an FFmpeg binary (the original package contained `ffmpeg.exe`).
-- **Windows:** on first use of an FFmpeg encoder, Klangten asks and then downloads FFmpeg 9.0.1 "essentials" by Gyan Doshi (a build linked from <https://ffmpeg.org/download.html>) from <https://github.com/GyanD/codexffmpeg/releases/download/9.0.1/ffmpeg-9.0.1-essentials_build.zip>, checks the SHA-256 checksum `fec81ae03971d9dd4be3ebe02e263bd2ec1d789483f931bdba5f5715e65da2e9` and extracts `ffmpeg.exe` and the build's `LICENSE` into the program's data directory (`apps/data/builtin-ffmpeg/ffmpeg/`). The build is configured with `--enable-gpl --enable-version3`, so this FFmpeg is licensed under the **GNU General Public License, version 3**; it includes further libraries (for example LAME, libx264, libvpx) under GPL/LGPL-compatible licences listed by the build. FFmpeg runs as a separate process. Source code: <https://ffmpeg.org/download.html>, build scripts and component list: <https://www.gyan.dev/ffmpeg/builds/>. No 32-bit Windows build is offered.
-- **macOS and Linux:** an FFmpeg installed by the user (for example Homebrew, apt) is used; its licence depends on that installation.
+- MP3 files are written with `bassenc_mp3` (with `bassenc`, both already listed under the BASS family above; LAME-based, by Un4seen Developments) through `src/eapi/audio/encoders/mp3.rb`, on every platform including iOS and Android. No other MP3 encoder is shipped.
 
 ### yt-dlp and Deno (YouTube) — downloaded at run time
 
-- **yt-dlp** (<https://github.com/yt-dlp/yt-dlp>): the YouTube program downloads the latest official stand-alone yt-dlp executable for the platform on first use and checks it against the release's `SHA2-256SUMS`. yt-dlp is released under **The Unlicense** (public domain dedication). The stand-alone executables are built with PyInstaller and contain the Python runtime (PSF licence) and further bundled libraries under their own licences (see yt-dlp's `THIRD_PARTY_LICENSES.txt`).
-- **Deno** (<https://github.com/denoland/deno>), used by yt-dlp as JavaScript runtime: downloaded from the official GitHub releases on first use; **MIT** licence, with bundled components (V8 BSD-3-Clause and others) under their own licences.
-- Both are stored in the program's data directory (`apps/data/builtin-youtube/`) and are not part of Klangten's distribution. "YouTube" is a trademark of Google LLC and is used only descriptively.
+- **yt-dlp** (<https://github.com/yt-dlp/yt-dlp>): Klangten's YouTube feature downloads the latest official yt-dlp release for the platform on first use (the "onedir" zip builds where available, which start much faster than the single-file executables) and checks it against the release's `SHA2-256SUMS`. yt-dlp, Deno and the YouTube data are stored below Klangten's data directory in `youtube/` (programs in `youtube/bin`). yt-dlp is released under **The Unlicense** (public domain dedication). The stand-alone executables are built with PyInstaller and contain the Python runtime (PSF licence) and further bundled libraries under their own licences (see yt-dlp's `THIRD_PARTY_LICENSES.txt`).
+- **Deno** (<https://github.com/denoland/deno>), used by yt-dlp as JavaScript runtime: downloaded from the official GitHub releases on first use and checked against the release's `.sha256sum` file; **MIT** licence, with bundled components (V8 BSD-3-Clause and others) under their own licences.
+- Both are stored in `youtube/` in Klangten's data directory (`File.join(Dirs.eltendata, "youtube")`) and are not part of Klangten's distribution. On Android, YouTube uses NewPipeExtractor (GPL-3.0-or-later, TeamNewPipe) inside the app instead (`docs/android.md`); iOS has no YouTube feature. "YouTube" is a trademark of Google LLC and is used only descriptively.

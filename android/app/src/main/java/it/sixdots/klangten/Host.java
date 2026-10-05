@@ -28,6 +28,7 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -418,6 +419,15 @@ final class Host {
     static void keyboardShowSecure() {
         MainActivity current = activity;
         if (current != null) main.post(() -> current.showKeyboard(true));
+    }
+
+    // The keyboard for an edit box that already holds text: it starts with that
+    // text. UTF-8 bytes rather than a jstring, because NewStringUTF expects
+    // modified UTF-8 and would mangle emoji.
+    static void keyboardShowText(byte[] utf8) {
+        MainActivity current = activity;
+        String text = new String(utf8, StandardCharsets.UTF_8);
+        if (current != null) main.post(() -> current.showKeyboard(false, text));
     }
 
     static void keyboardHide() {

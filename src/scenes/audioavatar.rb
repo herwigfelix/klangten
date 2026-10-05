@@ -11,6 +11,14 @@
 class Scene_Account_AudioAvatar
   RECORDING_FILE = "audioavatar.opus".freeze
   TIME_LIMIT = 120
+  # Opus settings for recordings and imported files. The server turns Opus into
+  # MP3 for Klango, so this is only an intermediate step: at 64 kbit/s a mono
+  # Opus stream already dropped everything around 16 kHz, and the second lossy
+  # step made it worse. 128 kbit/s (music profile, 20 ms frames) keeps the full
+  # band; two minutes are still under 2 MB, far below Avatars::MAX_BYTES.
+  BITRATE = 128
+  FRAME_SIZE = 20
+  APPLICATION_AUDIO = 2049
 
   def main
     unless Session.logged?
@@ -55,7 +63,7 @@ class Scene_Account_AudioAvatar
     outcome = nil
     status = EditBox.new(p_("Klangten", "Audio avatar"), type: EditBox::Flags::ReadOnly | EditBox::Flags::MultiLine, text: status_text(info), quiet: true)
     play = Button.new(p_("Klangten", "Play my audio avatar"))
-    record = OpusRecordButton.new(p_("Klangten", "Record a new audio avatar or select a file"), recording_path, max_bitrate: 128, bitrate: 64, time_limit: TIME_LIMIT)
+    record = OpusRecordButton.new(p_("Klangten", "Record a new audio avatar or select a file"), recording_path, max_bitrate: BITRATE, bitrate: BITRATE, time_limit: TIME_LIMIT)
     upload = Button.new(p_("Klangten", "Save as my audio avatar"))
     remove = Button.new(p_("Klangten", "Remove my audio avatar"))
     close = Button.new(_("Close"))

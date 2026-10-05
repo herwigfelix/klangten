@@ -242,6 +242,9 @@ src/platforms/ios/invisibleinterface/service.rb :ios
 src/platforms/linux/invisibleinterface/service.rb :linux
 src/eapi/audio/format.rb
 src/eapi/audio/encoders/media.rb
+# Klangten: native MP3 encoder (bassenc_mp3) and FFmpeg encoders (system or downloaded FFmpeg)
+src/eapi/audio/encoders/mp3.rb
+src/eapi/audio/encoders/ffmpeg.rb
 src/eapi/audio/source.rb
 src/eapi/audio/processing.rb
 src/eapi/audio/renderer.rb
@@ -252,12 +255,19 @@ src/eapi/runner.rb
 src/eapi/program_package_metadata.rb
 src/eapi/unsigned_package_builder.rb
 src/eapi/program.rb
-# Klangten: built-in former Elten programs (sources in src/programs, loaded by Programs.load_all)
+# Klangten: built-in programs (sources in src/programs, loaded by Programs.load_all; currently MCP)
 src/eapi/program_builtins.rb
 src/eapi/program_installer.rb
 src/eapi/scheduler.rb
 src/eapi/extensions.rb
 src/eapi/program_settings.rb
 src/eapi/quickactions.rb
+# Klangten: own YouTube, playlist, document reader and file manager screens
+src/eapi/youtube.rb
+src/eapi/playlist.rb
+src/eapi/document_text.rb
+src/scenes/youtube.rb
+src/scenes/filemanager.rb
+src/scenes/playlist.rb
 src/platforms/ios/ui/touchinput.rb :ios
 src/main.rb

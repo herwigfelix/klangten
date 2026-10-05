@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes.
 
 module GlobalMenu
   def self.developer_mode?
@@ -94,16 +94,17 @@ module GlobalMenu
       end
     }
     end
-    # Klangten: Media and Files (as in old Elten) with the Klango media catalog and
-    # the built-in former Elten programs (src/eapi/program_builtins.rb). They sit on
-    # the top level right after Community: Community, Media, Files, Programs, Tools.
+    # Klangten: Media and Files (as in old Elten) with the Klango media catalog,
+    # YouTube, the file manager and the playlist - all of them
+    # Klangten's own scenes. They sit on the top level right after Community:
+    # Community, Media, Files, Programs, Tools.
     klangten_group(p_("Klangten", "&Media"), [
       [p_("Klangten", "Media &catalog"), Scene_MediaCatalog],
-      klangten_builtin_item(:youtube, p_("Klangten", "&YouTube"))
+      klangten_scene_item(:Scene_YouTube, p_("Klangten", "&YouTube"))
     ])
     klangten_group(p_("Klangten", "&Files"), [
-      klangten_builtin_item(:filemanager, p_("Klangten", "File &manager")),
-      klangten_builtin_item(:ffmpeg, p_("Klangten", "FFmpeg &encoders"))
+      klangten_scene_item(:Scene_FileManager, p_("Klangten", "File &manager")),
+      klangten_scene_item(:Scene_Playlist, p_("Klangten", "&Playlist"))
     ])
     # The program system is omitted on iOS (App Store policy forbids downloading
     # and running third-party code), so its menu is hidden there entirely.
@@ -235,18 +236,22 @@ Log.info("Switching to thread #{i+1}")
     def opened?
       @currentmenu!=nil&&@currentmenu.opened?
     end
-    # Klangten: [label, scene] for a built-in program, or nil when it does not run
-    # here. A program excluded by its own manifest (YouTube and the FFmpeg encoders
-    # on iOS) gets no entry at all - an entry that only announces its own absence is
-    # worse than none. A genuine load failure is logged by Programs.load_builtin.
-    def klangten_builtin_item(key, label)
-      program = defined?(Programs::BuiltIns) ? Programs::BuiltIns.program_class(key) : nil
-      program == nil ? nil : [label, program]
+    # Klangten: [label, scene class] for one of Klangten's own scenes, or nil when
+    # the scene is missing or reports through available? that it does not run
+    # here (YouTube on iOS). An entry that only
+    # announces its own absence is worse than none.
+    def klangten_scene_item(name, label)
+      return nil if !Object.const_defined?(name)
+      scene = Object.const_get(name)
+      return nil if scene.respond_to?(:available?) && scene.available? != true
+      [label, scene]
+    rescue Exception => e
+      Log.warning("Menu entry #{name} skipped: #{e.class}: #{e.message}")
+      nil
     end
 
     # Klangten: a submenu holding a single entry is noise - on iOS "Media" would be
-    # nothing but the catalogue and "Files" nothing but the file manager, because
-    # the other programs do not run there. So the entries are collected first: a
+    # nothing but the catalogue, because YouTube does not run there. So the entries are collected first: a
     # lone survivor moves up to the top level under its own name, several get their
     # submenu, and none at all disappears. Anything added later (Spotify under
     # Files) therefore lands in the right shape on every platform by itself.

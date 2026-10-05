@@ -21155,6 +21155,1083 @@ msgctxt "Registration"
 msgid "You must accept the Klango server terms to register."
 msgstr "Um sich zu registrieren, müssen Sie den Nutzungsbedingungen des Klango-Servers zustimmen."
 
+# Klangten: own YouTube, file manager, playlist, document reader, shortcuts and encoders (added 2026-10)
+msgctxt "Forum"
+msgid "Recorded thread name"
+msgstr "Aufgenommener Name des Themas"
+
+msgctxt "Klangten"
+msgid "Open folder"
+msgstr "Ordner öffnen"
+
+msgctxt "Klangten"
+msgid "Add to playlist with all subfolders"
+msgstr "Mit allen Unterordnern zur Wiedergabeliste hinzufügen"
+
+msgctxt "Klangten"
+msgid "What do you want to do?"
+msgstr "Was möchten Sie tun?"
+
+msgctxt "Klangten"
+msgid "&Playlist"
+msgstr "&Wiedergabeliste"
+
+msgctxt "Klangten"
+msgid "Klangten already includes features that had to be installed as separate programs in Elten. The Media menu contains the Klango media catalog with radio stations and podcasts, and YouTube with search, playback and downloads (on the first use, Klangten asks before downloading the tools yt-dlp and Deno that it needs). The Files menu contains the file manager and the playlist, which keeps playing in the background. Recordings and conversions can be saved as MP3 without any additional software. On computers, FFmpeg adds further formats such as AAC, M4A, FLAC, WMA and video files: on Windows, Klangten downloads FFmpeg the first time you choose one of these formats; on macOS and Linux, an FFmpeg installed on the system is used. Klangten MCP lets AI assistants on this computer use selected Klangten features with your permission; it stays disabled until you enable it in Program settings."
+msgstr "Klangten enthält bereits Funktionen, die in Elten als eigene Programme installiert werden mussten. Das Menü Medien enthält den Klango-Medienkatalog mit Radiosendern und Podcasts sowie YouTube mit Suche, Wiedergabe und Downloads (bei der ersten Verwendung fragt Klangten, bevor es die benötigten Werkzeuge yt-dlp und Deno herunterlädt). Das Menü Dateien enthält den Dateimanager und die Wiedergabeliste, die im Hintergrund weiterspielt. Aufnahmen und Konvertierungen lassen sich ohne zusätzliche Software als MP3 speichern. Auf Computern ergänzt FFmpeg weitere Formate wie AAC, M4A, FLAC, WMA und Videodateien: Unter Windows lädt Klangten FFmpeg herunter, sobald Sie zum ersten Mal eines dieser Formate wählen; unter macOS und Linux wird ein auf dem System installiertes FFmpeg verwendet. Mit Klangten MCP können KI-Assistenten auf diesem Computer mit Ihrer Erlaubnis ausgewählte Funktionen von Klangten nutzen; es bleibt deaktiviert, bis Sie es in den Programmeinstellungen aktivieren."
+
+msgctxt "Klangten"
+msgid "FFmpeg is not available on this device."
+msgstr "FFmpeg ist auf diesem Gerät nicht verfügbar."
+
+msgctxt "Klangten"
+msgid "FFmpeg has not been downloaded yet."
+msgstr "FFmpeg wurde noch nicht heruntergeladen."
+
+msgctxt "Klangten"
+msgid "FFmpeg can be downloaded by Klangten only on 64-bit Windows (x64). It is not offered for this Windows version."
+msgstr "Klangten kann FFmpeg nur unter 64-Bit-Windows (x64) herunterladen. Für diese Windows-Version wird es nicht angeboten."
+
+msgctxt "Klangten"
+msgid "No FFmpeg was found on this computer."
+msgstr "Auf diesem Computer wurde kein FFmpeg gefunden."
+
+msgctxt "Klangten"
+msgid "Klangten uses an FFmpeg installed on your Mac. The easiest way is Homebrew (https://brew.sh): open Terminal and enter: brew install ffmpeg. MacPorts works as well: sudo port install ffmpeg. Klangten looks in /opt/homebrew/bin, /usr/local/bin and /opt/local/bin, as well as in the search path. Open this screen again after the installation."
+msgstr "Klangten verwendet ein auf Ihrem Mac installiertes FFmpeg. Am einfachsten geht das mit Homebrew (https://brew.sh): Öffnen Sie das Terminal und geben Sie ein: brew install ffmpeg. MacPorts funktioniert ebenfalls: sudo port install ffmpeg. Klangten sucht in /opt/homebrew/bin, /usr/local/bin und /opt/local/bin sowie im Suchpfad. Öffnen Sie diesen Bildschirm nach der Installation erneut."
+
+msgctxt "Klangten"
+msgid "Klangten uses the FFmpeg of your Linux distribution. Install it with your package manager, for example: sudo apt install ffmpeg (Debian, Ubuntu), sudo dnf install ffmpeg (Fedora, with RPM Fusion), sudo pacman -S ffmpeg (Arch) or sudo snap install ffmpeg. Open this screen again after the installation."
+msgstr "Klangten verwendet das FFmpeg Ihrer Linux-Distribution. Installieren Sie es mit Ihrer Paketverwaltung, zum Beispiel: sudo apt install ffmpeg (Debian, Ubuntu), sudo dnf install ffmpeg (Fedora, mit RPM Fusion), sudo pacman -S ffmpeg (Arch) oder sudo snap install ffmpeg. Öffnen Sie diesen Bildschirm nach der Installation erneut."
+
+msgctxt "Klangten"
+msgid "Klangten will download FFmpeg %{version} (about %{size} MB) from GitHub (build by gyan.dev) and keep only ffmpeg.exe. FFmpeg is free software under the GNU General Public License. Download it now?"
+msgstr "Klangten lädt FFmpeg %{version} (etwa %{size} MB) von GitHub herunter (Build von gyan.dev) und behält davon nur ffmpeg.exe. FFmpeg ist freie Software unter der GNU General Public License. Jetzt herunterladen?"
+
+msgctxt "Klangten"
+msgid "Downloading FFmpeg..."
+msgstr "FFmpeg wird heruntergeladen..."
+
+msgctxt "Klangten"
+msgid "FFmpeg could not be downloaded."
+msgstr "FFmpeg konnte nicht heruntergeladen werden."
+
+msgctxt "Klangten"
+msgid "Installing FFmpeg"
+msgstr "FFmpeg wird installiert"
+
+msgctxt "Klangten"
+msgid "Checking FFmpeg"
+msgstr "FFmpeg wird geprüft"
+
+msgctxt "Klangten"
+msgid "FFmpeg is ready."
+msgstr "FFmpeg ist bereit."
+
+msgctxt "Klangten"
+msgid "Version: %{version}"
+msgstr "Version: %{version}"
+
+msgctxt "Klangten"
+msgid "Location: %{path}"
+msgstr "Speicherort: %{path}"
+
+msgctxt "Klangten"
+msgid "This copy was downloaded by Klangten and is kept in its data folder."
+msgstr "Diese Kopie wurde von Klangten heruntergeladen und liegt in seinem Datenordner."
+
+msgctxt "Klangten"
+msgid "Klangten can download FFmpeg %{version} for you. Until then, recordings and conversions can be saved as MP3, Opus, Ogg Vorbis and Wave."
+msgstr "Klangten kann FFmpeg %{version} für Sie herunterladen. Bis dahin lassen sich Aufnahmen und Konvertierungen als MP3, Opus, Ogg Vorbis und Wave speichern."
+
+msgctxt "Klangten"
+msgid "MP3 is built into Klangten and needs no FFmpeg."
+msgstr "MP3 ist in Klangten eingebaut und braucht kein FFmpeg."
+
+msgctxt "Klangten"
+msgid "video"
+msgstr "Video"
+
+msgctxt "Klangten"
+msgid "audio"
+msgstr "Audio"
+
+msgctxt "Klangten"
+msgid "FFmpeg encoders"
+msgstr "FFmpeg-Encoder"
+
+msgctxt "Klangten"
+msgid "Available formats"
+msgstr "Verfügbare Formate"
+
+msgctxt "Klangten"
+msgid "Download FFmpeg again"
+msgstr "FFmpeg erneut herunterladen"
+
+msgctxt "Klangten"
+msgid "Download FFmpeg"
+msgstr "FFmpeg herunterladen"
+
+msgctxt "Klangten"
+msgid "Remove the downloaded FFmpeg"
+msgstr "Heruntergeladenes FFmpeg entfernen"
+
+msgctxt "Klangten"
+msgid "Search again"
+msgstr "Erneut suchen"
+
+msgctxt "Klangten"
+msgid "Remove the FFmpeg copy downloaded by Klangten? The FFmpeg formats will no longer be offered until you download it again."
+msgstr "Die von Klangten heruntergeladene FFmpeg-Kopie entfernen? Die FFmpeg-Formate werden dann erst wieder angeboten, wenn Sie FFmpeg erneut herunterladen."
+
+msgctxt "Klangten"
+msgid "FFmpeg could not be removed. It may still be in use."
+msgstr "FFmpeg konnte nicht entfernt werden. Möglicherweise wird es noch verwendet."
+
+msgctxt "Klangten"
+msgid "YouTube needs two helper programs, yt-dlp and Deno, which are downloaded from their official GitHub releases (about 100 MB). Download them now?"
+msgstr "YouTube braucht zwei Hilfsprogramme, yt-dlp und Deno, die aus ihren offiziellen GitHub-Veröffentlichungen geladen werden (etwa 100 MB). Jetzt herunterladen?"
+
+msgctxt "Klangten"
+msgid "Checking for updates of the YouTube component..."
+msgstr "Suche nach Aktualisierungen der YouTube-Komponente..."
+
+msgctxt "Klangten"
+msgid "The YouTube component is up to date."
+msgstr "Die YouTube-Komponente ist aktuell."
+
+msgctxt "Klangten"
+msgid "A new version of the YouTube component is available. Install it now?"
+msgstr "Eine neue Version der YouTube-Komponente ist verfügbar. Jetzt installieren?"
+
+msgctxt "Klangten"
+msgid "Downloading the YouTube component..."
+msgstr "Die YouTube-Komponente wird heruntergeladen..."
+
+msgctxt "Klangten"
+msgid "The YouTube component has been installed."
+msgstr "Die YouTube-Komponente wurde installiert."
+
+msgctxt "Klangten"
+msgid "The YouTube component could not be downloaded. Check your internet connection and try again."
+msgstr "Die YouTube-Komponente konnte nicht heruntergeladen werden. Prüfe deine Internetverbindung und versuche es erneut."
+
+msgctxt "Klangten"
+msgid "Looking up YouTube links..."
+msgstr "YouTube-Links werden nachgeschlagen..."
+
+msgctxt "Klangten"
+msgid "YouTube channel: %{name}"
+msgstr "YouTube-Kanal: %{name}"
+
+msgctxt "Klangten"
+msgid "YouTube playlist: %{name}"
+msgstr "YouTube-Playlist: %{name}"
+
+msgctxt "Klangten"
+msgid "YouTube: %{name}"
+msgstr "YouTube: %{name}"
+
+msgctxt "Klangten"
+msgid "This is not a YouTube address."
+msgstr "Das ist keine YouTube-Adresse."
+
+msgctxt "Klangten"
+msgid "Search YouTube"
+msgstr "YouTube durchsuchen"
+
+msgctxt "Klangten"
+msgid "Videos"
+msgstr "Videos"
+
+msgctxt "Klangten"
+msgid "Channels"
+msgstr "Kanäle"
+
+msgctxt "Klangten"
+msgid "Playlists"
+msgstr "Playlists"
+
+msgctxt "Klangten"
+msgid "Search for"
+msgstr "Suchen nach"
+
+msgctxt "Klangten"
+msgid "Search"
+msgstr "Suchen"
+
+msgctxt "Klangten"
+msgid "Favourites"
+msgstr "Favoriten"
+
+msgctxt "Klangten"
+msgid "History"
+msgstr "Verlauf"
+
+msgctxt "Klangten"
+msgid "Update YouTube component"
+msgstr "YouTube-Komponente aktualisieren"
+
+msgctxt "Klangten"
+msgid "Recent searches"
+msgstr "Letzte Suchen"
+
+msgctxt "Klangten"
+msgid "You have not searched yet."
+msgstr "Du hast noch nichts gesucht."
+
+msgctxt "Klangten"
+msgid "Clear search history"
+msgstr "Suchverlauf löschen"
+
+msgctxt "Klangten"
+msgid "Do you want to clear your search history?"
+msgstr "Möchtest du deinen Suchverlauf löschen?"
+
+msgctxt "Klangten"
+msgid "The search history has been cleared."
+msgstr "Der Suchverlauf wurde gelöscht."
+
+msgctxt "Klangten"
+msgid "Enter what you are looking for."
+msgstr "Gib ein, wonach du suchst."
+
+msgctxt "Klangten"
+msgid "Opening the video..."
+msgstr "Das Video wird geöffnet..."
+
+msgctxt "Klangten"
+msgid "Channels: %{query}"
+msgstr "Kanäle: %{query}"
+
+msgctxt "Klangten"
+msgid "Playlists: %{query}"
+msgstr "Playlists: %{query}"
+
+msgctxt "Klangten"
+msgid "Videos: %{query}"
+msgstr "Videos: %{query}"
+
+msgctxt "Klangten"
+msgid "Channel"
+msgstr "Kanal"
+
+msgctxt "Klangten"
+msgid "Playlist"
+msgstr "Playlist"
+
+msgctxt "Klangten"
+msgid "YouTube did not answer as expected. Try again later."
+msgstr "YouTube hat nicht wie erwartet geantwortet. Versuche es später erneut."
+
+msgctxt "Klangten"
+msgid "live"
+msgstr "live"
+
+msgctxt "Klangten"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "Klangten"
+msgid "Author: %{name}"
+msgstr "Autor: %{name}"
+
+msgctxt "Klangten"
+msgid "Duration: %{time}"
+msgstr "Dauer: %{time}"
+
+msgctxt "Klangten"
+msgid "Live stream"
+msgstr "Livestream"
+
+msgctxt "Klangten"
+msgid "Published: %{date}"
+msgstr "Veröffentlicht: %{date}"
+
+msgctxt "Klangten"
+msgid "Views: %{count}"
+msgstr "Aufrufe: %{count}"
+
+msgctxt "Klangten"
+msgid "Subscribers: %{count}"
+msgstr "Abonnenten: %{count}"
+
+msgctxt "Klangten"
+msgid "Loading details..."
+msgstr "Details werden geladen..."
+
+msgctxt "Klangten"
+msgid "Likes: %{count}"
+msgstr "Mag ich: %{count}"
+
+msgctxt "Klangten"
+msgid "Address: %{url}"
+msgstr "Adresse: %{url}"
+
+msgctxt "Klangten"
+msgid "Details"
+msgstr "Details"
+
+msgctxt "Klangten"
+msgid "The link has been copied to the clipboard."
+msgstr "Der Link wurde in die Zwischenablage kopiert."
+
+msgctxt "Klangten"
+msgid "Added to favourites."
+msgstr "Zu den Favoriten hinzugefügt."
+
+msgctxt "Klangten"
+msgid "Removed from favourites."
+msgstr "Aus den Favoriten entfernt."
+
+msgctxt "Klangten"
+msgid "Remove from favourites"
+msgstr "Aus den Favoriten entfernen"
+
+msgctxt "Klangten"
+msgid "Add to favourites"
+msgstr "Zu den Favoriten hinzufügen"
+
+msgctxt "Klangten"
+msgid "favourite"
+msgstr "Favorit"
+
+msgctxt "Klangten"
+msgid "Searching..."
+msgstr "Suche läuft..."
+
+msgctxt "Klangten"
+msgid "Nothing was found."
+msgstr "Es wurde nichts gefunden."
+
+msgctxt "Klangten"
+msgid "Load the next 50 results"
+msgstr "Die nächsten 50 Ergebnisse laden"
+
+msgctxt "Klangten"
+msgid "found: %{count}"
+msgstr "gefunden: %{count}"
+
+msgctxt "Klangten"
+msgid "Loading more results..."
+msgstr "Weitere Ergebnisse werden geladen..."
+
+msgctxt "Klangten"
+msgid "No further results."
+msgstr "Keine weiteren Ergebnisse."
+
+msgctxt "Klangten"
+msgid "Open"
+msgstr "Öffnen"
+
+msgctxt "Klangten"
+msgid "Show channel"
+msgstr "Kanal anzeigen"
+
+msgctxt "Klangten"
+msgid "Copy link"
+msgstr "Link kopieren"
+
+msgctxt "Klangten"
+msgid "Play"
+msgstr "Abspielen"
+
+msgctxt "Klangten"
+msgid "Play in quality"
+msgstr "In Qualität abspielen"
+
+msgctxt "Klangten"
+msgid "Download"
+msgstr "Herunterladen"
+
+msgctxt "Klangten"
+msgid "The channel of this video is unknown."
+msgstr "Der Kanal dieses Videos ist unbekannt."
+
+msgctxt "Klangten"
+msgid "This video has no audio stream that can be played."
+msgstr "Dieses Video hat keine abspielbare Tonspur."
+
+msgctxt "Klangten"
+msgid "%{bitrate} kbps"
+msgstr "%{bitrate} kbit/s"
+
+msgctxt "Klangten"
+msgid "Quality"
+msgstr "Qualität"
+
+msgctxt "Klangten"
+msgid "Start"
+msgstr "Starten"
+
+msgctxt "Klangten"
+msgid "Stop"
+msgstr "Stoppen"
+
+msgctxt "Klangten"
+msgid "Turn repeat off"
+msgstr "Wiederholung ausschalten"
+
+msgctxt "Klangten"
+msgid "Turn repeat on"
+msgstr "Wiederholung einschalten"
+
+msgctxt "Klangten"
+msgid "Repeat on"
+msgstr "Wiederholung an"
+
+msgctxt "Klangten"
+msgid "Repeat off"
+msgstr "Wiederholung aus"
+
+msgctxt "Klangten"
+msgid "Close player"
+msgstr "Player schließen"
+
+msgctxt "Klangten"
+msgid "Original audio (no conversion)"
+msgstr "Originalton (ohne Umwandlung)"
+
+msgctxt "Klangten"
+msgid "Video: %{format}"
+msgstr "Video: %{format}"
+
+msgctxt "Klangten"
+msgid "Destination folder"
+msgstr "Zielordner"
+
+msgctxt "Klangten"
+msgid "Format"
+msgstr "Format"
+
+msgctxt "Klangten"
+msgid "File name"
+msgstr "Dateiname"
+
+msgctxt "Klangten"
+msgid "Choose a folder and enter a valid file name."
+msgstr "Wähle einen Ordner und gib einen gültigen Dateinamen ein."
+
+msgctxt "Klangten"
+msgid "The file %{file} already exists. Do you want to replace it?"
+msgstr "Die Datei %{file} existiert bereits. Möchtest du sie ersetzen?"
+
+msgctxt "Klangten"
+msgid "Saved as %{file}."
+msgstr "Gespeichert als %{file}."
+
+msgctxt "Klangten"
+msgid "Downloading %{title}..."
+msgstr "%{title} wird heruntergeladen..."
+
+msgctxt "Klangten"
+msgid "The download failed."
+msgstr "Das Herunterladen ist fehlgeschlagen."
+
+msgctxt "Klangten"
+msgid "Converting %{title}..."
+msgstr "%{title} wird umgewandelt..."
+
+msgctxt "Klangten"
+msgid "The conversion failed."
+msgstr "Die Umwandlung ist fehlgeschlagen."
+
+msgctxt "Klangten"
+msgid "Your history is empty."
+msgstr "Dein Verlauf ist leer."
+
+msgctxt "Klangten"
+msgid "You have no favourites yet."
+msgstr "Du hast noch keine Favoriten."
+
+msgctxt "Klangten"
+msgid "Remove from history"
+msgstr "Aus dem Verlauf entfernen"
+
+msgctxt "Klangten"
+msgid "Clear history"
+msgstr "Verlauf löschen"
+
+msgctxt "Klangten"
+msgid "Do you want to clear your YouTube history?"
+msgstr "Möchtest du deinen YouTube-Verlauf löschen?"
+
+msgctxt "Klangten"
+msgid "The playlist is stopped."
+msgstr "Die Wiedergabeliste ist angehalten."
+
+msgctxt "Klangten"
+msgid "Paused: %{title}"
+msgstr "Pausiert: %{title}"
+
+msgctxt "Klangten"
+msgid "Playing: %{title}"
+msgstr "Wiedergabe: %{title}"
+
+msgctxt "Klangten"
+msgid "%{position} of %{length}"
+msgstr "%{position} von %{length}"
+
+msgctxt "Klangten"
+msgid "Playlist: play or pause"
+msgstr "Wiedergabeliste: Wiedergabe oder Pause"
+
+msgctxt "Klangten"
+msgid "Playlist: previous"
+msgstr "Wiedergabeliste: vorheriger Eintrag"
+
+msgctxt "Klangten"
+msgid "Playlist: next"
+msgstr "Wiedergabeliste: nächster Eintrag"
+
+msgctxt "Klangten"
+msgid "Playlist: volume down"
+msgstr "Wiedergabeliste: leiser"
+
+msgctxt "Klangten"
+msgid "Playlist: volume up"
+msgstr "Wiedergabeliste: lauter"
+
+msgctxt "Klangten"
+msgid "Paused"
+msgstr "Pausiert"
+
+msgctxt "Klangten"
+msgid "The playlist is empty."
+msgstr "Die Wiedergabeliste ist leer."
+
+msgctxt "Klangten"
+msgid "End of the playlist"
+msgstr "Ende der Wiedergabeliste"
+
+msgctxt "Klangten"
+msgid "Volume %{volume}"
+msgstr "Lautstärke %{volume}"
+
+msgctxt "Klangten"
+msgid "File manager"
+msgstr "Dateimanager"
+
+msgctxt "Klangten"
+msgid "Open with the system program"
+msgstr "Mit dem Systemprogramm öffnen"
+
+msgctxt "Klangten"
+msgid "Convert"
+msgstr "Umwandeln"
+
+msgctxt "Klangten"
+msgid "Read the text"
+msgstr "Text lesen"
+
+msgctxt "Klangten"
+msgid "Edit"
+msgstr "Bearbeiten"
+
+msgctxt "Klangten"
+msgid "Add to the playlist"
+msgstr "Zur Wiedergabeliste hinzufügen"
+
+msgctxt "Klangten"
+msgid "Open the playlist file"
+msgstr "Wiedergabelistendatei öffnen"
+
+msgctxt "Klangten"
+msgid "Extract here"
+msgstr "Hier entpacken"
+
+msgctxt "Klangten"
+msgid "Extract to a folder named after the archive"
+msgstr "In einen Ordner mit dem Namen des Archivs entpacken"
+
+msgctxt "Klangten"
+msgid "Extract to..."
+msgstr "Entpacken nach..."
+
+msgctxt "Klangten"
+msgid "Compress to ZIP"
+msgstr "Als ZIP packen"
+
+msgctxt "Klangten"
+msgid "Size"
+msgstr "Größe"
+
+msgctxt "Klangten"
+msgid "Duration or contents"
+msgstr "Dauer oder Inhalt"
+
+msgctxt "Klangten"
+msgid "Spell the name"
+msgstr "Namen buchstabieren"
+
+msgctxt "Klangten"
+msgid "New text file"
+msgstr "Neue Textdatei"
+
+msgctxt "Klangten"
+msgid "New recording"
+msgstr "Neue Aufnahme"
+
+msgctxt "Klangten"
+msgid "New M3U playlist"
+msgstr "Neue M3U-Wiedergabeliste"
+
+msgctxt "Klangten"
+msgid "New PLS playlist"
+msgstr "Neue PLS-Wiedergabeliste"
+
+msgctxt "Klangten"
+msgid "Reload"
+msgstr "Neu laden"
+
+msgctxt "Klangten"
+msgid "Reloaded"
+msgstr "Neu geladen"
+
+msgctxt "Klangten"
+msgid "My playlist"
+msgstr "Meine Wiedergabeliste"
+
+msgctxt "Klangten"
+msgid "Open the playlist"
+msgstr "Wiedergabeliste öffnen"
+
+msgctxt "Klangten"
+msgid "Resume"
+msgstr "Fortsetzen"
+
+msgctxt "Klangten"
+msgid "Pause"
+msgstr "Pause"
+
+msgctxt "Klangten"
+msgid "Previous"
+msgstr "Vorheriger Eintrag"
+
+msgctxt "Klangten"
+msgid "Next"
+msgstr "Nächster Eintrag"
+
+msgctxt "Klangten"
+msgid "Stopped"
+msgstr "Angehalten"
+
+msgctxt "Klangten"
+msgid "This file no longer exists."
+msgstr "Diese Datei gibt es nicht mehr."
+
+msgctxt "Klangten"
+msgid "No program could be opened for this file."
+msgstr "Für diese Datei konnte kein Programm geöffnet werden."
+
+msgctxt "Klangten"
+msgid "Playing"
+msgstr "Wird abgespielt"
+
+msgctxt "Klangten"
+msgid "This playlist cannot be read."
+msgstr "Diese Wiedergabeliste kann nicht gelesen werden."
+
+msgctxt "Klangten"
+msgid "Saved"
+msgstr "Gespeichert"
+
+msgctxt "Klangten"
+msgid "The file could not be saved."
+msgstr "Die Datei konnte nicht gespeichert werden."
+
+msgctxt "Klangten"
+msgid "Do you want to discard your changes?"
+msgstr "Möchtest du deine Änderungen verwerfen?"
+
+msgctxt "Klangten"
+msgid "This file cannot be opened."
+msgstr "Diese Datei kann nicht geöffnet werden."
+
+msgctxt "Klangten"
+msgid "A file with this name already exists."
+msgstr "Eine Datei mit diesem Namen gibt es bereits."
+
+msgctxt "Klangten"
+msgid "The file could not be created."
+msgstr "Die Datei konnte nicht erstellt werden."
+
+msgctxt "Klangten"
+msgid "Reading the document..."
+msgstr "Das Dokument wird gelesen..."
+
+msgctxt "Klangten"
+msgid "This document contains no readable text."
+msgstr "Dieses Dokument enthält keinen lesbaren Text."
+
+msgctxt "Klangten"
+msgid "This document is protected with a password."
+msgstr "Dieses Dokument ist mit einem Passwort geschützt."
+
+msgctxt "Klangten"
+msgid "Klangten cannot read this document. Do you want to open it with the system program?"
+msgstr "Klangten kann dieses Dokument nicht lesen. Möchtest du es mit dem Systemprogramm öffnen?"
+
+msgctxt "Klangten"
+msgid "This document cannot be read."
+msgstr "Dieses Dokument kann nicht gelesen werden."
+
+msgctxt "Klangten"
+msgid "Extract to"
+msgstr "Entpacken nach"
+
+msgctxt "Klangten"
+msgid "Checking the archive..."
+msgstr "Das Archiv wird geprüft..."
+
+msgctxt "Klangten"
+msgid "Keep the existing files"
+msgstr "Vorhandene Dateien behalten"
+
+msgctxt "Klangten"
+msgid "Replace the existing files"
+msgstr "Vorhandene Dateien ersetzen"
+
+msgctxt "Klangten"
+msgid "Extracting..."
+msgstr "Wird entpackt..."
+
+msgctxt "Klangten"
+msgid "Cancelled"
+msgstr "Abgebrochen"
+
+msgctxt "Klangten"
+msgid "This archive cannot be extracted."
+msgstr "Dieses Archiv kann nicht entpackt werden."
+
+msgctxt "Klangten"
+msgid "Compressing..."
+msgstr "Wird gepackt..."
+
+msgctxt "Klangten"
+msgid "The archive could not be created."
+msgstr "Das Archiv konnte nicht erstellt werden."
+
+msgctxt "Klangten"
+msgid "No audio formats are available."
+msgstr "Es sind keine Audioformate verfügbar."
+
+msgctxt "Klangten"
+msgid "Bitrate"
+msgstr "Bitrate"
+
+msgctxt "Klangten"
+msgid "Converting..."
+msgstr "Wird umgewandelt..."
+
+msgctxt "Klangten"
+msgid "The file could not be converted."
+msgstr "Die Datei konnte nicht umgewandelt werden."
+
+msgctxt "Klangten"
+msgid "Converted to %{file}"
+msgstr "Umgewandelt in %{file}"
+
+msgctxt "Klangten"
+msgid "No audio files found."
+msgstr "Keine Audiodateien gefunden."
+
+msgctxt "Klangten"
+msgid "Searching for audio files..."
+msgstr "Audiodateien werden gesucht..."
+
+msgctxt "Klangten"
+msgid "Only the first %{count} files are added."
+msgstr "Nur die ersten %{count} Dateien werden hinzugefügt."
+
+msgctxt "Klangten"
+msgid "Playlist name"
+msgstr "Name der Wiedergabeliste"
+
+msgctxt "Klangten"
+msgid "Name of the recording"
+msgstr "Name der Aufnahme"
+
+msgctxt "Klangten"
+msgid "Recording"
+msgstr "Aufnahme"
+
+msgctxt "Klangten"
+msgid "Record"
+msgstr "Aufnehmen"
+
+msgctxt "Klangten"
+msgid "Record again"
+msgstr "Neu aufnehmen"
+
+msgctxt "Klangten"
+msgid "Do you want to replace the recording?"
+msgstr "Möchtest du die Aufnahme ersetzen?"
+
+msgctxt "Klangten"
+msgid "The recording could not be started."
+msgstr "Die Aufnahme konnte nicht gestartet werden."
+
+msgctxt "Klangten"
+msgid "The recording has been saved."
+msgstr "Die Aufnahme wurde gespeichert."
+
+msgctxt "Klangten"
+msgid "Do you want to discard the recording?"
+msgstr "Möchtest du die Aufnahme verwerfen?"
+
+msgctxt "Klangten"
+msgid "Counting..."
+msgstr "Wird gezählt..."
+
+msgctxt "Klangten"
+msgid "%{size}, %{files}, %{folders}"
+msgstr "%{size}, %{files}, %{folders}"
+
+msgctxt "Klangten"
+msgid "The duration is unknown."
+msgstr "Die Dauer ist unbekannt."
+
+msgctxt "Klangten"
+msgid "Modified %{date}"
+msgstr "Geändert am %{date}"
+
+msgctxt "Klangten"
+msgid "space"
+msgstr "Leerzeichen"
+
+msgctxt "Klangten"
+msgid "Klangten can only see its own files. Do you want to allow access to all files? Android opens a settings page: switch on the permission for Klangten there and come back. With TalkBack, use its gestures on that page."
+msgstr "Klangten sieht nur seine eigenen Dateien. Möchtest du den Zugriff auf alle Dateien erlauben? Android öffnet eine Einstellungsseite: Schalte dort die Berechtigung für Klangten ein und kehre dann zurück. Bediene diese Seite mit den Gesten von TalkBack."
+
+msgctxt "Klangten"
+msgid "Access to all files has been granted."
+msgstr "Der Zugriff auf alle Dateien wurde erlaubt."
+
+msgctxt "Klangten"
+msgid "The permission page could not be opened."
+msgstr "Die Berechtigungsseite konnte nicht geöffnet werden."
+
+msgctxt "Klangten"
+msgid "Play from here"
+msgstr "Ab hier abspielen"
+
+msgctxt "Klangten"
+msgid "What is playing"
+msgstr "Was läuft gerade"
+
+msgctxt "Klangten"
+msgid "Shuffle: on"
+msgstr "Zufallswiedergabe: ein"
+
+msgctxt "Klangten"
+msgid "Shuffle: off"
+msgstr "Zufallswiedergabe: aus"
+
+msgctxt "Klangten"
+msgid "Repeat: on"
+msgstr "Wiederholen: ein"
+
+msgctxt "Klangten"
+msgid "Repeat: off"
+msgstr "Wiederholen: aus"
+
+msgctxt "Klangten"
+msgid "Volume: %{volume}"
+msgstr "Lautstärke: %{volume}"
+
+msgctxt "Klangten"
+msgid "Edit title"
+msgstr "Titel bearbeiten"
+
+msgctxt "Klangten"
+msgid "Add file"
+msgstr "Datei hinzufügen"
+
+msgctxt "Klangten"
+msgid "Add folder"
+msgstr "Ordner hinzufügen"
+
+msgctxt "Klangten"
+msgid "Add address"
+msgstr "Adresse hinzufügen"
+
+msgctxt "Klangten"
+msgid "Remove"
+msgstr "Entfernen"
+
+msgctxt "Klangten"
+msgid "Clear the playlist"
+msgstr "Wiedergabeliste leeren"
+
+msgctxt "Klangten"
+msgid "Move up"
+msgstr "Nach oben verschieben"
+
+msgctxt "Klangten"
+msgid "Move down"
+msgstr "Nach unten verschieben"
+
+msgctxt "Klangten"
+msgid "Export"
+msgstr "Exportieren"
+
+msgctxt "Klangten"
+msgid "Save as"
+msgstr "Speichern unter"
+
+msgctxt "Klangten"
+msgid "Volume"
+msgstr "Lautstärke"
+
+msgctxt "Klangten"
+msgid "Title"
+msgstr "Titel"
+
+msgctxt "Klangten"
+msgid "Address of the stream or file"
+msgstr "Adresse des Streams oder der Datei"
+
+msgctxt "Klangten"
+msgid "This is not a valid address."
+msgstr "Das ist keine gültige Adresse."
+
+msgctxt "Klangten"
+msgid "Do you really want to remove all entries from the playlist?"
+msgstr "Möchtest du wirklich alle Einträge aus der Wiedergabeliste entfernen?"
+
+msgctxt "Klangten"
+msgid "Folder for the playlist"
+msgstr "Ordner für die Wiedergabeliste"
+
+msgctxt "Klangten"
+msgid "%{file} already exists. Do you want to replace it?"
+msgstr "%{file} gibt es bereits. Möchtest du die Datei ersetzen?"
+
+msgctxt "Klangten"
+msgid "Discard changes"
+msgstr "Änderungen verwerfen"
+
+msgctxt "Klangten"
+msgid "The playlist has been changed."
+msgstr "Die Wiedergabeliste wurde geändert."
+
+msgctxt "Klangten"
+msgid "Add this folder to shortcuts"
+msgstr "Diesen Ordner zu den Verknüpfungen hinzufügen"
+
+msgctxt "Klangten"
+msgid "Manage shortcuts"
+msgstr "Verknüpfungen verwalten"
+
+msgctxt "Klangten"
+msgid "Shortcut name"
+msgstr "Name der Verknüpfung"
+
+msgctxt "Klangten"
+msgid "The shortcut has been added."
+msgstr "Die Verknüpfung wurde hinzugefügt."
+
+msgctxt "Klangten"
+msgid "Shortcuts"
+msgstr "Verknüpfungen"
+
+msgctxt "Klangten"
+msgid "There are no shortcuts."
+msgstr "Es gibt keine Verknüpfungen."
+
+msgctxt "Klangten"
+msgid "Add"
+msgstr "Hinzufügen"
+
+msgctxt "Klangten"
+msgid "Rename"
+msgstr "Umbenennen"
+
+msgctxt "Klangten"
+msgid "Change folder"
+msgstr "Ordner ändern"
+
+msgctxt "Klangten"
+msgid "Restore defaults"
+msgstr "Standard wiederherstellen"
+
+msgctxt "Klangten"
+msgid "Choose the folder for the shortcut"
+msgstr "Ordner für die Verknüpfung wählen"
+
+msgctxt "Klangten"
+msgid "Do you really want to remove the shortcut %{name}?"
+msgstr "Möchtest du die Verknüpfung %{name} wirklich entfernen?"
+
+msgctxt "Klangten"
+msgid "Do you want to replace your shortcuts with the default ones?"
+msgstr "Möchtest du deine Verknüpfungen durch die Standardverknüpfungen ersetzen?"
+
+msgctxt "Klangten"
+msgid "Klangten playlists"
+msgstr "Klangten-Wiedergabelisten"
+
+msgctxt "Klangten"
+msgid "Press Enter to select the focused folder or Shift+Enter to select the opened folder."
+msgstr "Drücke Enter, um den markierten Ordner zu wählen, oder Umschalt+Enter, um den geöffneten Ordner zu wählen."
+
+msgctxt "Klangten"
+msgid "Select the focused folder"
+msgstr "Markierten Ordner wählen"
+
+msgctxt "Klangten"
+msgid "Select this folder"
+msgstr "Diesen Ordner wählen"
+
+msgctxt "Klangten"
+msgid "%{count} file already exists."
+msgid_plural "%{count} files already exist."
+msgstr[0] "%{count} Datei gibt es bereits."
+msgstr[1] "%{count} Dateien gibt es bereits."
+
+msgctxt "Klangten"
+msgid "%{count} file extracted."
+msgid_plural "%{count} files extracted."
+msgstr[0] "%{count} Datei entpackt."
+msgstr[1] "%{count} Dateien entpackt."
+
+msgctxt "Klangten"
+msgid "%{count} entry skipped."
+msgid_plural "%{count} entries skipped."
+msgstr[0] "%{count} Eintrag übersprungen."
+msgstr[1] "%{count} Einträge übersprungen."
+
+msgctxt "Klangten"
+msgid "%{count} file compressed."
+msgid_plural "%{count} files compressed."
+msgstr[0] "%{count} Datei gepackt."
+msgstr[1] "%{count} Dateien gepackt."
+
+msgctxt "Klangten"
+msgid "%{count} entry added to the playlist."
+msgid_plural "%{count} entries added to the playlist."
+msgstr[0] "%{count} Eintrag zur Wiedergabeliste hinzugefügt."
+msgstr[1] "%{count} Einträge zur Wiedergabeliste hinzugefügt."
+
+msgctxt "Klangten"
+msgid "%{count} file found"
+msgid_plural "%{count} files found"
+msgstr[0] "%{count} Datei gefunden"
+msgstr[1] "%{count} Dateien gefunden"
+
+msgctxt "Klangten"
+msgid "%{count} file"
+msgid_plural "%{count} files"
+msgstr[0] "%{count} Datei"
+msgstr[1] "%{count} Dateien"
+
+msgctxt "Klangten"
+msgid "%{count} folder"
+msgid_plural "%{count} folders"
+msgstr[0] "%{count} Ordner"
+msgstr[1] "%{count} Ordner"
+
 #~ msgctxt "Settings"
 #~ msgid "Session refresh interval in seconds"
 #~ msgstr "Sitzungsaktualisierungszeit (in Sekunden)"

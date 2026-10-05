@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: built-in MP3 encoder and FFmpeg encoders in the list.
 
 module MediaEncoders
   @@encoders = []
@@ -56,7 +57,33 @@ module MediaEncoders
 
     def list
       external = @@mutex.synchronize { @@encoders.dup }
-      ([OpusEncoder, VorbisEncoder, WaveEncoder] + external).uniq
+      (builtin + external).uniq
+    end
+
+    # Klangten: MP3 (bassenc_mp3) sits next to the other native encoders; the
+    # FFmpeg encoders follow where an FFmpeg is found or can be downloaded
+    # (encoders/ffmpeg.rb).
+    def builtin
+      encoders = [OpusEncoder]
+      encoders << Mp3Encoder if defined?(Mp3Encoder) && Mp3Encoder.available?
+      encoders += [VorbisEncoder, WaveEncoder]
+      encoders += KlangtenFFmpeg.encoders if defined?(KlangtenFFmpeg)
+      encoders
+    rescue StandardError => error
+      log(:error, "Cannot list built-in media encoders: #{error.class}: #{error.message}")
+      [OpusEncoder, VorbisEncoder, WaveEncoder]
+    end
+
+    # Klangten: call on the UI thread after the user picked an encoder and before
+    # encoding (possibly in a background task). An encoder that needs a tool
+    # first (FFmpeg on Windows) gets it here; false means the user declined or
+    # it failed.
+    def prepare(encoder_class)
+      return true if !encoder_class.respond_to?(:prepare)
+      encoder_class.prepare != false
+    rescue StandardError => error
+      log(:error, "Cannot prepare media encoder #{encoder_class}: #{error.class}: #{error.message}")
+      false
     end
 
     def for_audio

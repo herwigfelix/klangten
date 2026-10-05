@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; the touch on-screen keyboard can edit the text already in the field.
 
 module EltenAPI
   module Controls
@@ -61,9 +61,65 @@ end
       @@password_focused_at ||= nil
       @@password_focused_at != nil && Process.clock_gettime(Process::CLOCK_MONOTONIC) - @@password_focused_at <= within
     end
+    # Klangten: the edit box that had the focus a moment ago, for the touch
+    # on-screen keyboard (iOS, Android). nil for read-only, password and audio
+    # fields: those keep the plain keyboard that only types new text.
+    def self.keyboard_box(within = 0.5)
+      @@keyboard_focus ||= nil
+      box, at = @@keyboard_focus
+      return nil if box == nil || Process.clock_gettime(Process::CLOCK_MONOTONIC) - at > within
+      box.keyboard_editable? ? box : nil
+    end
+    def keyboard_editable?
+      (@flags&(Flags::ReadOnly|Flags::Password))==0 && !audio? && @audioplayer==nil
+    end
+    # The text the on-screen keyboard starts with, as [from, to, text, whole
+    # text] with an exclusive end: the whole text of a single-line field, the
+    # paragraph under the cursor of a multi-line one (the system keyboard's
+    # field is single-line and would lose the line breaks of the rest).
+    def keyboard_segment
+      value = @text.dup
+      index = @index.to_i.clamp(0, value.length)
+      if (@flags&Flags::MultiLine)!=0
+        from = index>0 ? (value.rindex("\n", index-1)||-1)+1 : 0
+        to = value.index("\n", index)||value.length
+      else
+        from, to = 0, value.length
+      end
+      [from, to, value[from...to].to_s, value]
+    end
+    # Called from the touch input thread when the keyboard is confirmed; the
+    # text is swapped in by update on the scene thread.
+    def keyboard_replace(segment, value)
+      @keyboard_replacement = segment[0, 4] + [value.to_s]
+    end
+    def apply_keyboard_replacement
+      from, to, original, whole, value = @keyboard_replacement
+      @keyboard_replacement = nil
+      value = value.dup.force_encoding(Encoding::UTF_8).scrub.delete("\r")
+      # The text changed meanwhile: insert at the cursor as before.
+      if @text!=whole
+        einsert(value) if value!=""
+        return
+      end
+      return if value==original
+      # Check the limits before deleting, so a refused insert cannot lose the
+      # old text.
+      if (@max_length>=0 && text_len-(to-from)+character_length(value)>@max_length) ||
+         (@permitted_characters.size>0 && value.each_char.any? { |c| !@permitted_characters.include?(c) })
+        play_sound("border")
+        return
+      end
+      @index=@check=from
+      edelete(from, to-1) if to>from
+      einsert(value, from) if value!=""
+      espeech(value) if value!=""
+    end
     def update
 super
 @@password_focused_at = (@flags&Flags::Password)!=0 ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : nil
+@@keyboard_focus = [self, Process.clock_gettime(Process::CLOCK_MONOTONIC)]
+apply_keyboard_replacement if @keyboard_replacement!=nil
 focus if @audioplayer==nil and @audiotext!="" and @audiotext!=nil
 if @selected==true
 play_sound("editbox_textselected")

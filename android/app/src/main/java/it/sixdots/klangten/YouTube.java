@@ -5,8 +5,8 @@
 //
 // YouTube for Android through NewPipeExtractor (GPLv3, TeamNewPipe): the same
 // library NewPipe itself uses. The desktop client drives yt-dlp instead; the
-// Ruby side (src/programs/youtube/__app.rb) keeps its own interface and only
-// swaps the source of the data, so the screens are identical on both.
+// Ruby side (KlangtenYouTube in src/eapi/youtube.rb) only swaps the source of
+// the data, so the screens are identical on both.
 //
 // Everything returns JSON, because that is what crosses the bridge to Ruby
 // cheaply. Every call does network I/O and must not run on the main thread;

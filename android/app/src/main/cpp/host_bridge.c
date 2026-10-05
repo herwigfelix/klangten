@@ -132,13 +132,53 @@ typedef struct token { char *text; struct token *next; } token;
 static token *g_head, *g_tail;
 static pthread_mutex_t g_queue_lock = PTHREAD_MUTEX_INITIALIZER;
 
+// Standard UTF-8 for Ruby. GetStringUTFChars returns modified UTF-8, which
+// encodes emoji as two three-byte surrogates that Ruby rejects, so text typed
+// on the system keyboard is converted from UTF-16 here.
+static char *utf8_from_jstring(JNIEnv *env, jstring value) {
+    if (value == NULL) return strdup("");
+    jsize length = (*env)->GetStringLength(env, value);
+    const jchar *chars = (*env)->GetStringChars(env, value, NULL);
+    if (chars == NULL) { (*env)->ExceptionClear(env); return strdup(""); }
+    // At most three bytes per UTF-16 unit (a surrogate pair needs four for two).
+    unsigned char *out = malloc((size_t)length * 3 + 1);
+    size_t n = 0;
+    for (jsize i = 0; out != NULL && i < length; i++) {
+        unsigned long c = chars[i];
+        if (c >= 0xD800 && c <= 0xDBFF && i + 1 < length && chars[i + 1] >= 0xDC00 && chars[i + 1] <= 0xDFFF) {
+            c = 0x10000 + ((c - 0xD800) << 10) + (chars[i + 1] - 0xDC00);
+            i++;
+        } else if (c >= 0xD800 && c <= 0xDFFF) {
+            c = 0xFFFD;
+        }
+        if (c == 0) continue; // would end the C string
+        if (c < 0x80) {
+            out[n++] = (unsigned char)c;
+        } else if (c < 0x800) {
+            out[n++] = (unsigned char)(0xC0 | (c >> 6));
+            out[n++] = (unsigned char)(0x80 | (c & 0x3F));
+        } else if (c < 0x10000) {
+            out[n++] = (unsigned char)(0xE0 | (c >> 12));
+            out[n++] = (unsigned char)(0x80 | ((c >> 6) & 0x3F));
+            out[n++] = (unsigned char)(0x80 | (c & 0x3F));
+        } else {
+            out[n++] = (unsigned char)(0xF0 | (c >> 18));
+            out[n++] = (unsigned char)(0x80 | ((c >> 12) & 0x3F));
+            out[n++] = (unsigned char)(0x80 | ((c >> 6) & 0x3F));
+            out[n++] = (unsigned char)(0x80 | (c & 0x3F));
+        }
+    }
+    (*env)->ReleaseStringChars(env, value, chars);
+    if (out == NULL) return strdup("");
+    out[n] = 0;
+    return (char *)out;
+}
+
 JNIEXPORT void JNICALL
 Java_it_sixdots_klangten_Host_pushInput(JNIEnv *env, jclass cls, jstring value) {
     (void)cls;
     token *t = malloc(sizeof(token));
-    const char *utf = (*env)->GetStringUTFChars(env, value, NULL);
-    t->text = strdup(utf != NULL ? utf : "");
-    if (utf != NULL) (*env)->ReleaseStringUTFChars(env, value, utf);
+    t->text = utf8_from_jstring(env, value);
     t->next = NULL;
     pthread_mutex_lock(&g_queue_lock);
     if (g_tail != NULL) g_tail->next = t; else g_head = t;
@@ -260,4 +300,20 @@ EXPORT int elten_host_storage_request(void) { return call_int("storageRequest");
 EXPORT void elten_host_system_keyboard_show(void) { call_void("keyboardShow"); }
 EXPORT void elten_host_system_keyboard_show_secure(void) { call_void("keyboardShowSecure"); }
 EXPORT void elten_host_system_keyboard_hide(void) { call_void("keyboardHide"); }
+
+// The keyboard starts with the text the edit box already holds. Passed as
+// UTF-8 bytes: NewStringUTF expects modified UTF-8 and would mangle emoji.
+EXPORT void elten_host_system_keyboard_show_text(const char *text) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return;
+    jmethodID id = method(env, "keyboardShowText", "([B)V");
+    if (id == NULL) return;
+    jsize length = text != NULL ? (jsize)strlen(text) : 0;
+    jbyteArray bytes = (*env)->NewByteArray(env, length);
+    if (bytes == NULL) { clear_exception(env); return; }
+    if (length > 0) (*env)->SetByteArrayRegion(env, bytes, 0, length, (const jbyte *)text);
+    (*env)->CallStaticVoidMethod(env, g_host, id, bytes);
+    (*env)->DeleteLocalRef(env, bytes);
+    clear_exception(env);
+}
 EXPORT int elten_host_system_keyboard_visible(void) { return call_int("keyboardVisible"); }

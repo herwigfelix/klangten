@@ -120,10 +120,17 @@ public final class MainActivity extends Activity {
     }
 
     void showKeyboard(boolean secure) {
+        showKeyboard(secure, "");
+    }
+
+    // text: what the edit box already holds (never for a password field); the
+    // cursor goes to the end, and Done sends the edited text, which replaces it.
+    void showKeyboard(boolean secure, String text) {
         textField.setInputType(secure
                 ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD
                 : InputType.TYPE_CLASS_TEXT);
-        textField.setText("");
+        textField.setText(text);
+        textField.setSelection(textField.length());
         textField.requestFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.showSoftInput(textField, InputMethodManager.SHOW_IMPLICIT);
