@@ -22,7 +22,7 @@ AppId={{2EEA2E35-34F6-4197-9224-50402E47BBAE}
 AppName=Klangten
 ; AppVerName is left to Inno Setup ("Klangten version <AppVersion>"); a fixed one
 ; showed "Klangten 0.1.0" in the list of installed apps for every release.
-AppVersion=0.3.0
+AppVersion=0.4.0
 AppPublisher=sixdotsIT
 AppPublisherURL=https://klango.online
 AppSupportURL=https://klango.online/
