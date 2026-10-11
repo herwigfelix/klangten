@@ -72,6 +72,22 @@ jobs:
           key: osxruby-${{ runner.os }}-${{ hashFiles('cmake/EltenRubyRuntime.cmake', 'cmake/prepare_ruby_runtime.cmake', 'Gemfile') }}
           restore-keys: osxruby-${{ runner.os }}-
 
+      # Spotify: ext/klangten_spotify wird hier aus dem Quelltext gebaut und
+      # landet in bin/osx (nicht eingecheckt, siehe .gitignore); der Paketbau
+      # kopiert bin/osx ins Programm und signiert die Bibliothek mit.
+      - name: Spotify-Bau aus dem Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ext/klangten_spotify/target
+          key: spotify-osx-${{ hashFiles('ext/klangten_spotify/Cargo.lock') }}
+          restore-keys: spotify-osx-
+
+      - name: Spotify-Bibliothek bauen
+        run: sh tools/build-spotify.sh
+
       - name: Signierung vorbereiten
         if: env.SIGN_IDENTITY != ''
         env:
