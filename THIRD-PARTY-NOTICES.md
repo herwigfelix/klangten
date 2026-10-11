@@ -19,8 +19,10 @@ Platform abbreviations: w86/w64/warm = `windows-x86`/`windows-x64`/`windows-arm6
 | bass_fx | JOBnik! (Arthur Aminov) | 2.4 | all |
 | bass_aac, bass_ac3, bass_spx | MaresWEB / Sebastian Andersson | 2.4.x | Windows, Linux (bass_spx also osx) |
 | bass_vst | Bjoern Petersen Software Design and Development | 2.4.1 | w86, w64, osx |
+| bass_ssl (`libbass_ssl.so`) | Un4seen Developments, built on OpenSSL 1.1.1w | 1.1.1w | Android only (fetched by `android/scripts/fetch-bass.sh`) |
 
 - **Licence:** proprietary freeware from Un4seen Developments (<https://www.un4seen.com/bass.html>). Free only for non-commercial use; commercial use (including sales or advertising revenue) needs a paid licence; redistribution only as part of an end-user product. The add-ons by other authors have their own terms (**to verify**).
+- **BASS_SSL** gives BASS its HTTPS support on Android, where an app cannot load the system's OpenSSL/BoringSSL. It contains OpenSSL 1.1.1w, which is under the dual OpenSSL and SSLeay licences: release packages must carry their texts and the acknowledgements "This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/)" and "This product includes cryptographic software written by Eric Young (eay@cryptsoft.com)" (**to verify** against the archive, which ships no licence file). Because of its advertising clause the OpenSSL 1.x licence is, like BASS itself, not GPL-compatible; the GPL caveat below applies to it as well.
 - **GPL compatibility:** BASS is **not GPL-compatible**. Elten's licence contains no additional permission (GPL section 7) for linking with BASS. Klangten therefore needs either an explicit exception from the copyright holders of Elten (Dawid Pieper and the other contributors) for BASS, or a replacement of BASS with a GPL-compatible audio library (upstream plans a LINDAR backend, see `docs/roadmap.md`). Until this is resolved, binary distribution of Klangten with BASS is legally unclear.
 
 ### Steam Audio (Valve) — Apache License 2.0

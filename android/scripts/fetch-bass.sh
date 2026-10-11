@@ -7,7 +7,12 @@
 # Downloads BASS and its add-ons for Android from un4seen.com into
 # android/vendor/jnilibs/<abi>/, where Gradle packs them into the APK.
 # BASS is proprietary (see THIRD-PARTY-NOTICES.md), so it is never committed.
-# Not available for Android: bass_fx, bass_aac, bass_ac3, basswma, bass_spx, bass_vst.
+# No Android build of basswma, bass_spx, bass_vst; the third-party bass_fx, bass_aac
+# and bass_ac3 builds (files/z/... on un4seen.com) are not fetched yet.
+# BASS_SSL (libbass_ssl.so, OpenSSL inside) gives BASS its HTTPS support: an app
+# cannot load the system libssl from Android 7 on, so without it every https://
+# stream fails with BASS_ERROR_SSL (voice posts, voice messages, radio). BASS
+# finds it on its own once it is in the APK; nothing has to be configured.
 set -euo pipefail
 
 ANDROID_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -26,6 +31,15 @@ for m in $MODULES; do
     [ -n "$so" ] || { echo "   $m: no $abi"; continue; }
     mkdir -p "$DEST/$abi" && cp "$so" "$DEST/$abi/"
   done
+done
+# BASS_SSL is versioned after OpenSSL, so its archive has no "24" in the name.
+zip="$DL/bass_ssl-android.zip"
+[ -f "$zip" ] || curl -fsSL --retry 3 -o "$zip" "https://www.un4seen.com/files/bass_ssl-android.zip"
+rm -rf "$DL/x" && mkdir "$DL/x" && unzip -qo "$zip" -d "$DL/x"
+for abi in $ABIS; do
+  so="$DL/x/libs/$abi/libbass_ssl.so"
+  [ -f "$so" ] || { echo "   bass_ssl: no $abi"; continue; }
+  mkdir -p "$DEST/$abi" && cp "$so" "$DEST/$abi/"
 done
 rm -rf "$DL/x"
 echo "==> BASS for Android in $DEST: $(ls "$DEST"/arm64-v8a 2>/dev/null | tr '\n' ' ')"
