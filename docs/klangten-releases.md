@@ -17,7 +17,7 @@ Klangten's built-in updater is served by the Klango server the client is connect
 - Installers started after Klangten exits:
   - Windows: `"KlangtenSetup.exe" /tasks="" /silent` (Inno Setup with Klangten's own AppId; interactive installs omit the switches)
   - macOS: no installer runs. `Klangten.dmg` is mounted read-only, the app inside is copied out with `ditto` (which preserves the signature) over the running bundle — found from the launcher executable, usually `/Applications/Klangten.app` — the quarantine flag is dropped, the image is detached and Klangten is started again. The old bundle is moved aside first, so a failed copy is rolled back, and if any step fails the image is opened in the Finder so the update can be installed by hand.
-  - Linux: `klangten-linux.run --silent` (it elevates itself with `pkexec` if needed), then `/opt/klangten/elten` is started again
+  - Linux: `klangten-linux.run --silent` (it elevates itself with `pkexec` if needed), then `/opt/klangten/klangten` is started again (clients up to 0.3 start `/opt/klangten/elten`, see [Executable names](#executable-names))
 - Running from source (`ruby elten.rb`) never checks for updates on its own, and a build without a build id is never offered one. The Tools menu entry still lets a source run download and start the installer deliberately.
 - `KLANGTEN_UPDATES=0` disables the updater completely (menu entries, settings, checks). The switch lives in `src/eltenlink/klangten_config.rb`.
 
@@ -41,9 +41,39 @@ Current packages are published as follows:
 
 | Package | Contents | Publish as |
 | --- | --- | --- |
-| `dist/windows/KlangtenSetup.exe` | x64 and x86 launchers. There is no arm64 launcher: the facade `elten.exe` starts the x64 launcher on Windows on ARM | `--platform windows` (universal). ARM64 devices receive it without a separate entry |
+| `dist/windows/KlangtenSetup.exe` | x64 and x86 launchers. There is no arm64 launcher: the facade `klangten.exe` starts the x64 launcher on Windows on ARM | `--platform windows` (universal). ARM64 devices receive it without a separate entry |
 | `dist/osx/Klangten.dmg` | arm64 | `--platform osx --arch arm64` (or universal) |
 | `dist/linux/klangten-linux.run` | arm64, x64 and x86 payloads; the installer picks one | `--platform linux` (universal) |
+
+## Executable names
+
+Up to 0.3 the programs carried Elten's names. Since 0.4 everything the user or the system sees is called Klangten:
+
+| | up to 0.3 | since 0.4 |
+| --- | --- | --- |
+| Windows facade (shortcuts, autostart) | `elten.exe` | `klangten.exe` |
+| Windows launchers | `elten-x86.exe`, `elten-x64.exe`, `elten-arm64.exe` | `klangten-x86.exe`, `klangten-x64.exe`, `klangten-arm64.exe` |
+| Windows speech helper | `bin\ext\windows\EltenSapiBridge32/64.exe` | `KlangtenSapiBridge32/64.exe` |
+| Windows version resource | none (Task Manager showed "elten") | FileDescription and ProductName "Klangten", OriginalFilename per program; the version comes from `VERSION` in `klangten_config.rb` |
+| macOS | `Klangten.app/Contents/MacOS/elten` | `Klangten.app/Contents/MacOS/Klangten` (`CFBundleExecutable`) |
+| Linux | `/opt/klangten/elten` (program), `elten-<arch>` in the release tree | `/opt/klangten/klangten`; `/opt/klangten/elten` remains as a starter script |
+
+Unchanged on purpose, because an update or the coexistence with Elten depends on them: the package names (`KlangtenSetup.exe`, `Klangten.dmg`, `Klangten.apk`, `klangten-linux.run`), the installer AppId, the install folder, the data directory, `klangten.ini`, the window class `KLANGTENMAINWND`, the autostart value `klangten`, the bundle id `it.sixdots.klangten` and the NVDA add-on (`KLANGTEN`; it finds Klangten by process id, not by program name, so it needed no change). iOS and Android were always called Klangten.
+
+### How an update from 0.3 gets there
+
+What a running 0.3 does is fixed in its code and cannot be changed any more (`git show v0.3.0:src/eltenlink/klangten_config.rb`, `Klangten::Updates.install_command`):
+
+- **Windows:** 0.3 downloads `KlangtenSetup.exe` into its data directory and, after quitting, runs `"KlangtenSetup.exe" /tasks="" /silent`. It does not start any program by name afterwards: the restart has always been the `[Run]` entry of the *new* Setup (`postinstall` without `skipifsilent`, which runs as the user who started Setup). The 0.4 Setup therefore restarts `klangten.exe` by itself; no stub `elten.exe` is needed. Its `[Code]` section additionally
+  - waits up to 15 seconds for the quitting 0.3 to end and then stops what is still running **from the installation folder** by process id (`taskkill /PID`, never by name and never with `/T`, because Setup is a child of the old Klangten). Programs called `elten*.exe` anywhere else, such as a real Elten, are not touched. Interactive installs ask first;
+  - removes the old `elten*.exe` (`[InstallDelete]`; the existing `{app}\*` wildcard would remove them anyway);
+  - points shortcuts that lead to `{app}\elten*.exe` to the new program: start menu group, desktops, start menu, autostart folders, taskbar and start pins. This matters for the desktop shortcut, which `/tasks=""` would otherwise leave pointing at a deleted file;
+  - moves the autostart value `klangten` (`HKCU\...\Run`) to `"{app}\klangten.exe"`, keeping `/hidden`. Klangten itself also rewrites that value at every start (`sync_autostart`), which covers a Setup elevated under another account. Elten's value `elten` is never read or written.
+- **macOS:** 0.3 mounts `Klangten.dmg`, copies `Klangten.app` with `ditto`, swaps the bundle and starts it with `open -a <bundle>`. Nothing in that path names the executable, so the new `CFBundleExecutable` needs no transition. The integrity check of the launcher covers `Contents/Resources/bin/osx`, not the executable's name, and the bundle is signed as a whole after the executable got its name (`cmake/macos_bundle.cmake`), so it is not reported as modified.
+- **Linux:** 0.3 runs `klangten-linux.run --silent` and then `exec /opt/klangten/elten`. The 0.4 package therefore installs `/opt/klangten/elten` as a two-line script that starts `/opt/klangten/klangten`; the menu entry points to `klangten`. The restart command of 0.4 and later starts `klangten`, but falls back to `elten` when that is a real program again (a rollback to 0.3 leaves the newer `klangten` behind).
+- **Android/iOS:** unaffected.
+
+Never rename the package files: every installed version looks for exactly these names.
 
 ## Build id and version
 
@@ -54,7 +84,7 @@ Current packages are published as follows:
 | File | Value |
 | --- | --- |
 | `src/eltenlink/klangten_config.rb` | `VERSION = "0.2.0"` (window title, user agent, Version screen) |
-| `launcher/installer/inst_elten.iss` | `AppVersion=Klangten 0.2.0` |
+| `launcher/installer/inst_elten.iss` | `AppVersion=0.4.0` (plain number since 0.4; the list of installed apps shows "Klangten version 0.4.0") |
 | `cmake/macos_bundle.cmake` | `CFBundleShortVersionString` and `CFBundleVersion` in `write_info_plist` |
 
 Pass the same value to the release tool with `--version`.
@@ -85,7 +115,7 @@ This creates `dist/osx/Klangten.dmg` (`--dmg` and `--pkg` are the same switch). 
 ./tools/build-linux-x64.sh --build-id 2026091401 --jobs 4
 ./tools/build-linux-arm64.sh --build-id 2026091401 --jobs 4
 ./tools/build-linux-x86.sh --build-id 2026091401 --jobs 4
-# merge the three trees into build/release/linux (elten-arm64, elten-x64, elten-x86, bin/linux-*), then:
+# merge the three trees into build/release/linux (klangten-arm64, klangten-x64, klangten-x86, bin/linux-*), then:
 ./tools/build-linux.sh --pkg
 ```
 
@@ -160,7 +190,7 @@ Android has no launcher and no build id, and the Klango server publishes no APK,
 
 `.github/workflows/build-macos.yml` (runner `macos-26`) and `.github/workflows/build-windows.yml` (runner `windows-2025-vs2026`) build on a `v*` tag and on manual dispatch. `.github/workflows/build-android.yml` (runner `macos-26`) builds the APK the same way — Ruby runtime, gems, codecs, BASS and the TeamConference core from its public repository — and attaches `Klangten.apk` and `Klangten.apk.sha256` (no `build-id.txt`, see Android above). Both derive the build id from the tag (`v0.1.1` → `0.1.1`) or from the run number, write `<installer>.sha256` and `build-id.txt` next to the installer, upload them as artifacts and, for a tag, attach them to the release — which is exactly what the rolling channel expects.
 
-The Ruby runtime and the gems are compiled from source by the build itself, so both jobs cache `build/launcher-*/ruby`. macOS additionally installs `ruby-install` and needs `rustc` for YJIT. The Windows job builds x64, x86 and the facade `elten.exe`, but not ARM64: that target's Ruby runtime has to run during the build and therefore needs an ARM64 host.
+The Ruby runtime and the gems are compiled from source by the build itself, so both jobs cache `build/launcher-*/ruby`. macOS additionally installs `ruby-install` and needs `rustc` for YJIT. The Windows job builds x64, x86 and the facade `klangten.exe`, but not ARM64: that target's Ruby runtime has to run during the build and therefore needs an ARM64 host.
 
 ### macOS signing in CI
 

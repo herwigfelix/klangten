@@ -41,7 +41,7 @@ tools/build-windows.bat --pkg --build-id 2026091401   # multi-arch helper, needs
 
 - macOS: unsigned builds are **ad-hoc signed inside the build** (`cmake/macos_bundle.cmake`), before the launcher embeds its integrity hashes. Signing the bundle afterwards breaks the integrity check ("modified package file"); rebuild instead.
 - Windows: `CMakePresets.json` requires the "Visual Studio 18 2026" generator. On a VS 2022 host configure manually (`cmake -S . -B build\launcher-windows-x64 -G "Visual Studio 17 2022" -A x64 -DELTEN_BUILD_ID=…`, `Win32` for x86) and build targets `EltenLauncher`, `EltenLauncherFacade` (x86), `EltenPkg`.
-- The ARM64 Windows launcher can only be built on an ARM64 host (its Ruby runtime has to run during the build); `cmake/windows_bundle.cmake` therefore treats `elten-arm64.exe` as optional and the facade falls back to x64.
+- The ARM64 Windows launcher can only be built on an ARM64 host (its Ruby runtime has to run during the build); `cmake/windows_bundle.cmake` therefore treats `klangten-arm64.exe` as optional and the facade falls back to x64.
 - Release ids, version bumping (three files) and publishing to the Klango server: `docs/klangten-releases.md`.
 
 ## Architecture notes that span files
@@ -53,7 +53,7 @@ tools/build-windows.bat --pkg --build-id 2026091401   # multi-arch helper, needs
 
 ## Klangten-specific structure and conventions
 
-- **`src/eltenlink/klangten_config.rb`** holds `Klangten::Config` (API host, product name, `VERSION`, feature switches) and `Klangten::Updates` (installer names, arch, install commands). Env overrides: `KLANGTEN_API_URL`, `KLANGTEN_HTTP2=0`, `KLANGTEN_UPDATES=0`, `KLANGTEN_TCLIB`, `KLANGTEN_RELAY_HOST/_PORT`. The user-visible version also lives in `launcher/installer/inst_elten.iss` and `cmake/macos_bundle.cmake`.
+- **`src/eltenlink/klangten_config.rb`** holds `Klangten::Config` (API host, product name, `VERSION`, feature switches) and `Klangten::Updates` (installer names, arch, install commands). Env overrides: `KLANGTEN_API_URL`, `KLANGTEN_HTTP2=0`, `KLANGTEN_UPDATES=0`, `KLANGTEN_TCLIB`, `KLANGTEN_RELAY_HOST/_PORT`. The user-visible version also lives in `launcher/installer/inst_elten.iss` and `cmake/macos_bundle.cmake`; the Windows version resources read `VERSION` from `klangten_config.rb` at configure time.
 - **`src/eapi/common/klangten.rb`** provides the fork notice, server-terms text and helpers; wrap text that must literally say "Elten" in `unbranded { … }`.
 - **Branding is display-time**: `src/eapi/dictionary.rb` substitutes Elten→Klangten and EltenLink→Klango in translated output. Do not rename msgids.
 - **Feed = Mastodon** (`src/eapi/mastodon/`, `src/scenes/mastodon_timeline.rb`); EltenLink feeds are gone.
@@ -80,4 +80,5 @@ tools/build-windows.bat --pkg --build-id 2026091401   # multi-arch helper, needs
 - Never let the client reach `elten.link`; the updater additionally rejects installer URLs whose scheme, host or port differ from the configured API.
 - BASS (`bin/*`) is proprietary and Elten's licence has no linking exception — see `THIRD-PARTY-NOTICES.md` before shipping binaries.
 - On Klango, **revoking a notification marks its content read** (message notifications are the unread messages themselves, forum/blog ones Klango's unseen events). Never revoke a notification before the view it opens has loaded: What's new and the notification list did, so "new messages"/"new blog posts" came up empty and said there was nothing new. Views that settle their own notifications (conversation, thread, blog post, mentions) are listed in `NotificationGroups#notification_group_cleared_by_view?`.
+- **Program names changed in 0.4** (`elten.exe` → `klangten.exe`, `elten-<arch>.exe` → `klangten-<arch>.exe`, `MacOS/elten` → `MacOS/Klangten`, `/opt/klangten/elten` → `/opt/klangten/klangten`). Older clients update through code that can no longer be changed: they run the *new* package by its fixed name and restart nothing by program name, except Linux (`/opt/klangten/elten`, kept as a starter script). So never rename `KlangtenSetup.exe`/`Klangten.dmg`/`Klangten.apk`/`klangten-linux.run`, keep the Inno `[Run]` entry without `skipifsilent` (it is the restart after a silent update), and keep the `[Code]` in `inst_elten.iss` that stops old processes by PID from `{app}` only and moves shortcuts and the autostart value. Details: `docs/klangten-releases.md`, "Executable names". A build tree from before 0.4 still holds `elten*.exe`; `cmake/windows_bundle.cmake` leaves them out of the package.
 - Klangten must not be mentioned publicly on klango.online until the fork is published on GitHub; server-side names, file prefixes and user agents are deliberately neutral.
