@@ -137,7 +137,7 @@ bool LauncherDeveloperMode(const std::vector<std::string> &args) {
 
 void EnsureDeveloperModeArgument(std::vector<std::string> &args, bool developerMode) {
   if (!developerMode || HasDeveloperModeSwitch(args)) return;
-  if (args.empty()) args.push_back("elten");
+  if (args.empty()) args.push_back("klangten");
   args.push_back("--developer");
 }
 
@@ -952,7 +952,7 @@ int RunLauncher(int argc, char **argv) {
   std::string integrityError;
   WriteTraceLog("before VerifyEmbeddedPayloadIntegrity");
   if (!VerifyEmbeddedPayloadIntegrity(PlatformPathToUtf8(root), integrityError)) {
-    throw std::runtime_error("Elten launcher integrity check failed: " + integrityError);
+    throw std::runtime_error("Klangten launcher integrity check failed: " + integrityError);
   }
   WriteTraceLog("after VerifyEmbeddedPayloadIntegrity");
   WriteTraceLog("before StartRuntimeFileIntegrityCheck");
@@ -963,7 +963,7 @@ int RunLauncher(int argc, char **argv) {
   WriteTraceLog("before PlatformLoadRuby");
   RubyApi ruby = PlatformLoadRuby(runtimeDir, fallbackRubyRoot);
   WriteTraceLog("after PlatformLoadRuby");
-  std::vector<std::string> rubyArgs = {"elten", "--disable-gems", "-e", ""};
+  std::vector<std::string> rubyArgs = {"klangten", "--disable-gems", "-e", ""};
   if (PlatformSupportsYJIT()) {
     rubyArgs.insert(rubyArgs.begin() + 1, "--yjit");
     WriteTraceLog("YJIT requested");
@@ -1011,7 +1011,7 @@ int RunLauncher(int argc, char **argv) {
     RegisterStampFunction(PlatformStampApi(ruby));
     WriteTraceLog("after RegisterStampFunction");
   }
-  ruby.ruby_script("elten");
+  ruby.ruby_script("klangten");
 
   std::string bootstrap = BootstrapRuby(root, runtimeDir, args);
   WriteFile(g_diagnostics.bootstrapPath, bootstrap);

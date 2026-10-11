@@ -1,14 +1,14 @@
 @echo off
 rem compile.bat - Klangten fuer Windows bauen.
 rem
-rem   compile.bat                 Launcher bauen (x64, x86 und die Fassade elten.exe)
+rem   compile.bat                 Launcher bauen (x64, x86 und die Fassade klangten.exe)
 rem   compile.bat --pkg           zusaetzlich dist\windows\KlangtenSetup.exe
 rem   compile.bat --sign          mit signtool signieren (Zertifikat aus dem Zertifikatspeicher)
 rem   compile.bat --build-id ID   Build id einbetten (sonst der Git-Hash)
 rem
 rem ARM64 wird nur auf einem ARM64-Rechner gebaut: die Ruby-Laufzeit dieses Ziels
-rem muss waehrend des Builds laufen. Auf x64 uebernimmt die Fassade elten.exe,
-rem ARM64-Windows startet dann elten-x64.exe unter Emulation.
+rem muss waehrend des Builds laufen. Auf x64 uebernimmt die Fassade klangten.exe,
+rem ARM64-Windows startet dann klangten-x64.exe unter Emulation.
 rem
 rem Zum Starten aus dem Quelltext: run.bat
 
@@ -52,7 +52,7 @@ echo == Konfigurieren ==
 echo == Launcher bauen ==
 "%CMAKE_EXE%" --build --preset windows-x64-release --target EltenLauncher || goto fail
 "%CMAKE_EXE%" --build --preset windows-x86-release --target EltenLauncher || goto fail
-rem elten.exe ist die Fassade aus dem x86-Build; sie waehlt zur Laufzeit die Architektur.
+rem klangten.exe ist die Fassade aus dem x86-Build; sie waehlt zur Laufzeit die Architektur.
 "%CMAKE_EXE%" --build --preset windows-x86-release --target EltenLauncherFacade || goto fail
 
 rem ARM64 nur auf einem ARM64-Host

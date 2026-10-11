@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: helper renamed to KlangtenSapiBridge32/64.exe.
 
 class SapiBridge
   MAGIC = 0xACEDFEED
@@ -955,11 +956,14 @@ class SapiBridge
       []
     end
 
+    # Klangten: the helper is called KlangtenSapiBridge32/64.exe since 0.4; a
+    # source checkout may still hold one built under Elten's name.
     def bridge_candidates
       bridge_bitnesses.map do |bitness|
-        path = File.join(EltenRuntimePaths.bin_root, "ext", "windows", "EltenSapiBridge#{bitness}.exe")
+        directory = File.join(EltenRuntimePaths.bin_root, "ext", "windows")
+        path = ["Klangten", "Elten"].map { |prefix| File.join(directory, "#{prefix}SapiBridge#{bitness}.exe") }.find { |candidate| File.file?(candidate) }
         [bitness, path]
-      end.select { |_, path| File.file?(path) }
+      end.select { |_, path| path != nil }
     end
 
     def call(fallback)

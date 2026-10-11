@@ -230,6 +230,11 @@ module Klangten
     }.freeze
     ARCHES = %w[x64 x86 arm64].freeze
     LINUX_INSTALL_DIR = "/opt/klangten".freeze
+    # Program started again after a Linux update. Up to 0.3 it was
+    # /opt/klangten/elten; the 0.4 package keeps that name as a small script
+    # that starts klangten, because a running 0.3 restarts exactly that path
+    # (docs/klangten-releases.md, "Executable names").
+    LINUX_EXECUTABLE = "klangten".freeze
 
     class << self
       def installer_filename(platform)
@@ -263,7 +268,9 @@ module Klangten
       # Command run after Klangten has exited. Windows: Inno Setup
       # (KlangtenSetup.exe, own AppId); macOS: the app replaces itself from
       # Klangten.dmg (see below); Linux: the self-extracting klangten-linux.run,
-      # which elevates itself, followed by a restart of /opt/klangten/elten.
+      # which elevates itself, followed by a restart of /opt/klangten/klangten.
+      # The installers start nothing by a fixed program name except these
+      # restarts: Windows' Inno Setup restarts Klangten itself ([Run] entry).
       def install_command(platform, installer, silent: true, open_command: "__elten_native_open__", app_path: nil)
         case platform.to_s
         when "windows"
@@ -326,7 +333,14 @@ module Klangten
             else
               "$installer" || exit 1
             fi
-            [ -x #{LINUX_INSTALL_DIR}/elten ] && exec #{LINUX_INSTALL_DIR}/elten
+            dir=#{LINUX_INSTALL_DIR}
+            # A package up to 0.3 (a rollback) installs the program itself as
+            # "elten" and leaves the newer "klangten" behind; since 0.4 "elten"
+            # is only a script that starts "klangten".
+            if [ -x "$dir/elten" ] && [ "$(head -c 2 "$dir/elten" 2>/dev/null)" != "#!" ]; then
+              exec "$dir/elten"
+            fi
+            [ -x "$dir/#{LINUX_EXECUTABLE}" ] && exec "$dir/#{LINUX_EXECUTABLE}"
           SH
           ["/bin/sh", "-c", script, "klangten-update", installer.to_s, silent ? "1" : "0"]
         else

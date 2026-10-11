@@ -45,7 +45,7 @@ if errorlevel 1 (
 echo Building Elten launcher windows-x86...
 "%CMAKE_EXE%" --build --preset windows-x86-release
 set "RESULT=%ERRORLEVEL%"
-if "%RESULT%"=="0" echo Built "%ROOT%\build\release\windows\elten-x86.exe"
+if "%RESULT%"=="0" echo Built "%ROOT%\build\release\windows\klangten-x86.exe"
 
 popd >nul
 exit /b %RESULT%
