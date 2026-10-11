@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: notes on this device and notes shared with Klango groups.
 
 class Scene_Notes
   def main(index=0)
@@ -63,9 +64,21 @@ class Scene_Notes
                   delete(note)
     }
   end
+    # Klangten: keep a copy that stays on this device.
+    menu.option(p_("Notes", "Copy to this device")) {
+    NotesKlango.copy_to_device(note)
+    }
   end
     menu.option(p_("Notes", "New note"), nil, "n") {
           $scene=Scene_Notes_New.new
+  }
+  # Klangten: Klango's local notes and the notes of the Klango groups.
+  menu.option(p_("Notes", "Notes on this device"), nil, "l") {
+  $scene=Scene_Notes_Local.new
+  }
+  menu.option(p_("Notes", "Group notes"), nil, "g") {
+  group=NotesKlango.choose_group(p_("Notes", "Notes of which group?"))
+  $scene=Scene_Notes_Group.new(group) if group!=nil
   }
   menu.option(_("Refresh"), nil, "r") {
   main
@@ -122,6 +135,45 @@ menu.option(p_("Notes", "Share"), nil, "n") {
           end
         end
     end
+}
+# Klangten: share the note with a Klango group (its members can read it).
+menu.option(p_("Notes", "Share with a group")) {
+group=NotesKlango.choose_group(p_("Notes", "Share the note with which group?"))
+if group!=nil
+  begin
+    EltenLink::Notes.share_with_group(elten_link, note, group.id)
+  rescue EltenLink::Error => e
+    Log.warning("Note group share failed: #{e.message}")
+    alert(_("Error"))
+  else
+    alert(p_("Notes", "The members of %{group} can now read this note.")%{:group=>group.name})
+  end
+end
+}
+menu.option(p_("Notes", "Stop sharing with a group")) {
+begin
+  shared=EltenLink::Notes.groups(elten_link, note)
+rescue EltenLink::Error => e
+  Log.warning("Note groups failed: #{e.message}")
+  shared=nil
+  alert(_("Error"))
+end
+if shared!=nil
+  if shared.empty?
+    alert(p_("Notes", "This note is not shared with any group."))
+  else
+    index=selector(shared.map{|g|g[1]}, header: p_("Notes", "Stop sharing with which group?"), start_index: 0, cancel_index: -1)
+    if index!=nil && index>=0
+      begin
+        EltenLink::Notes.unshare_group(elten_link, note, shared[index][0])
+      rescue EltenLink::Error
+        alert(_("Error"))
+      else
+        alert(p_("Notes", "The members of %{group} can no longer read this note.")%{:group=>shared[index][1]})
+      end
+    end
+  end
+end
 }
 end
 }
