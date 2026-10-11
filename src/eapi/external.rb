@@ -3,45 +3,55 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: translation through the Klango server instead of Google.
 
 module EltenAPI
   module External
     private
 # Functions using external APIs
    
-   # Translates a string to another language using Google Translate
+   # Translates a string to another language.
+    #
+    # Klangten: the translation runs on the Klango server (POST /api/v1/translate,
+    # see EltenLink::Translation) instead of an unofficial Google address. It
+    # needs a signed-in session; a failure is announced and returns nil.
     #
     # @param from [String] source language code (if 0, the language autodetection is used)
     # @param to [String] destination language code
     # @param text [String] a text to translate
     # @param api [Int] deprecated, ignored
-    # @return [String] the translation result
+    # @return [String, nil] the translation result, nil on failure
 def translatetext(from,to,text,_api=0)
-  return gtranslate(from,to,text)
+  return "" if text==nil || text.to_s.strip==""
+  if !Session.logged?
+    alert(p_("Klangten", "Sign in to translate texts."))
+    return nil
+  end
+  result = EltenAPI::Tasks.run(title: p_("Klangten", "Translating...")) do |_progress, token|
+    EltenLink::Translation.translate(EltenLink::Client.new, text.to_s, to: to, from: from, cancellation_token: token)
+  end
+  result.text
+rescue EltenAPI::Tasks::Cancelled
+  nil
+rescue EltenLink::Error => e
+  Log.warning("Translation failed: #{e.code}: #{e.message}")
+  alert(klangten_translation_error(e))
+  nil
 end
 
-def gtranslate(from, to, text)
-  return "" if text==""||text==nil
-  text=text.to_s
-  from="auto" if from==0 || from==nil || from==""
-rest=text[5001..-1]
-text=text[0..5000]
-  url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=#{from}&tl=#{to}&dt=t&q=#{text.urlenc}"
-  j=read_url(url).to_s
-  if j!=""
-  h=JSON.load(j)
-  return "" if !h[0].is_a?(Array)
-  t=""
-  for a in h[0]
-    return "" if !a[0].is_a?(String)
-    t+=a[0]
+# Klangten: a spoken reason for a failed translation.
+def klangten_translation_error(error)
+  case error.code.to_s
+  when "translate.unavailable" then p_("Klangten", "Translation is not available on this server.")
+  when "translate.rate_limited" then p_("Klangten", "You have translated a lot in the last hour. Please try again later.")
+  when "translate.too_long" then p_("Klangten", "This text is too long to translate.")
+  when "translate.invalid_language" then p_("Klangten", "This language cannot be translated.")
+  when "translate.failed" then p_("Klangten", "The translation service is not responding. Please try again later.")
+  when "unauthorized" then p_("Klangten", "Sign in to translate texts.")
+  when "network_error", "timeout" then p_("Klangten", "The translation failed because the server could not be reached.")
+  else p_("Klangten", "The text could not be translated.")
   end
-  t+=gtranslate(from, to, rest) if rest!=nil && rest!=""
-  return t
-  else
-  return ""
-  end
-  end
+end
 
 # Opens a translator dialog
 #
@@ -82,7 +92,7 @@ text=text[0..5000]
       lto=langs.keys[to.index]
       ef = translatetext(lfrom,lto,text)
       lfrom = "AUTO" if lfrom==0
-      input_text("#{lfrom} - #{lto}",flags: EditBox::Flags::MultiLine|EditBox::Flags::ReadOnly,text: ef)
+      input_text("#{lfrom} - #{lto}",flags: EditBox::Flags::MultiLine|EditBox::Flags::ReadOnly,text: ef) if ef != nil
       loop_update
     dialog_close
   end
