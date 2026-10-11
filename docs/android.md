@@ -30,7 +30,7 @@ and `android/build/` (both gitignored).
 android/scripts/build-runtime.sh     # libffi, libyaml, OpenSSL, CRuby, fiddle for arm64-v8a (a few minutes)
 android/scripts/build-gems.sh        # bigdecimal, zstd-ruby, nokogiri (+ libxml2/libxslt), pure-Ruby gems
 android/scripts/build-codecs.sh      # libopus/ogg/vorbis/vorbisenc/speexdsp.so
-android/scripts/fetch-bass.sh        # BASS + add-ons from un4seen.com
+android/scripts/fetch-bass.sh        # BASS + add-ons (incl. BASS_SSL for HTTPS) from un4seen.com
 android/scripts/stage-assets.sh      # stdlib, gems, the Klangten core into build/assets; TeamConference into vendor/jnilibs
 cd android && ./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
@@ -87,7 +87,22 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
 - Native libraries stay **inside the APK** (`extractNativeLibs=false`). Open them
   **by name** (`Fiddle.dlopen("libbass.so")`), never by path: there is no file at
   `nativeLibraryDir`. BASS is loaded once from Java first (`System.loadLibrary`),
-  so its `JNI_OnLoad` sees the Java VM.
+  so its `JNI_OnLoad` sees the Java VM. BASS add-ons are loaded the same way:
+  `Bass.init` hands `BASS_PluginLoad` the bare name (`libbassopus.so`), which
+  BASS resolves in the app's library directory; the path it used to build
+  (`files/ruby/app/eltencore/bassopus`) failed with `BASS_ERROR_FILEOPEN`, so
+  before October 2026 no add-on (Opus, FLAC, WebM, HLS, MIDI, ALAC) was active.
+- **HTTPS in BASS needs `libbass_ssl.so`.** Every recording Klangten plays comes
+  as an `https://` URL that BASS streams itself (`BASS_StreamCreateURL`): voice
+  posts, recorded thread titles, voice messages, radio. On Linux/Android BASS
+  loads OpenSSL dynamically, and an app targeting API 24+ may not load the
+  system's `libssl.so`/`libboringssl.so`; without its own SSL library every such
+  stream failed with `BASS_ERROR_SSL` (10) and the player stayed silent, while
+  plain `http://` played (and our statically linked OpenSSL in `libklangten.so`
+  is invisible to BASS). `fetch-bass.sh` therefore also fetches Un4seen's
+  BASS_SSL add-on (OpenSSL 1.1.1w), which BASS picks up from the APK on its own;
+  `BASS_CONFIG_LIBSSL` is not needed. iOS is not affected: BASS uses Apple's
+  network stack there.
 - The STL is `c++_shared`: the TeamConference library needs `libc++_shared.so`.
 
 ## Findings (spike and phase 1, September 2026)
@@ -101,7 +116,8 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
 | libffi 3.8 | sets `FFI_EXEC_STATIC_TRAMP`: Fiddle closures work without writable+executable memory |
 | TLS | OpenSSL ignores `SSL_CERT_FILE` in app processes. Android keeps roots as single PEM files (`/system/etc/security/cacerts`, `/apex/com.android.conscrypt/cacerts`); add them to `OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE`, as `src/eapi/tls.rb` does with its bundle |
 | RubyGems | the prelude does not define `Gem` in the embedded runtime; `require "rubygems"` works |
-| BASS 2.4.18.3 | core + mix, enc, enc_mp3, opus, flac, midi, hls, webm, alac; **no** Android build of bass_fx, bass_aac, bass_ac3, basswma, bass_spx, bass_vst (`Configuration.usefx` has no effect there) |
+| BASS 2.4.18.3 | core + mix, enc, enc_mp3, opus, flac, midi, hls, webm, alac, ssl; no Android build of basswma, bass_spx, bass_vst. un4seen.com now also lists third-party Android builds of bass_fx, bass_aac and bass_ac3 (`files/z/…`), not fetched yet (`Configuration.usefx` has no effect until bass_fx is there) |
+| HTTPS streams | need BASS_SSL (`libbass_ssl.so`): without it `BASS_StreamCreateURL` fails with `BASS_ERROR_SSL` for every `https://` URL, also after an `http://` → `https://` redirect. Checked on the emulator in October 2026: without it error 10, with it the voice post opens and its position advances |
 | 16 KB pages | every library is aligned to `0x4000` (`-Wl,-z,max-page-size=16384`) |
 | TeamConference | public build loads, `tc_join_group_room` present |
 | nokogiri | links against our own libxml2 2.13.9/libxslt 1.1.43 (Android has none); its polyfill needs `HAVE_XMLCTXTSETOPTIONS`/`HAVE_XMLSWITCHENCODINGNAME` or it duplicates libxml2 symbols. libxml2 is built without iconv (Bionic has it only from API 28) |
