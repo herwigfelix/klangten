@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the message of the day and the Klango import offer follow the login.
 
 class Scene_Login
   AUTO_LOGIN_INVALID_PASSWORD_CODES = %w[session.invalid_credentials auth.invalid_password unauthorized].freeze
@@ -274,6 +274,8 @@ else
   speak(Session.greeting) if $silentstart != true
   end
 EltenAPI::NotificationService.synchronize_runtime_state
+# Klangten: message of the day and the Klango import offer (Scene_Main runs them).
+KlangtenStartup.login_completed if defined?(KlangtenStartup)
 else
   case login_error&.code.to_s
   when EltenLink::Error::SERVER_LOCKED

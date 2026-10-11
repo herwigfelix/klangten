@@ -15,7 +15,7 @@ module Klangten
   module Mastodon
     # One connected account. Secrets are kept decrypted only in memory.
     Account_Record = Struct.new(:user, :instance, :client_id, :client_secret, :token, :account_id, :acct,
-      :display_name, :protection, :max_characters, keyword_init: true) do
+      :display_name, :protection, :max_characters, :shared_token, keyword_init: true) do
       def usable?
         instance.to_s != "" && token.to_s != ""
       end
@@ -29,6 +29,10 @@ module Klangten
       end
     end
 
+    # shared_token marks a sign-in taken over from Klango (Import data from
+    # Klango): Klango keeps using the same access token, so Klangten only
+    # forgets it and never asks the server to revoke it.
+    #
     # Accounts are stored per Klangten user in the local configuration
     # (local.json, key MastodonAccounts). The client secret and the access
     # token are encrypted with the same platform mechanism as the auto-login
@@ -87,7 +91,8 @@ module Klangten
             acct: row["acct"].to_s,
             display_name: row["display_name"].to_s,
             protection: row["token"].to_s.split(":", 2).first.to_s,
-            max_characters: row["max_characters"].to_i
+            max_characters: row["max_characters"].to_i,
+            shared_token: row["shared_token"] == true
           )
         rescue StandardError => e
           warn_log("Mastodon account could not be read: #{e.class}")
@@ -108,6 +113,8 @@ module Klangten
             "display_name" => record.display_name.to_s,
             "max_characters" => record.max_characters.to_i
           }
+          # Imported from Klango: the token is Klango's too, so it is never revoked.
+          values[key]["shared_token"] = true if record.shared_token == true
           backend[CONFIG_KEY] = values
           @revision = revision + 1
           true

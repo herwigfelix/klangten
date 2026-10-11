@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages, feed statistics removed; two-factor setup via Telegram or text message.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages, feed statistics removed; two-factor setup via Telegram or text message; Klango e-mail addresses.
 
 class Scene_Account
   WHATSNEW_DISABLE_LIST = 1
@@ -309,6 +309,8 @@ def load_notifications_settings
   def load_security
     setting_category(p_("Account", "Account security"))
     make_setting(p_("Account", "Change e-mail"), :custom, Proc.new{insert_scene(Scene_Account_Mail.new)})
+    # Klangten: the Klango e-mail addresses (mailbox, webmail, mail programs).
+    make_setting(p_("Klangten", "Klango e-mail addresses"), :custom, Proc.new{insert_scene(Scene_Account_KlangoMail.new)})
     make_setting(p_("Account", "Change password"), :custom, Proc.new{insert_scene(Scene_Account_Password.new)})
     make_setting(p_("Account", "Forgot password"), :custom, Proc.new { insert_scene(Scene_ForgotPassword.new) })
     # Klangten: codes via Telegram or text message, served by the Klango server.

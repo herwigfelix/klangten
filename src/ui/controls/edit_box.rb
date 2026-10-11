@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; the touch on-screen keyboard can edit the text already in the field.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; the touch on-screen keyboard can edit the text already in the field; quick translation stays silent when the translation failed.
 
 module EltenAPI
   module Controls
@@ -652,7 +652,8 @@ search
     }
   end
   menu.option(p_("EAPI_Form", "Quick translation"), nil, "t") {
-  espeech(translatetext(0,Configuration.language,get_check_or_all))
+  translated=translatetext(0,Configuration.language,get_check_or_all)
+  espeech(translated) if translated!=nil && translated!=""
   }
     menu.option(p_("EAPI_Form", "Translate"), nil, "T") {
   translator(get_check_or_all)
