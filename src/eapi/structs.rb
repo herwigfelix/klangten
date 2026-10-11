@@ -100,14 +100,23 @@ module EltenAPI
           def user
             EltenPath.normalize(EltenSystemHelpers.user_dir)
           end
+          # Klangten: --overwrite-recordings-path (Klangten::Startup) puts
+          # documents, music and downloads into one chosen folder.
+          def recordings
+            dir=Klangten::Config.recordings_dir_override
+            dir==nil ? nil : EltenPath.normalize(dir)
+          end
           def documents
-            EltenPath.normalize(EltenSystemHelpers.documents_dir)
+            recordings || EltenPath.normalize(EltenSystemHelpers.documents_dir)
           end
           def desktop
             EltenPath.normalize(EltenSystemHelpers.desktop_dir)
           end
           def music
-            EltenPath.normalize(EltenSystemHelpers.music_dir)
+            recordings || EltenPath.normalize(EltenSystemHelpers.music_dir)
+          end
+          def downloads
+            recordings || EltenPath.join(user, "Downloads")
           end
           def tmp
             d=Dir.tmpdir
@@ -116,6 +125,9 @@ module EltenAPI
             return d
             end
           def eltendata
+            if @@eltendata==nil && Klangten::Config.config_dir_override!=nil
+              @@eltendata = EltenPath.normalize(Klangten::Config.config_dir_override)
+            end
             if @@eltendata==nil
               $portable=readini(EltenPath.join(".", Klangten::Config::PORTABLE_INI),Klangten::Config::PORTABLE_INI_SECTION,"Portable","0").to_i
 if $portable == 0

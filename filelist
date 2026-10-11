@@ -13,6 +13,8 @@
 src/bootstrap.rb
 # Klangten: central product, server and data-location configuration (also loaded early by elten.rb)
 src/eltenlink/klangten_config.rb
+# Klangten: start options, confirmed foreign servers, licence lock (also loaded early by elten.rb)
+src/eltenlink/klangten_startup.rb
 src/ri/nativestructs.rb
 src/platforms/windows/ri/win32structs.rb :windows
 src/platforms/windows/ri/systemhelpers.rb :windows

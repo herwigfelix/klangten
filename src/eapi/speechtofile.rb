@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the save location follows --overwrite-recordings-path.
 
 module SpeechToFile
   class Job
@@ -139,7 +140,7 @@ module SpeechToFile
         edt_title = EltenAPI::Controls::EditBox.new(p_("EAPI_SpeechToFile", "File name"), type: 0, text: filename, quiet: true),
         lst_voice = EltenAPI::Controls::ListBox.new(available_voices.map { |voice| voice.name.to_s }, header: p_("EAPI_SpeechToFile", "Voice"), index: default_voice_index),
         lst_rate = EltenAPI::Controls::ListBox.new(rates, header: p_("EAPI_SpeechToFile", "Rate"), index: [[Configuration.voicerate.to_i, 0].max, 100].min),
-        tr_path = EltenAPI::Controls::FilesTree.new(p_("EAPI_SpeechToFile", "Destination"), path: EltenPath.join(Dirs.user, "Music"), hide_files: true, quiet: true),
+        tr_path = EltenAPI::Controls::FilesTree.new(p_("EAPI_SpeechToFile", "Destination"), path: Dirs.music, hide_files: true, quiet: true),
         lst_format = EltenAPI::Controls::ListBox.new(available_encoders.map { |encoder| "#{encoder::Name} (#{encoder::Extension})" }, header: p_("EAPI_SpeechToFile", "File format"), index: default_encoder_index),
         lst_bitrate = EltenAPI::Controls::ListBox.new(bitrates.map { |bitrate| "#{bitrate} kbps" }, header: p_("EAPI_SpeechToFile", "Bitrate"), index: bitrates.index(64) || 0),
         btn_save = EltenAPI::Controls::Button.new(_("Save")),
