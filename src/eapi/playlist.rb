@@ -848,6 +848,7 @@ module KlangtenPlaylist
     def ensure_thread
       return if @thread != nil && @thread.alive?
       @thread = Thread.new { engine_loop }
+      @thread.name = "klangten-playlist"
       @thread.report_on_exception = false if @thread.respond_to?(:report_on_exception=)
     end
 
