@@ -202,10 +202,13 @@ module KlangtenTest
         break unless Runtime.step(nil)
         raise_if_crashed
         now = Runtime.clock.elapsed
-        if @events.size != last || busy?
+        if @events.size != last || busy_in_virtual_time?
           last = @events.size
           calm_since = now
-        elsif now - calm_since >= quiet
+        elsif now - calm_since >= quiet && !working?
+          # Work in progress (requests, tasks) stops the virtual clock, so it
+          # neither counts as quiet time nor restarts it - how long it takes
+          # in real time cannot change what the test hears.
           return self
         end
         if now - start > timeout || Runtime.real_now > deadline
@@ -356,10 +359,17 @@ module KlangtenTest
     # ------------------------------------------------------------ internals
 
     def busy?
-      return true unless Runtime.busy_threads.empty?
-      return true if KlangtenTestSpeech.speaking?
-      return true if Runtime.timed_wait?
-      false
+      working? || busy_in_virtual_time?
+    end
+
+    # Something is running in virtual time: speech, a delay().
+    def busy_in_virtual_time?
+      KlangtenTestSpeech.speaking? || Runtime.timed_wait?
+    end
+
+    # Work started by the interface is running (the clock stands still).
+    def working?
+      !Runtime.busy_threads.empty?
     end
 
     def busy_report

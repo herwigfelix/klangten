@@ -140,6 +140,11 @@ module KlangtenTest
       end
     end
 
+    # A small local web server for this test (fake_web.rb).
+    def fake_web
+      @fake_web ||= KlangtenTest.track_web(FakeWeb.start)
+    end
+
     def work_dir
       ENV.fetch("KLANGTEN_TEST_DIR")
     end
@@ -154,12 +159,12 @@ end
 require_relative "klangten_test/boot"
 require_relative "klangten_test/isolation"
 require_relative "klangten_test/server"
+require_relative "klangten_test/keys"
+require_relative "klangten_test/media"
+require_relative "klangten_test/fake_web"
 if KlangtenTest.child?
   require_relative "klangten_test/runtime"
-  require_relative "klangten_test/keys"
   require_relative "klangten_test/net_guard"
   require_relative "klangten_test/hooks"
   require_relative "klangten_test/app"
-  require_relative "klangten_test/fake_web"
-  require_relative "klangten_test/media"
 end
