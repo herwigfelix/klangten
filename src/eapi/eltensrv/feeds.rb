@@ -5,7 +5,7 @@
 # Klangten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the EltenLink feed helpers
-# were replaced by user interface helpers for a Mastodon account (the Klango server has no feed).
+# were replaced by user interface helpers for a Mastodon account (the Klango server has no feed); a sign-in imported from Klango is never revoked.
 
 module EltenAPI
   module EltenSRV
@@ -165,6 +165,8 @@ module EltenAPI
     end
 
     def mastodon_revoke_record(record)
+      # Klangten: a sign-in imported from Klango shares its token with Klango.
+      return if record.shared_token == true
       client = mastodon_client(record)
       _result, error = mastodon_call { client.revoke_token(client_id: record.client_id, client_secret: record.client_secret) }
       Log.warning("Mastodon token revocation failed: #{error.class}") if error != nil
@@ -173,7 +175,12 @@ module EltenAPI
     def mastodon_disconnect
       record = mastodon_account
       return false if record == nil
-      return false if !confirm(p_("Mastodon", "Do you want to disconnect the Mastodon account %{account} from Klangten? Klangten will ask the server to revoke its access.") % { account: record.label })
+      question = if record.shared_token == true
+        p_("Klangten", "Do you want to disconnect the Mastodon account %{account} from Klangten? Klango keeps its sign-in.") % { account: record.label }
+      else
+        p_("Mastodon", "Do you want to disconnect the Mastodon account %{account} from Klangten? Klangten will ask the server to revoke its access.") % { account: record.label }
+      end
+      return false if !confirm(question)
       mastodon_revoke_record(record)
       Klangten::Mastodon::AccountStore.delete(Session.name)
       Session.feeds_update

@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes; Import data from Klango in Tools.
 
 module GlobalMenu
   def self.developer_mode?
@@ -121,6 +121,9 @@ module GlobalMenu
     m.scene(p_("MainMenu", "Program &settings"), Scene_Settings)
     m.scene(p_("MainMenu", "Sound &themes"), Scene_SoundThemes)
     m.scene(p_("MainMenu", "Speed &test"), Scene_SpeedTest)
+    # Klangten: take over local data of Klango 3 and Klango 4 (desktop only).
+    klango_import = klangten_scene_item(:Scene_KlangoImport, p_("Klangten", "Import data from &Klango"))
+    m.scene(klango_import[0], klango_import[1]) if klango_import != nil
     m.scene(p_("MainMenu", "&Install Elten"), Scene_Install) if Klangten::Config.updates_enabled?
     m.scene(p_("MainMenu", "&Log viewer"), Scene_Log)
     m.scene(p_("MainMenu", "&Console"), Scene_Console) if developer_mode?

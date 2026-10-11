@@ -62,6 +62,10 @@ src/eltenlink/soundthemes.rb
 # Klangten: Klango media catalog and audio avatars
 src/eltenlink/media.rb
 src/eltenlink/avatars.rb
+# Klangten: Klango e-mail addresses, translation and message of the day
+src/eltenlink/mail_accounts.rb
+src/eltenlink/translation.rb
+src/eltenlink/startup_info.rb
 src/eltenlink/authentication.rb
 src/eltenlink/accounts.rb
 src/eltenlink/bans.rb
@@ -90,6 +94,11 @@ src/scenes/programs.rb
 # Klangten: media catalog (Media menu) and audio avatar settings
 src/scenes/mediacatalog.rb
 src/scenes/audioavatar.rb
+# Klangten: Klango e-mail settings, import from Klango, steps after the login
+src/scenes/klango_mail.rb
+src/eapi/klango_import.rb :!ios
+src/scenes/klango_import.rb
+src/scenes/klangten_startup.rb
 src/scenes/palantiri.rb
 src/scenes/log.rb
 src/eapi/speechoutput.rb

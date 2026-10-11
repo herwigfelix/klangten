@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the feed tab shows the home timeline of a connected Mastodon account.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the feed tab shows the home timeline of a connected Mastodon account; runs the steps after a login (message of the day, Klango import offer).
 
 class Scene_Main
   include NotificationGroups
@@ -55,6 +55,14 @@ class Scene_Main
     $preinitialized = true if $preinitialized!=true
     $thr1=Thread.new{thr1} if $thr1.alive? == false
     $thr2=Thread.new{thr2} if $thr2.alive? == false
+    # Klangten: once after a login - message of the day, Klango import offer.
+    if Session.logged? && defined?(KlangtenStartup) && KlangtenStartup.consume
+      next_scene = KlangtenStartup.run
+      if next_scene != nil
+        $scene = next_scene
+        return
+      end
+    end
     $speech_lasttext = ""
     $ctrldisable = false
     key_update

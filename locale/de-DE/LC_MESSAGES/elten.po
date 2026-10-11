@@ -26006,3 +26006,388 @@ msgstr "Mit drei Fingern nach rechts oder links wischen Sie zwischen den Feldern
 msgctxt "WelcomeWizard"
 msgid "Voice messages, audio blog posts and other recordings all share the same player. Double tap to play or pause, swipe left or right to skip backwards or forwards, swipe up or down to change the volume, and swipe up or down with two fingers to change the pitch. Press and hold to open the player menu, which reads the position, the duration and the chapters. A tap with three fingers works like the space bar: in a list it plays the recorded title of an entry, and in the file manager it plays the selected file."
 msgstr "Sprachnachrichten, Audio-Blogbeiträge und andere Aufnahmen teilen sich denselben Player. Doppeltippen spielt ab oder pausiert, nach links oder rechts wischen springt zurück oder vor, nach oben oder unten wischen ändert die Lautstärke, und mit zwei Fingern nach oben oder unten wischen ändert die Tonhöhe. Lange drücken öffnet das Player-Menü, das Position, Dauer und Kapitel ansagt. Tippen mit drei Fingern wirkt wie die Leertaste: In einer Liste spielt es den aufgenommenen Titel eines Eintrags ab, im Dateimanager die ausgewählte Datei."
+
+# Klangten 0.4: Klango e-mail addresses, translation through the server, message of the day, import from Klango
+msgctxt "Klangten"
+msgid "Loading the e-mail settings..."
+msgstr "E-Mail-Einstellungen werden geladen..."
+
+msgctxt "Klangten"
+msgid "This address is already taken."
+msgstr "Diese Adresse ist bereits vergeben."
+
+msgctxt "Klangten"
+msgid "This name is reserved and cannot be used."
+msgstr "Dieser Name ist reserviert und kann nicht verwendet werden."
+
+msgctxt "Klangten"
+msgid "This name cannot be used in an address. Use lower-case letters, digits, dots, hyphens and underscores; it must begin and end with a letter or a digit."
+msgstr "Dieser Name kann nicht in einer Adresse verwendet werden. Erlaubt sind Kleinbuchstaben, Ziffern, Punkte, Bindestriche und Unterstriche; am Anfang und am Ende muss ein Buchstabe oder eine Ziffer stehen."
+
+msgctxt "Klangten"
+msgid "Enter a name for the address."
+msgstr "Geben Sie einen Namen für die Adresse ein."
+
+msgctxt "Klangten"
+msgid "The name can have at most 32 characters."
+msgstr "Der Name darf höchstens 32 Zeichen lang sein."
+
+msgctxt "Klangten"
+msgid "You already have the maximum number of addresses."
+msgstr "Sie haben bereits die höchste Anzahl an Adressen."
+
+msgctxt "Klangten"
+msgid "This domain is not available on this server."
+msgstr "Diese Domain gibt es auf diesem Server nicht."
+
+msgctxt "Klangten"
+msgid "This address does not belong to your account."
+msgstr "Diese Adresse gehört nicht zu Ihrem Konto."
+
+msgctxt "Klangten"
+msgid "The main address carries your mailbox and cannot be deleted."
+msgstr "Die Hauptadresse trägt Ihr Postfach und kann nicht gelöscht werden."
+
+msgctxt "Klangten"
+msgid "The mailbox password needs at least 8 characters."
+msgstr "Das Postfach-Passwort muss mindestens 8 Zeichen haben."
+
+msgctxt "Klangten"
+msgid "Set a mailbox password first."
+msgstr "Legen Sie zuerst ein Postfach-Passwort fest."
+
+msgctxt "Klangten"
+msgid "The mailbox password cannot be set right now. Please try again later."
+msgstr "Das Postfach-Passwort kann gerade nicht gesetzt werden. Bitte versuchen Sie es später noch einmal."
+
+msgctxt "Klangten"
+msgid "The server could not be reached."
+msgstr "Der Server ist nicht erreichbar."
+
+msgctxt "Klangten"
+msgid "main address"
+msgstr "Hauptadresse"
+
+msgctxt "Klangten"
+msgid "sender"
+msgstr "Absender"
+
+msgctxt "Klangten"
+msgid "User name: %{login}"
+msgstr "Benutzername: %{login}"
+
+msgctxt "Klangten"
+msgid "Incoming mail (IMAP): %{server}, port %{port}, SSL/TLS"
+msgstr "Posteingang (IMAP): %{server}, Port %{port}, SSL/TLS"
+
+msgctxt "Klangten"
+msgid "Outgoing mail (SMTP): %{server}, port %{port}, STARTTLS"
+msgstr "Postausgang (SMTP): %{server}, Port %{port}, STARTTLS"
+
+msgctxt "Klangten"
+msgid "Webmail: %{url}"
+msgstr "Webmail: %{url}"
+
+msgctxt "Klangten"
+msgid "Password: the mailbox password set here."
+msgstr "Passwort: das hier festgelegte Postfach-Passwort."
+
+msgctxt "Klangten"
+msgid "No mailbox password is set yet, so mail programs and the webmail cannot sign in."
+msgstr "Es ist noch kein Postfach-Passwort festgelegt, deshalb können sich Mailprogramme und das Webmail nicht anmelden."
+
+msgctxt "Klangten"
+msgid "Mail to your addresses also arrives in your Klango messages."
+msgstr "E-Mails an Ihre Adressen kommen auch in Ihren Klango-Nachrichten an."
+
+msgctxt "Klangten"
+msgid "Your Klango e-mail addresses"
+msgstr "Ihre Klango-E-Mail-Adressen"
+
+msgctxt "Klangten"
+msgid "New address"
+msgstr "Neue Adresse"
+
+msgctxt "Klangten"
+msgid "Sender name: %{name}"
+msgstr "Absendername: %{name}"
+
+msgctxt "Klangten"
+msgid "Change or remove the mailbox password"
+msgstr "Postfach-Passwort ändern oder entfernen"
+
+msgctxt "Klangten"
+msgid "Set a mailbox password"
+msgstr "Postfach-Passwort festlegen"
+
+msgctxt "Klangten"
+msgid "Allow mail programs to sign in"
+msgstr "Anmeldung aus Mailprogrammen erlauben"
+
+msgctxt "Klangten"
+msgid "Allow sign-in to the webmail"
+msgstr "Anmeldung im Webmail erlauben"
+
+msgctxt "Klangten"
+msgid "Access data for mail programs"
+msgstr "Zugangsdaten für Mailprogramme"
+
+msgctxt "Klangten"
+msgid "Use as sender address"
+msgstr "Als Absenderadresse verwenden"
+
+msgctxt "Klangten"
+msgid "Copy address"
+msgstr "Adresse kopieren"
+
+msgctxt "Klangten"
+msgid "Copied to clipboard."
+msgstr "In die Zwischenablage kopiert."
+
+msgctxt "Klangten"
+msgid "Name shown as the sender of your e-mails"
+msgstr "Name, der als Absender Ihrer E-Mails erscheint"
+
+msgctxt "Klangten"
+msgid "Saving..."
+msgstr "Wird gespeichert..."
+
+msgctxt "Klangten"
+msgid "The sender name has been changed."
+msgstr "Der Absendername wurde geändert."
+
+msgctxt "Klangten"
+msgid "%{address} is now your sender address."
+msgstr "%{address} ist jetzt Ihre Absenderadresse."
+
+msgctxt "Klangten"
+msgid "Do you really want to delete the address %{address}? Mail sent to it will no longer reach you."
+msgstr "Möchten Sie die Adresse %{address} wirklich löschen? E-Mails an diese Adresse erreichen Sie dann nicht mehr."
+
+msgctxt "Klangten"
+msgid "Deleting..."
+msgstr "Wird gelöscht..."
+
+msgctxt "Klangten"
+msgid "The address has been deleted."
+msgstr "Die Adresse wurde gelöscht."
+
+msgctxt "Klangten"
+msgid "You already have the maximum number of addresses (%{count}). Delete one first."
+msgstr "Sie haben bereits die höchste Anzahl an Adressen (%{count}). Löschen Sie zuerst eine."
+
+msgctxt "Klangten"
+msgid "Domain of the new address"
+msgstr "Domain der neuen Adresse"
+
+msgctxt "Klangten"
+msgid "Name before @%{domain}"
+msgstr "Name vor @%{domain}"
+
+msgctxt "Klangten"
+msgid "Creating the address..."
+msgstr "Adresse wird angelegt..."
+
+msgctxt "Klangten"
+msgid "The address %{address} has been created."
+msgstr "Die Adresse %{address} wurde angelegt."
+
+msgctxt "Klangten"
+msgid "Set a new mailbox password"
+msgstr "Neues Postfach-Passwort festlegen"
+
+msgctxt "Klangten"
+msgid "Remove the mailbox password"
+msgstr "Postfach-Passwort entfernen"
+
+msgctxt "Klangten"
+msgid "Mailbox password"
+msgstr "Postfach-Passwort"
+
+msgctxt "Klangten"
+msgid "Remove the mailbox password? Mail programs and the webmail can then no longer sign in."
+msgstr "Postfach-Passwort entfernen? Mailprogramme und das Webmail können sich dann nicht mehr anmelden."
+
+msgctxt "Klangten"
+msgid "The mailbox password has been removed."
+msgstr "Das Postfach-Passwort wurde entfernt."
+
+msgctxt "Klangten"
+msgid "New mailbox password (at least %{count} characters)"
+msgstr "Neues Postfach-Passwort (mindestens %{count} Zeichen)"
+
+msgctxt "Klangten"
+msgid "Repeat the mailbox password"
+msgstr "Postfach-Passwort wiederholen"
+
+msgctxt "Klangten"
+msgid "The passwords do not match."
+msgstr "Die Passwörter stimmen nicht überein."
+
+msgctxt "Klangten"
+msgid "The mailbox password has been set."
+msgstr "Das Postfach-Passwort wurde festgelegt."
+
+msgctxt "Klangten"
+msgid "Now tick whether mail programs or the webmail may sign in with it."
+msgstr "Haken Sie jetzt an, ob sich Mailprogramme oder das Webmail damit anmelden dürfen."
+
+msgctxt "Klangten"
+msgid "Importing data from Klango is only possible on a computer."
+msgstr "Daten aus Klango lassen sich nur auf einem Computer übernehmen."
+
+msgctxt "Klangten"
+msgid "No Klango 3 or Klango 4 was found on this computer."
+msgstr "Auf diesem Computer wurde weder Klango 3 noch Klango 4 gefunden."
+
+msgctxt "Klangten"
+msgid "Looking for Klango data..."
+msgstr "Klango-Daten werden gesucht..."
+
+msgctxt "Klangten"
+msgid "Your notes could not be loaded from the server. Try again later."
+msgstr "Ihre Notizen konnten nicht vom Server geladen werden. Versuchen Sie es später noch einmal."
+
+msgctxt "Klangten"
+msgid "Found: %{program} (last signed in as %{user})."
+msgstr "Gefunden: %{program} (zuletzt angemeldet als %{user})."
+
+msgctxt "Klangten"
+msgid "Found: %{program}."
+msgstr "Gefunden: %{program}."
+
+msgctxt "Klangten"
+msgid "Klango has no local notes."
+msgstr "Klango hat keine lokalen Notizen."
+
+msgctxt "Klangten"
+msgid "Local notes in Klango: %{count}, not yet in Klangten: %{new}."
+msgstr "Lokale Notizen in Klango: %{count}, davon noch nicht in Klangten: %{new}."
+
+msgctxt "Klangten"
+msgid "Klango is not signed in to Mastodon."
+msgstr "Klango ist nicht bei Mastodon angemeldet."
+
+msgctxt "Klangten"
+msgid "Klangten is already connected to the Mastodon account %{account}."
+msgstr "Klangten ist bereits mit dem Mastodon-Konto %{account} verbunden."
+
+msgctxt "Klangten"
+msgid "Mastodon account in Klango: %{account}."
+msgstr "Mastodon-Konto in Klango: %{account}."
+
+msgctxt "Klangten"
+msgid "Klango is only read; nothing there is changed. Messages, forums, notes on the server, media favourites and blogs are on the Klango server and are already available in Klangten."
+msgstr "Klango wird nur gelesen, dort wird nichts verändert. Nachrichten, Foren, Notizen auf dem Server, Medienfavoriten und Blogs liegen auf dem Klango-Server und sind in Klangten bereits vorhanden."
+
+msgctxt "Klangten"
+msgid "Data from Klango"
+msgstr "Daten aus Klango"
+
+msgctxt "Klangten"
+msgid "Connect the Mastodon account %{account}"
+msgstr "Mastodon-Konto %{account} verbinden"
+
+msgctxt "Klangten"
+msgid "Nothing to import"
+msgstr "Nichts zu übernehmen"
+
+msgctxt "Klangten"
+msgid "Import"
+msgstr "Übernehmen"
+
+msgctxt "Klangten"
+msgid "Nothing was selected."
+msgstr "Es wurde nichts ausgewählt."
+
+msgctxt "Klangten"
+msgid "Importing data from Klango..."
+msgstr "Daten aus Klango werden übernommen..."
+
+msgctxt "Klangten"
+msgid "Some notes could not be imported. Start the import again to continue."
+msgstr "Einige Notizen konnten nicht übernommen werden. Starten Sie die Übernahme erneut, um fortzusetzen."
+
+msgctxt "Klangten"
+msgid "The Mastodon account %{account} is now connected to Klangten."
+msgstr "Das Mastodon-Konto %{account} ist jetzt mit Klangten verbunden."
+
+msgctxt "Klangten"
+msgid "The Mastodon sign-in from Klango is no longer valid. Connect the account again in the Mastodon settings."
+msgstr "Die Mastodon-Anmeldung aus Klango ist nicht mehr gültig. Verbinden Sie das Konto in den Mastodon-Einstellungen neu."
+
+msgctxt "Klangten"
+msgid "The Mastodon account was not connected."
+msgstr "Das Mastodon-Konto wurde nicht verbunden."
+
+msgctxt "Klangten"
+msgid "Loading the message of the day..."
+msgstr "Nachricht des Tages wird geladen..."
+
+msgctxt "Klangten"
+msgid "Message of the day"
+msgstr "Nachricht des Tages"
+
+msgctxt "Klangten"
+msgid "Klangten found Klango on this computer. Do you want to take over its local notes and its Mastodon sign-in? Klango itself stays unchanged. You can also do this later under Tools, Import data from Klango."
+msgstr "Klangten hat Klango auf diesem Computer gefunden. Möchten Sie dessen lokale Notizen und die Mastodon-Anmeldung übernehmen? Klango selbst bleibt unverändert. Sie können das auch später unter Werkzeuge, Daten aus Klango übernehmen, erledigen."
+
+msgctxt "Klangten"
+msgid "Sign in to translate texts."
+msgstr "Melden Sie sich an, um Texte zu übersetzen."
+
+msgctxt "Klangten"
+msgid "Translating..."
+msgstr "Wird übersetzt..."
+
+msgctxt "Klangten"
+msgid "Translation is not available on this server."
+msgstr "Übersetzen ist auf diesem Server nicht verfügbar."
+
+msgctxt "Klangten"
+msgid "You have translated a lot in the last hour. Please try again later."
+msgstr "Sie haben in der letzten Stunde sehr viel übersetzt. Bitte versuchen Sie es später noch einmal."
+
+msgctxt "Klangten"
+msgid "This text is too long to translate."
+msgstr "Dieser Text ist zu lang zum Übersetzen."
+
+msgctxt "Klangten"
+msgid "This language cannot be translated."
+msgstr "Diese Sprache kann nicht übersetzt werden."
+
+msgctxt "Klangten"
+msgid "The translation service is not responding. Please try again later."
+msgstr "Der Übersetzungsdienst antwortet gerade nicht. Bitte versuchen Sie es später noch einmal."
+
+msgctxt "Klangten"
+msgid "The translation failed because the server could not be reached."
+msgstr "Die Übersetzung ist fehlgeschlagen, weil der Server nicht erreichbar ist."
+
+msgctxt "Klangten"
+msgid "The text could not be translated."
+msgstr "Der Text konnte nicht übersetzt werden."
+
+msgctxt "Klangten"
+msgid "Do you want to disconnect the Mastodon account %{account} from Klangten? Klango keeps its sign-in."
+msgstr "Möchten Sie das Mastodon-Konto %{account} von Klangten trennen? Klango bleibt angemeldet."
+
+msgctxt "Klangten"
+msgid "Klango e-mail addresses"
+msgstr "Klango-E-Mail-Adressen"
+
+msgctxt "Klangten"
+msgid "Import data from &Klango"
+msgstr "Daten aus &Klango übernehmen"
+
+msgctxt "Klangten"
+msgid "Import %{count} local note as a Klangten note"
+msgid_plural "Import %{count} local notes as Klangten notes"
+msgstr[0] "%{count} lokale Notiz als Klangten-Notiz übernehmen"
+msgstr[1] "%{count} lokale Notizen als Klangten-Notizen übernehmen"
+
+msgctxt "Klangten"
+msgid "%{count} note was imported."
+msgid_plural "%{count} notes were imported."
+msgstr[0] "%{count} Notiz wurde übernommen."
+msgstr[1] "%{count} Notizen wurden übernommen."
