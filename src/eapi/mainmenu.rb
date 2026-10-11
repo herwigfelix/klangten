@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes; web browser.
 
 module GlobalMenu
   def self.developer_mode?
@@ -100,7 +100,8 @@ module GlobalMenu
     # Community, Media, Files, Programs, Tools.
     klangten_group(p_("Klangten", "&Media"), [
       [p_("Klangten", "Media &catalog"), Scene_MediaCatalog],
-      klangten_scene_item(:Scene_YouTube, p_("Klangten", "&YouTube"))
+      klangten_scene_item(:Scene_YouTube, p_("Klangten", "&YouTube")),
+      klangten_scene_item(:Scene_WebBrowser, p_("WebBrowser", "&Web browser"))
     ])
     klangten_group(p_("Klangten", "&Files"), [
       klangten_scene_item(:Scene_FileManager, p_("Klangten", "File &manager")),

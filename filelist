@@ -275,5 +275,7 @@ src/eapi/web/websocket.rb
 src/eapi/web/ax.rb
 src/eapi/web/chrome.rb
 src/eapi/web/textpage.rb
+src/scenes/webbrowser.rb
+src/scenes/webbrowser_page.rb
 src/platforms/ios/ui/touchinput.rb :ios
 src/main.rb

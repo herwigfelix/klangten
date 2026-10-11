@@ -5,7 +5,8 @@
 # Klangten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the EltenLink feed helpers
-# were replaced by user interface helpers for a Mastodon account (the Klango server has no feed).
+# were replaced by user interface helpers for a Mastodon account (the Klango server has no feed);
+# links of posts open through the Klangten browser setting.
 
 module EltenAPI
   module EltenSRV
@@ -517,9 +518,10 @@ module EltenAPI
         mastodon_open_timeline(:hashtag, link[:text].sub(/\A#/, ""))
       when :mention
         account = mastodon_request { |client| client.lookup_account(link[:text].sub(/\A@/, "")) rescue client.search_accounts(link[:url], limit: 1).first }
-        account != nil ? mastodon_show_account(account) : platform_open_url(link[:url])
+        account != nil ? mastodon_show_account(account) : process_url(link[:url])
       else
-        platform_open_url(link[:url])
+        # Klangten browser or system browser, as set in the browser settings.
+        process_url(link[:url])
       end
     end
 

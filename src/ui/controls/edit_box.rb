@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; the touch on-screen keyboard can edit the text already in the field.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; the touch on-screen keyboard can edit the text already in the field; links can be opened in the Klangten browser or the system browser.
 
 module EltenAPI
   module Controls
@@ -234,11 +234,17 @@ elsif Configuration.typingecho==:characters or Configuration.typingecho==:charac
             end
                                                 end
                     end
+# Klangten: the address of the link (or frame) under the cursor, else the
+# last one on the current line, or nil.
+def link_at_cursor
+url=nil
+@elements.each {|e| url=e.param[1] if (e.from<=@index and e.to>=@index) and (e.type==Element::Link || e.type==Element::Frame) and e.param.is_a?(Array)}
+@elements.each {|e| url=e.param[1] if (e.from>=line_beginning and e.to<=line_ending) and (e.type==Element::Link || e.type==Element::Frame) and e.param.is_a?(Array)} if url==nil
+url
+end
 def readupdate
             if key_pressed?(:key_enter)
-url=nil
-@elements.each {|e| url=e.param[1] if (e.from<=@index and e.to>=@index) and (e.type==Element::Link || e.type==Element::Frame)}
-@elements.each {|e| url=e.param[1] if (e.from>=line_beginning and e.to<=line_ending) and (e.type==Element::Link || e.type==Element::Frame)} if url==nil
+url=link_at_cursor
               if url!=nil
                 speak(p_("EAPI_Form", "Opening a link..."))
         loop_update
@@ -601,6 +607,19 @@ def context(menu, submenu=false)
     loop_update
     speak(text_range(line_beginning,line_ending))
     }
+    }
+  end
+  # Klangten: the link under the cursor in the Klangten browser or the system browser.
+  if (@flags&Flags::ReadOnly)>0 && (link=link_at_cursor)!=nil && link =~ /\Ahttps?:\/\//i
+    menu.option(p_("WebBrowser", "Open link in the Klangten browser")) {
+    Scene_WebBrowser.open_url(link) if defined?(Scene_WebBrowser)
+    }
+    menu.option(p_("WebBrowser", "Open link in the system browser")) {
+    platform_open_url(link)
+    }
+    menu.option(p_("WebBrowser", "Copy link")) {
+    Clipboard.text=link
+    alert(p_("WebBrowser", "The link has been copied."))
     }
   end
   menu.option(p_("EAPI_Form", "Read from cursor"), nil, "A") {
