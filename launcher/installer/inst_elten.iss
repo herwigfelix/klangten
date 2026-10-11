@@ -134,7 +134,7 @@ function KlangtenProcessIds(var Ids: TArrayOfString): Integer;
 var
   Locator, Service, Processes, Item: Variant;
   AppDir, ExePath: String;
-  I, Count: Integer;
+  I, Count, Pid: Integer;
 begin
   Result := 0;
   SetArrayLength(Ids, 0);
@@ -150,11 +150,13 @@ begin
     begin
       Item := Processes.ItemIndex(I);
       if VarIsNull(Item.ExecutablePath) then continue;
-      ExePath := Lowercase(Item.ExecutablePath);
+      ExePath := Item.ExecutablePath;
+      ExePath := Lowercase(ExePath);
       if (Pos(AppDir, ExePath) = 1) and IsKlangtenProgramName(ExtractFileName(ExePath)) then
       begin
         SetArrayLength(Ids, Result + 1);
-        Ids[Result] := IntToStr(Item.ProcessId);
+        Pid := Item.ProcessId;
+        Ids[Result] := IntToStr(Pid);
         Result := Result + 1;
       end;
     end;
@@ -215,7 +217,8 @@ begin
           begin
             Log('Klangten: shortcut ' + AddBackslash(Dir) + Find.Name + ' -> ' + NewTarget);
             Shortcut.TargetPath := NewTarget;
-            Icon := Lowercase(Shortcut.IconLocation);
+            Icon := Shortcut.IconLocation;
+            Icon := Lowercase(Icon);
             if Pos(TargetName, Icon) > 0 then Shortcut.IconLocation := NewTarget + ',0';
             Shortcut.Save;
           end;
