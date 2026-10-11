@@ -1,0 +1,100 @@
+# A part of Klangten, a modified version of Elten - EltenLink / Elten Network desktop client.
+# Elten: Copyright (C) 2014-2026 Dawid Pieper
+# Klangten modifications: Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT)
+# This file was added for Klangten (GNU GPL v3, section 5a).
+# Klangten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# Klangten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
+
+# Hooks around the loaded core. Each one wraps a single entry point and
+# calls the original - Klangten's own logic is never copied here. When one of
+# the wrapped methods is renamed, KlangtenTest::Hooks.install fails loudly
+# instead of silently testing something else.
+
+module KlangtenTest
+  module Hooks
+    module_function
+
+    def install
+      wrap_play_sound
+      wrap_timed_waits
+      wrap_scene_controller
+      wrap_background_services
+      route_audio_to_no_sound_device
+      require_relative "microphone"
+      Microphone.install
+    end
+
+    def wrap(owner, name, &replacement)
+      raise HarnessError, "#{owner}##{name} is gone - update test/support/klangten_test/hooks.rb" unless owner.method_defined?(name) || owner.private_method_defined?(name)
+      original = owner.instance_method(name)
+      visibility = owner.private_method_defined?(name) ? :private : :public
+      owner.send(:define_method, name) do |*args, **kw, &block|
+        replacement.call(original.bind(self), *args, **kw, &block)
+      end
+      owner.send(visibility, name)
+    end
+
+    # Theme sounds go into the transcript under their theme name, together
+    # with their length, so settle can wait until they have finished.
+    def wrap_play_sound
+      wrap(EltenAPI::UI, :play_sound) do |original, voice, **kw|
+        audible = Configuration.soundthemeactivation == true || kw[:ignore_soundtheme] == true || (voice.is_a?(String) && FileTest.exists?(voice))
+        KlangtenTest.record(:sound, voice.to_s) if audible
+        original.call(voice, **kw)
+      end
+    end
+
+    # delay() waits for time, not for the user: busy while it runs.
+    def wrap_timed_waits
+      [:delay, :delay_precise].each do |name|
+        wrap(EltenAPI, name) do |original, *args, **kw, &block|
+          Runtime.timed_wait { original.call(*args, **kw, &block) }
+        end
+      end
+    end
+
+    # $thr2 inserts scenes; it runs one iteration per frame in step with the
+    # test (Runtime :ticker). $thr1 only polls NVDA and stays in real time.
+    def wrap_scene_controller
+      wrap(EltenAPI::Common, :thr2) do |original|
+        Runtime.ticker!
+        original.call
+      end
+      wrap(EltenAPI::Common, :thr1) do |original|
+        Runtime.register(Thread.current, :bg)
+        original.call
+      end
+    end
+
+    # Long-running services (the notification service, workers of loaded
+    # programs such as MCP, the conference worker) are background threads, not work the test has to
+    # wait for.
+    def wrap_background_services
+      [[EltenAPI::NotificationService.singleton_class, :start], [Programs.singleton_class, :load_all],
+       [TeamConference::Client, :ensure_thread]].each do |owner, name|
+        wrap(owner, name) do |original, *args, **kw, &block|
+          Runtime.background { original.call(*args, **kw, &block) }
+        end
+      end
+      # The conference library connects by itself, past Ruby's sockets.
+      wrap(TeamConference::Library, :connect) do |original, host, *args|
+        NetGuard.allowed?(host) ? original.call(host, *args) : (NetGuard.blocked << "conference #{host}"; false)
+      end
+    end
+
+    # BASS runs on its "no sound" device: streams are created and decoded as
+    # usual, nothing reaches a sound card, and machines without one (CI) work.
+    def route_audio_to_no_sound_device
+      Bass.instance_variable_set(:@setdeviceoninit, 0)
+      # BASS fetches URLs itself, past Ruby's sockets: same rule as NetGuard.
+      wrap(Bass.singleton_class, :raw_create_url_stream) do |original, url, *args, **kw|
+        NetGuard.check_url!(url)
+        original.call(url, *args, **kw)
+      end
+      wrap(Bass.singleton_class, :prewarm_url_loader) do |original, *args|
+        Runtime.background { original.call(*args) }
+      end
+    end
+  end
+end

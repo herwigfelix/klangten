@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: product identity, data directory and window class; Android reuses the iOS layer.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: product identity, data directory and window class; Android reuses the iOS layer; test harness hook.
 
 root = File.expand_path(__dir__)
 Dir.chdir(root)
@@ -596,13 +596,20 @@ boot_trace = lambda do |message|
 rescue Exception
 end
 
+# Klangten test harness (test/support/klangten_test/boot.rb). It defines
+# KlangtenTestBoot before loading this file; the harness then decides which
+# file is loaded for each filelist entry (window, speech and clipboard become
+# test doubles, see source_for) and starts src/main.rb itself on its own
+# scene thread. Without the harness this changes nothing.
+test_boot = defined?(::KlangtenTestBoot) ? ::KlangtenTestBoot : nil
+
 verbose = $VERBOSE
 $VERBOSE = nil
 begin
   boot_trace.call("elten.rb before configure")
   EltenBoot.configure_osx_dyld!
   EltenBoot.configure_linux_ld!
-  EltenBoot.configure_local_gems!
+  EltenBoot.configure_local_gems! if test_boot == nil
   Signal.trap("INT") { exit!(130) } if EltenBoot.platform?(:osx)
   boot_trace.call("elten.rb before require fiddle")
   require "fiddle"
@@ -631,6 +638,10 @@ filelist_lines.each do |line|
   file = EltenBoot.filelist_entry(line)
   next if file == nil
   normalized_file = file.tr("\\", "/")
+  if test_boot != nil
+    Array(test_boot.source_for(normalized_file, File.join(root, file.tr("/", File::SEPARATOR)))).each { |path| load path }
+    next
+  end
   if ENV["ELTEN_BOOT_STOP_BEFORE_MAIN"].to_s != "" && normalized_file.casecmp("src/main.rb") == 0
     write_boot_profile.call("before_main")
     exit

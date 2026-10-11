@@ -18,3 +18,4 @@
 .AppleDB
 .AppleDesktop
 .apdisk
+/test/Gemfile.lock
