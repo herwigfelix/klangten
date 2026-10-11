@@ -28,6 +28,8 @@ class KCommunityMediaTest < KlangtenTest::FlowTest
     server.create_user("hans")
     id = kc_entry("KT Seite", "https://example.org/kt", type: 11)
     k = kc_catalog
+    # Links ask which browser by default; this test wants the system one.
+    k.call { KlangtenWeb.link_target = "system" }
     open_entry_by_number(k, id)
     k.expect("KT Seite")
     k.move_to("Open in the web browser", key: "down")
