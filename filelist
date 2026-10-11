@@ -269,5 +269,9 @@ src/eapi/document_text.rb
 src/scenes/youtube.rb
 src/scenes/filemanager.rb
 src/scenes/playlist.rb
+# Klangten: Spotify (native library built from ext/klangten_spotify; not on iOS and Android)
+src/eapi/spotify.rb :!ios
+src/eapi/spotify_host.rb :!ios
+src/scenes/spotify.rb :!ios
 src/platforms/ios/ui/touchinput.rb :ios
 src/main.rb
