@@ -14,8 +14,11 @@
 #   :scene   threads that own Klangten's interaction: the thread running
 #            src/main.rb and the parallel scene threads insert_scene creates.
 #            They see virtual time, and the owner's sleep advances it.
-#   :ticker  the scene controller ($thr2). It runs one iteration per frame,
-#            in step with the test, so inserting a scene is deterministic.
+#   :ticker  service loops that sleep between rounds: the scene controller
+#            ($thr2) and the notification service. They see virtual time
+#            and their sleep ends at the frame where the virtual clock has
+#            moved on far enough, so they run in step with the test and
+#            inserting a scene or polling the server is deterministic.
 #   :fg      work started by a scene thread (Tasks workers, HTTP requests).
 #            While one is alive Klangten counts as busy and the virtual
 #            clock stands still, so no timeout or "please wait" fires only
@@ -96,7 +99,7 @@ module KlangtenTest
         return :bg if parent[:klangten_test_spawn_bg]
         case kind(parent)
         when :scene then :fg
-        when :ticker then :scene
+        when :ticker then parent.thread_variable_get(:klangten_test_spawns) || :fg
         when :fg then :fg
         else :bg
         end
@@ -157,7 +160,7 @@ module KlangtenTest
 
       # ------------------------------------------------------------ time
       def virtual_time?
-        @clock != nil && scene_thread?
+        @clock != nil && (k = kind) != nil && (k == :scene || k == :ticker)
       end
 
       # Kernel#sleep of a harness-aware thread; nil = sleep for real.
@@ -165,7 +168,7 @@ module KlangtenTest
         return nil if @clock == nil
         case kind
         when :ticker
-          ticker_wait
+          ticker_wait(seconds)
           seconds.round
         when :scene
           if owner?
@@ -212,35 +215,45 @@ module KlangtenTest
         @lock.synchronize { @waiting[thread] == true }
       end
 
-      def ticker!
-        register(Thread.current, :ticker)
+      # Makes the calling thread a ticker. spawns: role of the threads it
+      # starts (:scene for the scene controller, :fg for a service whose
+      # requests the test should wait for).
+      def ticker!(spawns: :fg)
+        t = Thread.current
+        register(t, :ticker)
+        t.thread_variable_set(:klangten_test_spawns, spawns)
         @lock.synchronize do
-          @tickers[Thread.current] = :busy
+          @tickers[t] = { state: :busy, wake: 0.0 }
           @cond.broadcast
         end
       end
 
-      def ticker_wait
+      def ticker_wait(seconds)
         t = Thread.current
         @lock.synchronize do
-          @tickers[t] = :idle
+          entry = @tickers[t]
+          entry[:wake] = @clock.elapsed + seconds.to_f
+          entry[:state] = :idle
           @cond.broadcast
-          @cond.wait_until { @tickers[t] == :go }
-          @tickers[t] = :busy
+          @cond.wait_until { entry[:state] == :go }
+          entry[:state] = :busy
         end
       end
 
-      # Lets every ticker run from one sleep to the next.
+      # Lets every ticker whose sleep is over run until its next sleep.
       def run_tickers
         @lock.synchronize { @tickers.keys }.each do |t|
-          next unless t.alive?
-          wait_real(5.0, "the scene controller to become idle", t) { @tickers[t] == :idle || !t.alive? }
-          next unless t.alive?
-          @lock.synchronize do
-            @tickers[t] = :go
-            @cond.broadcast
+          entry = @tickers[t]
+          10.times do
+            break unless t.alive?
+            wait_real(5.0, "a service loop (#{t.name || t.object_id}) to reach its sleep") { entry[:state] == :idle || !t.alive? }
+            break unless t.alive? && entry[:wake] <= @clock.elapsed
+            @lock.synchronize do
+              entry[:state] = :go
+              @cond.broadcast
+            end
+            wait_real(5.0, "a service loop (#{t.name || t.object_id}) to finish its round") { entry[:state] == :idle || !t.alive? }
           end
-          wait_real(5.0, "the scene controller to finish its turn", t) { @tickers[t] == :idle || !t.alive? }
         end
       end
 

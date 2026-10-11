@@ -81,7 +81,7 @@ module KlangtenTest
         "KLANGTEN_PUBLIC_URL" => url,
         "KLANGO_BASE_URL" => url,
         "KLANGTEN_REALTIME_POLL_MS" => "50",
-        "KLANGTEN_REALTIME_MAX_WAIT_MS" => "500",
+        "KLANGTEN_REALTIME_MAX_WAIT_MS" => "0",
         "PYTHONDONTWRITEBYTECODE" => "1",
         "PYTHONUNBUFFERED" => "1"
       }

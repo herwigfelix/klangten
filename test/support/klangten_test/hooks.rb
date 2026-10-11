@@ -20,6 +20,7 @@ module KlangtenTest
       wrap_timed_waits
       wrap_scene_controller
       wrap_background_services
+      record_uploads
       route_audio_to_no_sound_device
       require_relative "microphone"
       Microphone.install
@@ -54,11 +55,17 @@ module KlangtenTest
       end
     end
 
-    # $thr2 inserts scenes; it runs one iteration per frame in step with the
-    # test (Runtime :ticker). $thr1 only polls NVDA and stays in real time.
+    # $thr2 inserts scenes; it runs in step with the test (Runtime :ticker).
+    # $thr1 only polls NVDA and stays in real time.
     def wrap_scene_controller
       wrap(EltenAPI::Common, :thr2) do |original|
-        Runtime.ticker!
+        Runtime.ticker!(spawns: :scene)
+        original.call
+      end
+      # The notification service polls the server in virtual time; the
+      # requests it sends count as work the test waits for.
+      wrap(EltenAPI::NotificationService.singleton_class, :worker_loop) do |original|
+        Runtime.ticker!(spawns: :fg)
         original.call
       end
       wrap(EltenAPI::Common, :thr1) do |original|
@@ -80,6 +87,16 @@ module KlangtenTest
       # The conference library connects by itself, past Ruby's sockets.
       wrap(TeamConference::Library, :connect) do |original, host, *args|
         NetGuard.allowed?(host) ? original.call(host, *args) : (NetGuard.blocked << "conference #{host}"; false)
+      end
+    end
+
+    # Binary uploads (audio posts, voice messages, attachments) are kept
+    # byte for byte: app.uploads => [{method:, path:, body:, params:}, ...]
+    def record_uploads
+      wrap(EltenLink::Client, :api_binary_payload) do |original, method, path, body, headers = {}, params = nil, **kw|
+        data = body.respond_to?(:read) ? nil : body.to_s.b
+        KlangtenTest.uploads << { method: method.to_s.upcase, path: path.to_s, body: data, params: (params || {}).dup }
+        original.call(method, path, body, headers, params, **kw)
       end
     end
 

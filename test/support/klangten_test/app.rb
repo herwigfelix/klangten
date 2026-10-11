@@ -76,8 +76,10 @@ module KlangtenTest
 
     # ------------------------------------------------------------ input
 
-    # Presses keys one after another: a frame with the key down, a frame
-    # with it released, then settle (unless settle: false).
+    # Presses keys one after another like a person does: a frame with the
+    # key going down, one frame held, a frame with it released, then settle
+    # (unless settle: false). Some shortcuts need the held frame - the
+    # menu bar opens only when Alt was seen held before its release.
     def press(*keys, settle: true)
       keys.each do |spec|
         key = Keys.parse(spec)
@@ -85,6 +87,7 @@ module KlangtenTest
         downs = key.mods.map { |m| [m, true] } + [[key.code, true]]
         chars = key.text != "" ? [[key.code, key.text]] : []
         step_input(events: downs, chars: chars)
+        step_input(events: [])
         step_input(events: [[key.code, false]] + key.mods.reverse.map { |m| [m, false] })
         self.settle if settle
       end
@@ -150,6 +153,19 @@ module KlangtenTest
         press(depth == path.size - 1 ? "enter" : (depth == 0 ? "down" : "right"))
       end
       self
+    end
+
+    # Presses `key` (Tab by default) until `name` is heard (substring,
+    # case-insensitive; what the last key already said counts) - the way a
+    # user moves to a button or a list entry.
+    #   app.move_to("Send")            app.move_to("Hallo Welt", key: "down")
+    def move_to(name, key: "tab", max_steps: 40)
+      return self if heard?(name)
+      max_steps.times do
+        press(key)
+        return self if heard?(name)
+      end
+      raise HarnessError, "#{name.inspect} not reached with #{key}.\n#{transcript(last: 25)}"
     end
 
     # ------------------------------------------------------------ time
@@ -313,6 +329,11 @@ module KlangtenTest
 
     def opus_encoders
       Microphone.opus_encoders
+    end
+
+    # Binary uploads to the API, byte for byte (hooks.rb).
+    def uploads
+      KlangtenTest.uploads
     end
 
     def blocked_connections

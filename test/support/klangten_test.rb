@@ -45,6 +45,10 @@ module KlangtenTest
       @events ||= []
     end
 
+    def uploads
+      @uploads ||= []
+    end
+
     def record(kind, value, **info)
       @record_lock ||= Mutex.new
       @record_lock.synchronize do
@@ -68,6 +72,9 @@ module KlangtenTest
       NetGuard.install
       Runtime.setup
       KlangtenTestBoot.load_core(data_dir)
+      # src/main.rb does the same first thing; done here already so the
+      # harness can reach Dirs, Configuration ... before Klangten starts.
+      Object.send(:include, EltenAPI)
       Hooks.install
       @core_loaded = true
     end

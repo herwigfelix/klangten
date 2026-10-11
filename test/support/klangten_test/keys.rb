@@ -31,11 +31,15 @@ module KlangtenTest
       "capslock" => 0x14, "pause" => 0x13
     }.merge((1..12).map { |i| ["f#{i}", 0x6F + i] }.to_h).freeze
 
+    # A modifier is reported the way the desktop layers do it: Control as
+    # VK_CONTROL plus VK_LCONTROL (Windows and macOS both set the left key;
+    # on macOS Klangten looks only at that one), Command as VK_LWIN plus
+    # VK_CONTROL (as the macOS layer reports it).
     MODIFIERS = {
-      "ctrl" => 0x11, "control" => 0x11, "c" => 0x11,
-      "shift" => 0x10, "s" => 0x10,
-      "alt" => 0x12, "option" => 0x12, "a" => 0x12,
-      "cmd" => 0x5B, "command" => 0x5B, "win" => 0x5B, "m" => 0x5B
+      "ctrl" => [0x11, 0xA2], "control" => [0x11, 0xA2], "c" => [0x11, 0xA2],
+      "shift" => [0x10], "s" => [0x10],
+      "alt" => [0x12], "option" => [0x12], "a" => [0x12],
+      "cmd" => [0x5B, 0x11], "command" => [0x5B, 0x11], "win" => [0x5B], "m" => [0x5B, 0x11]
     }.freeze
 
     # Characters on the US layout (unshifted, shifted) -> virtual key.
@@ -64,7 +68,7 @@ module KlangtenTest
       if spec.length > 3 && spec.start_with?("<") && spec.end_with?(">")
         inner = spec[1..-2]
         while inner.length >= 3 && inner[1] == "-" && MODIFIERS.key?(inner[0])
-          mods << MODIFIERS[inner[0]]
+          mods.concat(MODIFIERS[inner[0]])
           inner = inner[2..]
         end
         name = inner
@@ -75,7 +79,7 @@ module KlangtenTest
         parts.each do |m|
           code = m.length > 1 ? MODIFIERS[m.downcase] : nil
           raise ArgumentError, "unknown modifier #{m.inspect} in #{spec.inspect}" if code == nil
-          mods << code
+          mods.concat(code)
         end
       end
       if name.length == 1
@@ -88,6 +92,8 @@ module KlangtenTest
       end
       code = NAMED[name.downcase]
       raise ArgumentError, "unknown key #{spec.inspect}" if code == nil
+      # A modifier on its own ("ctrl", "alt") with its companion codes.
+      mods.concat(MODIFIERS[name.downcase] - [code]) if MODIFIERS.key?(name.downcase)
       text = (code == 0x20 && (mods - [0x10]).empty?) ? " " : ""
       Key.new(mods.uniq, code, text)
     end
