@@ -192,6 +192,67 @@ public func elten_host_system_keyboard_visible() -> Int32 {
     return EltenSystemKeyboardState.shared.isVisible ? 1 : 0
 }
 
+// --- audio focus (Klangten 0.4, background player) ------------------------------
+// iOS has no focus request like Android; what matters are interruptions of the
+// audio session (a call, an alarm, Siri). State: 1 = ours, 0 = interrupted
+// (continues when the interruption ends and the system says so), -1 = taken.
+private final class EltenAudioFocus {
+    static let shared = EltenAudioFocus()
+    private let lock = NSLock()
+    private var value: Int32 = 1
+    private var observing = false
+
+    var state: Int32 {
+        lock.lock(); defer { lock.unlock() }
+        return value
+    }
+
+    func set(_ newValue: Int32) {
+        lock.lock(); value = newValue; lock.unlock()
+    }
+
+    func observe() {
+        lock.lock()
+        let first = !observing
+        observing = true
+        lock.unlock()
+        guard first else { return }
+        NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: nil) { note in
+            guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+            if type == .began {
+                EltenAudioFocus.shared.set(0)
+            } else {
+                let options = (note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt).map { AVAudioSession.InterruptionOptions(rawValue: $0) } ?? []
+                if options.contains(.shouldResume) {
+                    try? AVAudioSession.sharedInstance().setActive(true)
+                    EltenAudioFocus.shared.set(1)
+                } else {
+                    EltenAudioFocus.shared.set(-1)
+                }
+            }
+        }
+    }
+}
+
+@_cdecl("elten_host_audio_focus_request")
+public func elten_host_audio_focus_request() -> Int32 {
+    EltenAudioFocus.shared.observe()
+    try? AVAudioSession.sharedInstance().setActive(true)
+    EltenAudioFocus.shared.set(1)
+    return 1
+}
+
+@_cdecl("elten_host_audio_focus_abandon")
+public func elten_host_audio_focus_abandon() {
+    EltenAudioFocus.shared.set(1)
+}
+
+@_cdecl("elten_host_audio_focus_state")
+public func elten_host_audio_focus_state() -> Int32 {
+    return EltenAudioFocus.shared.state
+}
+
 // Force-keep the @_cdecl entry points. Only the embedded Ruby calls them (via
 // dlsym), so without a Swift-side reference the linker dead-strips them and the
 // app becomes silent + unresponsive. `@_used`-style retention via a referenced
@@ -207,6 +268,7 @@ public func eltenHostBridgeKeepAlive() {
         elten_host_system_keyboard_show, elten_host_system_keyboard_show_secure,
         elten_host_system_keyboard_show_text, elten_host_system_keyboard_hide,
         elten_host_system_keyboard_visible,
+        elten_host_audio_focus_request, elten_host_audio_focus_abandon, elten_host_audio_focus_state,
     ]
     if keep.count == 0 { fatalError() } // never true; prevents the array being optimised away
 }
