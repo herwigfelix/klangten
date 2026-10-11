@@ -326,9 +326,9 @@ if @fields[11].pressed? or key_pressed?(:key_escape)
               @question=["",0] if @question==nil
        @qfields=[
        edt_title = EditBox.new(p_("Polls", "Question"),text: @question[0],quiet: true),
-       lst_type=ListBox.new([p_("Polls", "Single choice"),p_("Polls", "Multiple choice"),p_("Polls", "Text field")],header: p_("Polls", "Question type"),index: @question[1]),
-       chk_limit = CheckBox.new(p_("Polls", "Limit the number of answers that can be selected")),
-       edt_limit = EditBox.new(p_("Polls", "Maximum number of answers that can be selected"), type: EditBox::Flags::Numbers, text: "2"),
+       lst_type=ListBox.new([p_("Polls", "Single choice"),p_("Polls", "Multiple choice"),p_("Polls", "Text field")],header: p_("Polls", "Question type"),index: (@question[1].to_i<0 ? 1 : @question[1].to_i)),
+       chk_limit = CheckBox.new(p_("Polls", "Limit the number of answers that can be selected"), checked: @question[1].to_i<0),
+       edt_limit = EditBox.new(p_("Polls", "Maximum number of answers that can be selected"), type: EditBox::Flags::Numbers, text: (@question[1].to_i<0 ? (-@question[1].to_i).to_s : "2")),
       
        lst_answers = ListBox.new(@question[2..-1]||[],header: p_("Polls", "Answers")),
        btn_save = Button.new(_("Save")),
@@ -997,7 +997,7 @@ class Scene_Polls_Mine
       poll=@polls[@sel.index]
       actions_for(poll).each do |key, label|
         shortcut={:edit=>"e", :delete=>:del, :results=>"t", :report=>"p"}[key]
-        menu.option(label, nil, shortcut) { run(key, poll) }
+        menu.option(label, nil, shortcut || "") { run(key, poll) }
       end
     end
     menu.option(p_("Polls", "New poll"), nil, "n") { $scene=Scene_Polls_Create.new(nil, Scene_Polls_Mine.new) }

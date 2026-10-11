@@ -781,7 +781,6 @@ class Scene_MediaCatalog
           alert(added ? p_("MediaCatalog", "%{user} can now see your favourites.") % { user: user } : p_("MediaCatalog", "%{user} can already see your favourites.") % { user: user })
         end
       end
-      users_list.focus
     end
     remove_share = proc do
       user = users[users_list.index]
@@ -793,7 +792,6 @@ class Scene_MediaCatalog
           alert(p_("MediaCatalog", "%{user} can no longer see your favourites.") % { user: user })
         end
       end
-      users_list.focus
     end
     users_list.bind_context do |menu|
       menu.option(p_("MediaCatalog", "Share with a user"), nil, "n") { add_share.call }

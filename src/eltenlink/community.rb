@@ -77,7 +77,7 @@ module EltenLink
 
       # Special users: [RoleHolder] with their roles.
       def roles(client)
-        Array(client.api_data("GET", "/api/v1/users/roles")["users"]).map do |row|
+        Array(client.api_data("GET", "/api/v1/community/roles")["users"]).map do |row|
           roles = Array(row["roles"]).map { |role| Role.new(key: role["key"].to_s, name: role["name"].to_s) }
           RoleHolder.new(user: row["user"].to_s, roles: roles)
         end
