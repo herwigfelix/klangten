@@ -177,18 +177,20 @@ module FakeSpotify
   # Counts what the player would have played.
   class Sink
     attr_reader :bytes, :calls
-    attr_accessor :volume
+    attr_accessor :volume, :queued
 
     def initialize
       @bytes = 0
       @calls = []
       @volume = 1.0
+      @queued = 0
     end
 
     def open = (@calls << :open)
     def write(data) = (@bytes += data.bytesize)
-    # Pretends to play everything at once.
-    def queued_bytes = 0
+    # 0 pretends to play everything at once; a large value holds the player
+    # back (a track that keeps playing).
+    def queued_bytes = @queued
     def pause = (@calls << :pause)
     def resume = (@calls << :resume)
     def flush = (@calls << :flush)

@@ -639,7 +639,10 @@ module KlangtenSpotify
   # Sink interface: open, write(bytes), queued_bytes, pause, resume, flush,
   # volume=(0.0..1.0), close.
   class Player
-    TARGET_QUEUE = (SAMPLE_RATE * BYTES_PER_FRAME * 0.35).to_i
+    # How far the player keeps ahead of what is heard. Enough to ride out a
+    # garbage collection, short enough that seeking and the position stay
+    # close to the ear.
+    TARGET_QUEUE = (SAMPLE_RATE * BYTES_PER_FRAME * 0.5).to_i
     CHUNK_FRAMES = 4096
     SEEK_STEP = 5
     # Episodes (audiobooks, podcasts) remember where they were left; not in
@@ -670,6 +673,8 @@ module KlangtenSpotify
       @closed = false
       @buffer = "\0".b * (CHUNK_FRAMES * BYTES_PER_FRAME)
       @thread = nil
+      @thread_mutex = Mutex.new
+      @thread_leaving = false
     end
 
     def state
@@ -705,8 +710,10 @@ module KlangtenSpotify
         @state = :loading
         @paused = false
       end
-      ensure_thread
+      # Command first, then the thread: a thread that is just leaving
+      # checks the queue once more (run).
       @commands << [:open, @generation, true]
+      ensure_thread
       true
     end
 
@@ -831,14 +838,23 @@ module KlangtenSpotify
       nil
     end
 
+    # The worker thread runs only while there is something to do: it leaves
+    # after IDLE_EXIT seconds without a stream and starts again with the
+    # next track.
+    IDLE_EXIT = 2.0
+
     def ensure_thread
-      return if @thread != nil && @thread.alive?
-      @thread = Thread.new { run }
-      @thread.name = "spotify-player" if @thread.respond_to?(:name=)
+      @thread_mutex.synchronize do
+        return if @thread != nil && @thread.alive? && !@thread_leaving
+        @thread_leaving = false
+        @thread = Thread.new { run }
+        @thread.name = "spotify-player" if @thread.respond_to?(:name=)
+      end
     end
 
     def run
       Thread.current.report_on_exception = false
+      idle_since = nil
       until @closed
         command = begin
           @commands.pop(true)
@@ -846,11 +862,23 @@ module KlangtenSpotify
           nil
         end
         if command != nil
+          idle_since = nil
           break if command[0] == :quit
           open_current(command[1], command[2]) if command[0] == :open
           next
         end
-        pump
+        if @mutex.synchronize { @handle == 0 }
+          idle_since ||= KlangtenSpotify.monotonic
+          if KlangtenSpotify.monotonic - idle_since >= IDLE_EXIT
+            leave = @thread_mutex.synchronize do
+              @thread_leaving = @commands.empty?
+            end
+            break if leave
+          end
+        else
+          idle_since = nil
+          pump
+        end
         sleep(0.015)
       end
     rescue Exception => e
@@ -960,6 +988,7 @@ module KlangtenSpotify
         @events << Event.new(:unavailable, track, index, nil)
       elsif advance
         @commands << [:open, generation, false]
+        ensure_thread
       else
         @events << Event.new(:finished, track, index, nil)
       end

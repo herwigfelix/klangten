@@ -44,12 +44,15 @@ module KlangtenSpotify
       Log.error("Spotify audio write: #{e.class}: #{e.message}") if defined?(Log)
     end
 
-    # Bytes waiting in the push stream's queue.
+    # Bytes not yet heard: the push stream's queue plus what already sits in
+    # its playback buffer (BASS moves data from the queue into the buffer as
+    # it plays).
     def queued_bytes
       @mutex.synchronize do
         return 0 if @handle == 0
         queued = Bass::BASS_StreamPutData.call(@handle, nil, 0).to_i
-        queued < 0 ? 0 : queued
+        buffered = Bass::BASS_ChannelGetData.call(@handle, nil, 0).to_i # BASS_DATA_AVAILABLE
+        [queued, 0].max + [buffered, 0].max
       end
     rescue Exception
       0
