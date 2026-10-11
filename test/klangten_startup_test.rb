@@ -129,7 +129,7 @@ class KlangtenStartupApplyTest < Minitest::Test
     assert_includes osx[2], "--args \"$@\""
     linux = Klangten::Updates.install_command("linux", "/tmp/k.run")
     assert_equal ["/tmp/k.run", "1", "--overwrite-config-path", "/x/data"], linux[4..]
-    assert_includes linux[2], "elten \"$@\""
+    assert_includes linux[2], "/klangten\" \"$@\""
     ENV.delete("KLANGTEN_CONFIG_DIR")
     assert_equal ["/tmp/k.run", "0"], Klangten::Updates.install_command("linux", "/tmp/k.run", silent: false)[4..]
   end

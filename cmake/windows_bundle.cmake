@@ -1,4 +1,4 @@
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten (package names, klangten*.exe).
 cmake_minimum_required(VERSION 3.24)
 
 if(NOT DEFINED MODE)
@@ -116,14 +116,27 @@ function(require_release_file relative_path)
 endfunction()
 
 # Klangten: the ARM64 launcher is optional. Its Ruby runtime can only be prepared on
-# an ARM64 host, and the facade (elten.exe) falls back to elten-x64.exe on ARM64
+# an ARM64 host, and the facade (klangten.exe) falls back to klangten-x64.exe on ARM64
 # Windows, which runs under x64 emulation.
+#
+# Up to 0.3 the programs had Elten's names (elten.exe, elten-x86.exe, ...). A
+# release tree or bin/ext directory left over from such a build must not ship
+# them next to the new ones, so they are removed from the copy.
+set(KLANGTEN_LEGACY_PROGRAMS
+  elten.exe
+  elten-x86.exe
+  elten-x64.exe
+  elten-arm64.exe
+  bin/ext/windows/EltenSapiBridge32.exe
+  bin/ext/windows/EltenSapiBridge64.exe
+)
+
 function(create_dist)
-  require_release_file("elten.exe")
-  require_release_file("elten-x86.exe")
-  require_release_file("elten-x64.exe")
-  if(NOT EXISTS "${RELEASE_ROOT}/elten-arm64.exe")
-    message(STATUS "elten-arm64.exe not built; ARM64 Windows will use the x64 launcher via emulation")
+  require_release_file("klangten.exe")
+  require_release_file("klangten-x86.exe")
+  require_release_file("klangten-x64.exe")
+  if(NOT EXISTS "${RELEASE_ROOT}/klangten-arm64.exe")
+    message(STATUS "klangten-arm64.exe not built; ARM64 Windows will use the x64 launcher via emulation")
   endif()
 
   message(STATUS "Creating ${APP_DIR}...")
@@ -131,23 +144,29 @@ function(create_dist)
   file(MAKE_DIRECTORY "${DIST_DIR}" "${APP_DIR}")
   file(COPY "${RELEASE_ROOT}/" DESTINATION "${APP_DIR}")
   file(REMOVE_RECURSE "${APP_DIR}/tmp")
+  foreach(legacy_program IN LISTS KLANGTEN_LEGACY_PROGRAMS)
+    if(EXISTS "${APP_DIR}/${legacy_program}")
+      message(STATUS "Leaving out the old ${legacy_program}")
+      file(REMOVE "${APP_DIR}/${legacy_program}")
+    endif()
+  endforeach()
 
-  sign_file("${APP_DIR}/elten.exe")
-  sign_file("${APP_DIR}/elten-x86.exe")
-  sign_file("${APP_DIR}/elten-x64.exe")
-  if(EXISTS "${APP_DIR}/elten-arm64.exe")
-    sign_file("${APP_DIR}/elten-arm64.exe")
+  sign_file("${APP_DIR}/klangten.exe")
+  sign_file("${APP_DIR}/klangten-x86.exe")
+  sign_file("${APP_DIR}/klangten-x64.exe")
+  if(EXISTS "${APP_DIR}/klangten-arm64.exe")
+    sign_file("${APP_DIR}/klangten-arm64.exe")
   endif()
-  if(EXISTS "${APP_DIR}/bin/ext/windows/EltenSapiBridge32.exe")
-    sign_file("${APP_DIR}/bin/ext/windows/EltenSapiBridge32.exe")
+  if(EXISTS "${APP_DIR}/bin/ext/windows/KlangtenSapiBridge32.exe")
+    sign_file("${APP_DIR}/bin/ext/windows/KlangtenSapiBridge32.exe")
   endif()
-  if(EXISTS "${APP_DIR}/bin/ext/windows/EltenSapiBridge64.exe")
-    sign_file("${APP_DIR}/bin/ext/windows/EltenSapiBridge64.exe")
+  if(EXISTS "${APP_DIR}/bin/ext/windows/KlangtenSapiBridge64.exe")
+    sign_file("${APP_DIR}/bin/ext/windows/KlangtenSapiBridge64.exe")
   endif()
 endfunction()
 
 function(create_installer)
-  if(NOT EXISTS "${APP_DIR}/elten.exe" OR NOT EXISTS "${APP_DIR}/elten-x86.exe" OR NOT EXISTS "${APP_DIR}/elten-x64.exe")
+  if(NOT EXISTS "${APP_DIR}/klangten.exe" OR NOT EXISTS "${APP_DIR}/klangten-x86.exe" OR NOT EXISTS "${APP_DIR}/klangten-x64.exe")
     create_dist()
   endif()
 

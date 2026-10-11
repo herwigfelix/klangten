@@ -369,22 +369,21 @@ module EltenSystemHelpers
       []
     end
 
+    # Klangten: the programs are called klangten.exe (the facade that picks the
+    # architecture) and klangten-<arch>.exe since 0.4; up to 0.3 they carried
+    # Elten's names. The installer moves shortcuts and the autostart entry over.
+    KLANGTEN_FACADE = "klangten.exe".freeze
+    KLANGTEN_LAUNCHERS = { "arm64" => "klangten-arm64.exe", "x64" => "klangten-x64.exe", "x86" => "klangten-x86.exe" }.freeze
+
     def embedded_executable_path(root, architecture)
-      executable = case architecture.to_s
-      when "arm64"
-        "elten-arm64.exe"
-      when "x64"
-        "elten-x64.exe"
-      else
-        "elten-x86.exe"
-      end
+      executable = KLANGTEN_LAUNCHERS[architecture.to_s] || KLANGTEN_LAUNCHERS["x86"]
       File.expand_path(executable, root)
     end
 
     def autostart_executable_path(default_path)
       path = default_path.to_s
       if defined?(EltenRuntimePaths)
-        facade_path = File.expand_path("elten.exe", EltenRuntimePaths.root)
+        facade_path = File.expand_path(KLANGTEN_FACADE, EltenRuntimePaths.root)
         path = facade_path if File.executable?(facade_path)
       end
       path
@@ -392,8 +391,10 @@ module EltenSystemHelpers
       default_path.to_s
     end
 
+    # A program that is not one of these (a source run under ruby.exe) never
+    # writes the autostart entry; returning false here also removes it.
     def autostart_executable?(path)
-      ["elten.exe", "elten-x86.exe", "elten-x64.exe", "elten-arm64.exe"].include?(File.basename(path.to_s).downcase)
+      ([KLANGTEN_FACADE] + KLANGTEN_LAUNCHERS.values).include?(File.basename(path.to_s).downcase)
     rescue Exception
       false
     end

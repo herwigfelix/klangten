@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: program names klangten-<arch>.
 set -eu
 
 if [ -z "${ELTEN_LINUX_ARCH:-}" ]; then
@@ -87,17 +88,17 @@ cmake -S "$ROOT" -B "$BUILD_DIR" -G "$GENERATOR" \
   -DELTEN_LINUX_ARCH="$ELTEN_LINUX_ARCH" \
   "$@"
 
-echo "Building Elten release linux-$ELTEN_LINUX_ARCH..."
+echo "Building Klangten release linux-$ELTEN_LINUX_ARCH..."
 cmake --build "$BUILD_DIR" --target EltenApp --parallel "$JOBS"
 
 RELEASE_DIR="$ROOT/build/release/linux"
-LAUNCHER="$RELEASE_DIR/elten-$ELTEN_LINUX_ARCH"
+LAUNCHER="$RELEASE_DIR/klangten-$ELTEN_LINUX_ARCH"
 RUNTIME_DIR="$RELEASE_DIR/bin/linux-$ELTEN_LINUX_ARCH"
 
 [ -x "$LAUNCHER" ] || { echo "Missing executable: $LAUNCHER" >&2; exit 1; }
 [ -d "$RUNTIME_DIR" ] || { echo "Missing runtime: $RUNTIME_DIR" >&2; exit 1; }
-if [ -e "$RELEASE_DIR/elten" ] || [ -L "$RELEASE_DIR/elten" ]; then
-  echo "Platform release unexpectedly contains the multiarch facade: $RELEASE_DIR/elten" >&2
+if [ -e "$RELEASE_DIR/klangten" ] || [ -L "$RELEASE_DIR/klangten" ]; then
+  echo "Platform release unexpectedly contains the multiarch facade: $RELEASE_DIR/klangten" >&2
   exit 1
 fi
 

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: package names and launcher stamp opt-in.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: package names, executable names (klangten*),
+# Windows version resources and launcher stamp opt-in.
 
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
   set(CMAKE_SUPPRESS_REGENERATION ON)
@@ -20,6 +21,23 @@ option(ELTEN_COMPRESS_EMBEDDED_RUBY_ZSTD "Compress embedded Ruby payloads with Z
 include("${CMAKE_SOURCE_DIR}/cmake/EltenRubyRuntime.cmake")
 
 set(ELTEN_RELEASE_BASE "${CMAKE_SOURCE_DIR}/build/release")
+
+# Klangten: names of the programs users and the system see. Until 0.3 they were
+# Elten's (elten.exe, elten-x64.exe, Contents/MacOS/elten, /opt/klangten/elten);
+# the installers take care of the transition (docs/klangten-releases.md,
+# "Executable names"). The macOS executable follows the platform convention and
+# carries the app name.
+set(KLANGTEN_EXECUTABLE_BASENAME "klangten")
+set(KLANGTEN_MACOS_EXECUTABLE_NAME "Klangten")
+
+# The version shown in the Windows version resources comes from the one place
+# the client itself reads it, so a release still bumps only three files.
+file(STRINGS "${CMAKE_SOURCE_DIR}/src/eltenlink/klangten_config.rb" KLANGTEN_VERSION_LINE
+     REGEX "^[ \t]*VERSION[ \t]*=[ \t]*\"[0-9]+\\.[0-9]+\\.[0-9]+\"" LIMIT_COUNT 1)
+string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" KLANGTEN_VERSION "${KLANGTEN_VERSION_LINE}")
+if(KLANGTEN_VERSION STREQUAL "")
+  message(FATAL_ERROR "Cannot read VERSION from src/eltenlink/klangten_config.rb")
+endif()
 
 if(MSVC)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -165,7 +183,7 @@ endif()
 if(APPLE)
   set(ELTEN_LAUNCHER_PLATFORM "osx")
   set(ELTEN_LAUNCHER_ARCH "arm64")
-  set(ELTEN_LAUNCHER_OUTPUT_NAME "elten")
+  set(ELTEN_LAUNCHER_OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}")
   set(ELTEN_RUNTIME_ARCH_DIR "osx")
   elten_configure_ruby_runtime(PLATFORM osx ARCH "${ELTEN_LAUNCHER_ARCH}")
   set(ELTEN_PACKAGE_ROOT "${ELTEN_RELEASE_BASE}/osx")
@@ -399,7 +417,7 @@ elseif(UNIX AND NOT APPLE)
     message(WARNING "Unrecognised CMAKE_SYSTEM_PROCESSOR '${CMAKE_SYSTEM_PROCESSOR}'; assuming x64")
     set(ELTEN_LAUNCHER_ARCH "x64")
   endif()
-  set(ELTEN_LAUNCHER_OUTPUT_NAME "elten-${ELTEN_LAUNCHER_ARCH}")
+  set(ELTEN_LAUNCHER_OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}-${ELTEN_LAUNCHER_ARCH}")
   set(ELTEN_RUNTIME_ARCH_DIR "linux-${ELTEN_LAUNCHER_ARCH}")
   elten_configure_ruby_runtime(PLATFORM linux ARCH "${ELTEN_LAUNCHER_ARCH}")
   set(ELTEN_PACKAGE_ROOT "${ELTEN_RELEASE_BASE}/linux")
@@ -564,7 +582,8 @@ elseif(UNIX AND NOT APPLE)
   add_dependencies(EltenLauncher EltenRubyRuntime)
 
   add_custom_target(EltenApp
-    COMMAND "${CMAKE_COMMAND}" -E rm -f "${ELTEN_PACKAGE_ROOT}/elten"
+    COMMAND "${CMAKE_COMMAND}" -E rm -f "${ELTEN_PACKAGE_ROOT}/${KLANGTEN_EXECUTABLE_BASENAME}" "${ELTEN_PACKAGE_ROOT}/elten"
+            "${ELTEN_PACKAGE_ROOT}/elten-arm64" "${ELTEN_PACKAGE_ROOT}/elten-x64" "${ELTEN_PACKAGE_ROOT}/elten-x86"
     COMMAND "${CMAKE_COMMAND}" -E echo "Linux platform release assembled in ${ELTEN_PACKAGE_ROOT}"
     DEPENDS EltenLauncher "${ELTEN_EMBEDDED_CPP}"
     COMMENT "Assembling build/release/linux"
@@ -590,26 +609,40 @@ else()
 
   if(ELTEN_GENERATOR_PLATFORM MATCHES "ARM64")
     set(ELTEN_LAUNCHER_ARCH "arm64")
-    set(ELTEN_LAUNCHER_OUTPUT_NAME "elten-arm64")
+    set(ELTEN_LAUNCHER_OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}-arm64")
   elseif(ELTEN_GENERATOR_PLATFORM MATCHES "Win32|x86")
     set(ELTEN_LAUNCHER_ARCH "x86")
-    set(ELTEN_LAUNCHER_OUTPUT_NAME "elten-x86")
+    set(ELTEN_LAUNCHER_OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}-x86")
   elseif(ELTEN_GENERATOR_PLATFORM MATCHES "x64|AMD64")
     set(ELTEN_LAUNCHER_ARCH "x64")
-    set(ELTEN_LAUNCHER_OUTPUT_NAME "elten-x64")
+    set(ELTEN_LAUNCHER_OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}-x64")
   elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|AARCH64|aarch64)$")
     set(ELTEN_LAUNCHER_ARCH "arm64")
-    set(ELTEN_LAUNCHER_OUTPUT_NAME "elten-arm64")
+    set(ELTEN_LAUNCHER_OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}-arm64")
   elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ELTEN_LAUNCHER_ARCH "x64")
-    set(ELTEN_LAUNCHER_OUTPUT_NAME "elten-x64")
+    set(ELTEN_LAUNCHER_OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}-x64")
   else()
     set(ELTEN_LAUNCHER_ARCH "x86")
-    set(ELTEN_LAUNCHER_OUTPUT_NAME "elten-x86")
+    set(ELTEN_LAUNCHER_OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}-x86")
   endif()
 
   elten_configure_ruby_runtime(PLATFORM windows ARCH "${ELTEN_LAUNCHER_ARCH}")
   set(ELTEN_RUNTIME_ARCH_DIR "windows-${ELTEN_LAUNCHER_ARCH}")
+
+  # Klangten: every program gets a version resource, so that Explorer, the Task
+  # Manager and the firewall prompt show "Klangten" instead of the file name.
+  enable_language(RC)
+  string(REPLACE "." "," KLANGTEN_VERSION_COMMAS "${KLANGTEN_VERSION}")
+  set(KLANGTEN_VERSION_RC_TEMPLATE "${CMAKE_SOURCE_DIR}/launcher/src/klangten_version.rc.in")
+  function(klangten_add_version_resource target file_name description)
+    set(KLANGTEN_RC_ORIGINAL_FILENAME "${file_name}")
+    get_filename_component(KLANGTEN_RC_INTERNAL_NAME "${file_name}" NAME_WE)
+    set(KLANGTEN_RC_DESCRIPTION "${description}")
+    set(rc_file "${CMAKE_BINARY_DIR}/generated/${target}_version.rc")
+    configure_file("${KLANGTEN_VERSION_RC_TEMPLATE}" "${rc_file}" @ONLY)
+    target_sources(${target} PRIVATE "${rc_file}")
+  endfunction()
 
   set(ELTEN_PACKAGE_ROOT "${ELTEN_RELEASE_BASE}/windows")
   set(ELTEN_RUNTIME_DIR "${ELTEN_PACKAGE_ROOT}/bin/${ELTEN_RUNTIME_ARCH_DIR}")
@@ -722,9 +755,13 @@ else()
       ole32
       sapi
     )
+    # Klangten: KlangtenSapiBridge32/64.exe (src/platforms/windows/eapi/sapi_bridge.rb).
+    string(REPLACE "Elten" "Klangten" klangten_sapi_bridge_name "${ELTEN_SAPI_BRIDGE_TARGET}")
     set_target_properties(${ELTEN_SAPI_BRIDGE_TARGET} PROPERTIES
+      OUTPUT_NAME "${klangten_sapi_bridge_name}"
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/ext/windows"
     )
+    klangten_add_version_resource(${ELTEN_SAPI_BRIDGE_TARGET} "${klangten_sapi_bridge_name}.exe" "Klangten speech bridge")
     add_custom_command(TARGET ${ELTEN_SAPI_BRIDGE_TARGET} POST_BUILD
       COMMAND "${CMAKE_COMMAND}" -E make_directory "${ELTEN_PACKAGE_ROOT}/bin/ext/windows"
       COMMAND "${CMAKE_COMMAND}" -E copy_if_different
@@ -747,6 +784,7 @@ else()
   )
   elten_configure_build_info_target(EltenLauncher)
   elten_configure_stamp_target(EltenLauncher)
+  klangten_add_version_resource(EltenLauncher "${ELTEN_LAUNCHER_OUTPUT_NAME}.exe" "Klangten")
 
   target_include_directories(EltenLauncher PRIVATE
     "${CMAKE_SOURCE_DIR}/launcher/src"
@@ -771,16 +809,17 @@ else()
       user32
     )
     set_target_properties(EltenLauncherFacade PROPERTIES
-      OUTPUT_NAME "elten"
+      OUTPUT_NAME "${KLANGTEN_EXECUTABLE_BASENAME}"
       RUNTIME_OUTPUT_DIRECTORY "${ELTEN_PACKAGE_ROOT}"
     )
+    klangten_add_version_resource(EltenLauncherFacade "${KLANGTEN_EXECUTABLE_BASENAME}.exe" "Klangten")
     if(MSVC)
-      target_compile_options(EltenLauncherFacade PRIVATE /bigobj)
+      target_compile_options(EltenLauncherFacade PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/bigobj>)
     endif()
   endif()
 
   if(MSVC)
-    target_compile_options(EltenLauncher PRIVATE /bigobj)
+    target_compile_options(EltenLauncher PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/bigobj>)
   endif()
 
   set_target_properties(EltenLauncher PROPERTIES

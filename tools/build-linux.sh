@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: install path /opt/klangten and package names.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: install path /opt/klangten, package and program names
+# (/opt/klangten/klangten, with /opt/klangten/elten kept as a starter for clients up to 0.3).
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -91,8 +92,8 @@ FACADE_SOURCE="$ROOT/tools/linux-facade.sh"
 [ -f "$FACADE_SOURCE" ] || { echo "Missing Linux facade template: $FACADE_SOURCE" >&2; exit 1; }
 [ -d "$RELEASE_DIR/data" ] || { echo "Missing release data: $RELEASE_DIR/data" >&2; exit 1; }
 for architecture in arm64 x64 x86; do
-  [ -x "$RELEASE_DIR/elten-$architecture" ] ||
-    { echo "Missing release launcher: $RELEASE_DIR/elten-$architecture" >&2; exit 1; }
+  [ -x "$RELEASE_DIR/klangten-$architecture" ] ||
+    { echo "Missing release launcher: $RELEASE_DIR/klangten-$architecture" >&2; exit 1; }
   [ -d "$RELEASE_DIR/bin/linux-$architecture" ] ||
     { echo "Missing release runtime: $RELEASE_DIR/bin/linux-$architecture" >&2; exit 1; }
 done
@@ -100,8 +101,8 @@ done
 
 # A platform release deliberately has no unsuffixed launcher. Only a verified
 # three-architecture assembly receives the public facade.
-cp "$FACADE_SOURCE" "$RELEASE_DIR/elten"
-chmod 0755 "$RELEASE_DIR/elten"
+cp "$FACADE_SOURCE" "$RELEASE_DIR/klangten"
+chmod 0755 "$RELEASE_DIR/klangten"
 
 mkdir -p "$DIST_DIR"
 TEMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/klangten-linux-package.XXXXXX")
@@ -114,7 +115,7 @@ copy_common_release_files() {
   for source_path in "$RELEASE_DIR"/*; do
     name=$(basename "$source_path")
     case "$name" in
-      bin|elten|elten-arm64|elten-x64|elten-x86) ;;
+      bin|klangten|klangten-arm64|klangten-x64|klangten-x86|elten|elten-arm64|elten-x64|elten-x86) ;;
       *) cp -a "$source_path" "$destination/" ;;
     esac
   done
@@ -129,7 +130,15 @@ prepare_payload() {
   mkdir -p "$app_dir/bin" "$stage/usr/share/applications"
   copy_common_release_files "$app_dir"
   cp -a "$RELEASE_DIR/bin/linux-$architecture" "$app_dir/bin/"
-  cp "$RELEASE_DIR/elten-$architecture" "$app_dir/elten"
+  cp "$RELEASE_DIR/klangten-$architecture" "$app_dir/klangten"
+  chmod 0755 "$app_dir/klangten"
+  # Klangten up to 0.3 restarts /opt/klangten/elten after an update (and its
+  # menu entry pointed there), so that name stays as a starter for the program.
+  cat > "$app_dir/elten" <<'COMPAT_STARTER'
+#!/bin/sh
+# Klangten up to 0.3 was installed as /opt/klangten/elten; this keeps that path working.
+exec /opt/klangten/klangten "$@"
+COMPAT_STARTER
   chmod 0755 "$app_dir/elten"
   cp "$ROOT/tools/klangten.desktop" "$stage/usr/share/applications/klangten.desktop"
   tar -czpf "$payload" -C "$stage" opt usr
@@ -290,13 +299,13 @@ fi
 tar -xzpf "$payload_file" -C "$install_root"
 
 for stale_arch in arm64 x64 x86; do
-  rm -f "$install_root/opt/klangten/elten-$stale_arch"
+  rm -f "$install_root/opt/klangten/elten-$stale_arch" "$install_root/opt/klangten/klangten-$stale_arch"
   if [ "$stale_arch" != "$payload_arch" ]; then
     rm -rf "$install_root/opt/klangten/bin/linux-$stale_arch"
   fi
 done
 
-[ -x "$install_root/opt/klangten/elten" ] ||
+[ -x "$install_root/opt/klangten/klangten" ] ||
   { echo "Klangten installer: installed launcher is missing." >&2; exit 1; }
 
 if [ "$install_root" = "/" ] && command -v update-desktop-database >/dev/null 2>&1; then

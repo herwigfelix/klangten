@@ -73,7 +73,7 @@ jobs:
 
           "%CMAKE_EXE%" --build --preset windows-x64-release --target EltenLauncher || exit /b 1
           "%CMAKE_EXE%" --build --preset windows-x86-release --target EltenLauncher || exit /b 1
-          rem elten.exe ist die Fassade aus dem x86-Build
+          rem klangten.exe ist die Fassade aus dem x86-Build
           "%CMAKE_EXE%" --build --preset windows-x86-release --target EltenLauncherFacade || exit /b 1
           "%CMAKE_EXE%" --build --preset windows-x64-release --target EltenPkg || exit /b 1
 

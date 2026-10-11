@@ -1,6 +1,6 @@
 // A part of Elten - EltenLink / Elten Network desktop client.
 // Copyright (C) 2014-2026 Dawid Pieper
-// Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+// Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: Klangten program names (klangten*.exe).
 // Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 // Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 // You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
@@ -100,12 +100,12 @@ std::wstring QuoteCommandLineArgument(const std::wstring &arg) {
 
 std::vector<std::wstring> CandidateExecutables(NativeArch arch) {
   if (arch == NativeArch::Arm64) {
-    return {L"elten-arm64.exe", L"elten-x64.exe", L"elten-x86.exe"};
+    return {L"klangten-arm64.exe", L"klangten-x64.exe", L"klangten-x86.exe"};
   }
   if (arch == NativeArch::X64) {
-    return {L"elten-x64.exe", L"elten-x86.exe"};
+    return {L"klangten-x64.exe", L"klangten-x86.exe"};
   }
-  return {L"elten-x86.exe"};
+  return {L"klangten-x86.exe"};
 }
 
 fs::path ResolveTarget(const fs::path &root, std::wstring &tried) {
@@ -145,7 +145,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
   std::wstring tried;
   fs::path target = ResolveTarget(root, tried);
   if (target.empty()) {
-    ShowError(L"Cannot find a compatible Elten executable.\n\nTried:\n" + tried);
+    ShowError(L"Cannot find a compatible Klangten executable.\n\nTried:\n" + tried);
     return 1;
   }
 

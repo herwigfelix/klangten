@@ -339,8 +339,9 @@ module EltenSystemHelpers
       []
     end
 
+    # Klangten: /opt/klangten/klangten since 0.4 (up to 0.3: /opt/klangten/elten).
     def embedded_executable_path(root, _architecture)
-      File.expand_path("elten", root)
+      File.expand_path("klangten", root)
     end
 
     def autostart_executable_path(default_path)

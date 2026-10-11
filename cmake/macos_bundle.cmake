@@ -1,4 +1,4 @@
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten (bundle, disk image, executable Contents/MacOS/Klangten).
 cmake_minimum_required(VERSION 3.24)
 
 if(NOT DEFINED MODE)
@@ -19,6 +19,18 @@ foreach(optional_name
     set(${optional_name} "")
   endif()
 endforeach()
+
+# Klangten: the launcher is built as build/release/osx/klangten and becomes
+# Klangten.app/Contents/MacOS/Klangten, so Activity Monitor and ps show
+# "Klangten". Up to 0.3 the executable was called "elten"; the updater of those
+# versions copies the whole bundle and starts it with "open -a", so the new name
+# needs no transition there (docs/klangten-releases.md, "Executable names").
+if(NOT DEFINED LAUNCHER_NAME OR "${LAUNCHER_NAME}" STREQUAL "")
+  set(LAUNCHER_NAME "klangten")
+endif()
+if(NOT DEFINED EXECUTABLE_NAME OR "${EXECUTABLE_NAME}" STREQUAL "")
+  set(EXECUTABLE_NAME "Klangten")
+endif()
 
 function(require_value name)
   if(NOT DEFINED ${name} OR "${${name}}" STREQUAL "")
@@ -447,8 +459,8 @@ function(normalize_app_bundle_permissions app_dir)
     endif()
   endforeach()
   normalize_macho_permissions("${app_dir}" "app bundle Mach-O files")
-  if(EXISTS "${app_dir}/Contents/MacOS/elten")
-    run_optional("${CHMOD_TOOL}" 755 "${app_dir}/Contents/MacOS/elten")
+  if(EXISTS "${app_dir}/Contents/MacOS/${EXECUTABLE_NAME}")
+    run_optional("${CHMOD_TOOL}" 755 "${app_dir}/Contents/MacOS/${EXECUTABLE_NAME}")
   endif()
 endfunction()
 
@@ -567,7 +579,7 @@ function(notarize_app_bundle app_dir)
 endfunction()
 
 function(write_info_plist plist_path)
-  file(WRITE "${plist_path}" [=[<?xml version="1.0" encoding="UTF-8"?>
+  file(CONFIGURE OUTPUT "${plist_path}" @ONLY CONTENT [=[<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -575,7 +587,7 @@ function(write_info_plist plist_path)
   <key>CFBundleDevelopmentRegion</key>
   <string>pl</string>
   <key>CFBundleExecutable</key>
-  <string>elten</string>
+  <string>@EXECUTABLE_NAME@</string>
   <key>CFBundleIdentifier</key>
   <string>it.sixdots.klangten</string>
   <key>CFBundleInfoDictionaryVersion</key>
@@ -612,15 +624,15 @@ function(create_app_bundle)
   set(macos_dir "${contents_dir}/MacOS")
   set(resources_dir "${contents_dir}/Resources")
 
-  if(NOT EXISTS "${RELEASE_ROOT}/elten")
-    message(FATAL_ERROR "Missing launcher executable: ${RELEASE_ROOT}/elten")
+  if(NOT EXISTS "${RELEASE_ROOT}/${LAUNCHER_NAME}")
+    message(FATAL_ERROR "Missing launcher executable: ${RELEASE_ROOT}/${LAUNCHER_NAME}")
   endif()
 
   message(STATUS "Creating ${app_dir}...")
   file(REMOVE_RECURSE "${app_dir}")
   file(MAKE_DIRECTORY "${macos_dir}" "${resources_dir}/bin")
-  file(COPY_FILE "${RELEASE_ROOT}/elten" "${macos_dir}/elten")
-  run_optional("${CHMOD_TOOL}" 755 "${macos_dir}/elten")
+  file(COPY_FILE "${RELEASE_ROOT}/${LAUNCHER_NAME}" "${macos_dir}/${EXECUTABLE_NAME}")
+  run_optional("${CHMOD_TOOL}" 755 "${macos_dir}/${EXECUTABLE_NAME}")
   copy_tree("${RUNTIME_DIR}" "${resources_dir}/bin/osx")
   normalize_macho_permissions("${resources_dir}/bin/osx" "runtime dylibs and native extensions")
   copy_tree("${RELEASE_ROOT}/data" "${resources_dir}/data")

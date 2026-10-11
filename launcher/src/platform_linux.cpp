@@ -337,7 +337,7 @@ StampRubyApi PlatformStampApi(const RubyApi &ruby) {
 }
 
 void PlatformShowFatal(const std::string &message) {
-  std::fprintf(stderr, "Elten: %s\n", message.c_str());
+  std::fprintf(stderr, "Klangten: %s\n", message.c_str());
   WriteFatalFallbackLog(message);
 
   // zenity draws a GTK dialog that AT-SPI screen readers announce, and it is a
@@ -347,8 +347,8 @@ void PlatformShowFatal(const std::string &message) {
   // xmessage takes its text positionally and has no title bar of its own, hence
   // the prefix - which also stops a message starting with '-' from being parsed
   // as an option.
-  if (RunFatalDialog({"zenity", "--error", "--title=Elten", "--text=" + message, "--no-wrap"})) return;
-  RunFatalDialog({"xmessage", "-center", "Elten: " + message});
+  if (RunFatalDialog({"zenity", "--error", "--title=Klangten", "--text=" + message, "--no-wrap"})) return;
+  RunFatalDialog({"xmessage", "-center", "Klangten: " + message});
 }
 
 void PlatformSuspendOtherThreadsForFatalError() {

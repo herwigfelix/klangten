@@ -533,8 +533,12 @@ module EltenSystemHelpers
       []
     end
 
+    # Klangten: Klangten.app/Contents/MacOS/Klangten (up to 0.3: .../MacOS/elten).
+    # The launcher reports its real path anyway; this is only the fallback.
     def embedded_executable_path(root, _architecture)
-      File.expand_path("elten", root)
+      bundled = File.expand_path("../MacOS/Klangten", root)
+      return bundled if File.basename(root.to_s) == "Resources" && File.file?(bundled)
+      File.expand_path("klangten", root)
     end
 
     def autostart_executable_path(default_path)

@@ -1,5 +1,6 @@
 // A part of Elten - EltenLink / Elten Network desktop client.
 // Copyright (C) 2014-2026 Dawid Pieper
+// Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: Klangten title for fatal errors.
 // Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 // Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 // You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
@@ -210,8 +211,8 @@ StampRubyApi PlatformStampApi(const RubyApi &) {
 }
 
 void PlatformShowFatal(const std::string &message) {
-  std::fprintf(stderr, "Elten: %s\n", message.c_str());
-  CFStringRef title = CFSTR("Elten");
+  std::fprintf(stderr, "Klangten: %s\n", message.c_str());
+  CFStringRef title = CFSTR("Klangten");
   CFStringRef text = CFStringCreateWithCString(kCFAllocatorDefault, message.c_str(), kCFStringEncodingUTF8);
   if (text != nullptr) {
     CFUserNotificationDisplayAlert(

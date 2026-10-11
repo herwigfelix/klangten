@@ -980,7 +980,7 @@ void ResolveWindowsMsysSupportDllDependencies(const Options &options) {
       if (CopyWindowsSupportDllIfNeeded(options.zstdLibrary, destination, false)) ++copied;
       queue(destination);
     } else {
-      requireDll("libzstd.dll", runtimeRoot / "elten.exe");
+      requireDll("libzstd.dll", runtimeRoot / "klangten.exe");
     }
   }
 
