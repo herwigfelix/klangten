@@ -1,0 +1,7 @@
+# Klangten test suite: the application's gems plus the test tools. Kept apart
+# from the top-level Gemfile, which the release build installs into the
+# bundled Ruby runtime. test/run.rb selects this file by itself.
+eval_gemfile File.expand_path("../Gemfile", __dir__)
+
+gem "minitest", ">= 5.20"
+gem "rake"
