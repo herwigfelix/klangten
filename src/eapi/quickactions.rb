@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium, auctions, sponsors, calendar and tasks removed; classic What's new on F10, notification history on Control+F10.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium, auctions, sponsors, calendar and tasks removed; classic What's new on F10, notification history on Control+F10, own status history on Control+F9.
 
 module EltenAPI
   module QuickActions
@@ -254,6 +254,7 @@ end
       end
       delete_legacy_data_file
       migrated=true if add_notification_history_hotkey
+      migrated=true if add_status_history_hotkey
       save_actions if migrated
     rescue Exception => e
       Log.error("Quick actions JSON load failed: #{e.class}: #{e.message}") if defined?(Log)
@@ -301,6 +302,8 @@ end
       whatsnew_action(10, false),
       notification_history_action(22, false),
             [Scene_Contacts, p_("EAPI_QuickActions", "My contacts"), [], 9],
+      # Klangten 0.4: the own status history on Control+F9, as in Klango.
+      status_history_action(21, false),
       [Scene_Online, p_("EAPI_QuickActions", "Who is online?"), [], -9],
       [Scene_Messages, p_("EAPI_QuickActions", "Messages"), [], -11],
             [Scene_Forum, p_("EAPI_QuickActions", "Forum")],
@@ -315,6 +318,9 @@ end
     # Shift+F10 stays the context menu.
     def notification_history_action(key=0, show=false)
       [:notificationhistory, p_("EAPI_QuickActions", "Notification history"), [], key, show]
+    end
+    def status_history_action(key=0, show=false)
+      ["Scene_StatusHistory", p_("EAPI_QuickActions", "My status history"), [], key, show]
     end
     def notifications_action(key=0, show=false)
       [:notifications, p_("EAPI_QuickActions", "Notifications"), [], key, show]
@@ -574,6 +580,19 @@ end
       true
     rescue Exception => e
       Log.error("Quick actions: adding the notification history failed: #{e.class}: #{e.message}") if defined?(Log)
+      false
+    end
+    # Klangten 0.4: the own status history on Control+F9 once for existing
+    # installations, unless that key is already taken (same rules as above).
+    def add_status_history_hotkey
+      return false if LocalConfig["KlangtenStatusHistoryHotkey", type: :numeric].to_i == 1
+      LocalConfig["KlangtenStatusHistoryHotkey"] = 1
+      return false if @@actions.any? { |a| a.action.to_s == "Scene_StatusHistory" }
+      key = @@actions.any? { |a| a.key.to_i == 21 } ? 0 : 21
+      register(*status_history_action(key, false))
+      true
+    rescue Exception => e
+      Log.error("Quick actions: adding the status history failed: #{e.class}: #{e.message}") if defined?(Log)
       false
     end
     def legacy_whatsnew_record?(record)

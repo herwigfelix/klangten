@@ -6,6 +6,7 @@
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the EltenLink feed helpers
 # were replaced by user interface helpers for a Mastodon account (the Klango server has no feed); a sign-in imported from Klango is never revoked.
+# Klangten 0.4: sharing forum threads and blog posts on Mastodon.
 
 module EltenAPI
   module EltenSRV
@@ -340,6 +341,29 @@ module EltenAPI
       client.post_status(text.to_s, in_reply_to_id: in_reply_to_id)
       Klangten::Mastodon::Service.refresh
       true
+    end
+
+    # Klangten 0.4: shares a link (forum thread, blog post) on Mastodon, as
+    # Klango does: the compose dialog opens with the title and the address.
+    def mastodon_share_link(title, url)
+      return false if url.to_s == ""
+      title = title.to_s.strip
+      mastodon_compose(text: title == "" ? url.to_s : "#{title} #{url}") != nil
+    end
+
+    # Shares a forum thread; the address is the thread on the web interface.
+    def mastodon_share_forum_thread(thread_id)
+      link = begin
+        EltenLink::Community.forum_thread_link(elten_link, thread_id)
+      rescue EltenLink::Error => e
+        Log.warning("Forum thread link failed: #{e.message}")
+        alert(_("Error"))
+        return false
+      end
+      if !link.public && !confirm(p_("Mastodon", "Only members of its group can read this thread. Do you want to share it anyway?"))
+        return false
+      end
+      mastodon_share_link(link.title, link.url)
     end
 
     # Compose dialog: text, content warning, visibility, language and an

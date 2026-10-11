@@ -26400,3 +26400,717 @@ msgid "%{count} note was imported."
 msgid_plural "%{count} notes were imported."
 msgstr[0] "%{count} Notiz wurde übernommen."
 msgstr[1] "%{count} Notizen wurden übernommen."
+
+# Klangten 0.4: Klango community (media catalog, polls, notes, persons, group messages, Mastodon sharing)
+
+msgctxt "UsersKlango"
+msgid "Status history"
+msgstr "Statusverlauf"
+
+msgctxt "UsersKlango"
+msgid "Contacts of this user"
+msgstr "Kontakte dieses Benutzers"
+
+msgctxt "UsersKlango"
+msgid "Comment on this contact"
+msgstr "Kommentar zu diesem Kontakt"
+
+msgctxt "Mastodon"
+msgid "Only members of its group can read this thread. Do you want to share it anyway?"
+msgstr "Dieses Thema können nur Mitglieder seiner Gruppe lesen. Möchten Sie es trotzdem teilen?"
+
+msgctxt "UsersKlango"
+msgid "S&pecial users"
+msgstr "&Besondere Benutzer"
+
+msgctxt "UsersKlango"
+msgid "Recently changed audio a&vatars"
+msgstr "Zuletzt geänderte &Audio-Avatare"
+
+msgctxt "UsersKlango"
+msgid "My status hi&story"
+msgstr "Mein &Statusverlauf"
+
+msgctxt "EAPI_QuickActions"
+msgid "My status history"
+msgstr "Mein Statusverlauf"
+
+msgctxt "Mastodon"
+msgid "Share on Mastodon"
+msgstr "Auf Mastodon teilen"
+
+msgctxt "GroupMessage"
+msgid "Send a message to the members"
+msgstr "Nachricht an die Mitglieder senden"
+
+msgctxt "MediaCatalog"
+msgid "Favourites of friends"
+msgstr "Favoriten von Freunden"
+
+msgctxt "MediaCatalog"
+msgid "Public favourites"
+msgstr "Öffentliche Favoriten"
+
+msgctxt "MediaCatalog"
+msgid "Group favourites"
+msgstr "Gruppenfavoriten"
+
+msgctxt "MediaCatalog"
+msgid "My history"
+msgstr "Mein Verlauf"
+
+msgctxt "MediaCatalog"
+msgid "Recently rated"
+msgstr "Zuletzt bewertet"
+
+msgctxt "MediaCatalog"
+msgid "Enter an address"
+msgstr "Adresse eingeben"
+
+msgctxt "MediaCatalog"
+msgid "Share my favourites"
+msgstr "Meine Favoriten teilen"
+
+msgctxt "MediaCatalog"
+msgid "Add to group favourites"
+msgstr "Zu den Gruppenfavoriten hinzufügen"
+
+msgctxt "MediaCatalog"
+msgid "Send a correction or note to the editors"
+msgstr "Korrektur oder Hinweis an die Redaktion senden"
+
+msgctxt "MediaCatalog"
+msgid "Edit entry"
+msgstr "Eintrag bearbeiten"
+
+msgctxt "MediaCatalog"
+msgid "Show this entry in the catalog again"
+msgstr "Diesen Eintrag im Katalog wieder anzeigen"
+
+msgctxt "MediaCatalog"
+msgid "Hide this entry in the catalog"
+msgstr "Diesen Eintrag im Katalog verstecken"
+
+msgctxt "MediaCatalog"
+msgid "Nobody has shared their favourites with you yet."
+msgstr "Bisher hat niemand seine Favoriten mit Ihnen geteilt."
+
+msgctxt "MediaCatalog"
+msgid "Nobody has published their favourites yet."
+msgstr "Bisher hat niemand seine Favoriten veröffentlicht."
+
+msgctxt "MediaCatalog"
+msgid "%{user}, %{count} favourite"
+msgid_plural "%{user}, %{count} favourites"
+msgstr[0] "%{user}, %{count} Favorit"
+msgstr[1] "%{user}, %{count} Favoriten"
+
+msgctxt "MediaCatalog"
+msgid "Remove from my list"
+msgstr "Aus meiner Liste entfernen"
+
+msgctxt "MediaCatalog"
+msgid "Do you want to remove the favourites of %{user} from your list?"
+msgstr "Möchten Sie die Favoriten von %{user} aus Ihrer Liste entfernen?"
+
+msgctxt "MediaCatalog"
+msgid "Removed from your list."
+msgstr "Aus Ihrer Liste entfernt."
+
+msgctxt "MediaCatalog"
+msgid "Favourites of %{user}"
+msgstr "Favoriten von %{user}"
+
+msgctxt "MediaCatalog"
+msgid "This list of favourites is empty."
+msgstr "Diese Favoritenliste ist leer."
+
+msgctxt "MediaCatalog"
+msgid "You are not a member of any Klango group."
+msgstr "Sie sind in keiner Klango-Gruppe Mitglied."
+
+msgctxt "MediaCatalog"
+msgid "%{group}, %{count} entry"
+msgid_plural "%{group}, %{count} entries"
+msgstr[0] "%{group}, %{count} Eintrag"
+msgstr[1] "%{group}, %{count} Einträge"
+
+msgctxt "MediaCatalog"
+msgid "Remove from group favourites"
+msgstr "Aus den Gruppenfavoriten entfernen"
+
+msgctxt "MediaCatalog"
+msgid "Do you want to remove %{title} from the favourites of the group?"
+msgstr "Möchten Sie %{title} aus den Favoriten der Gruppe entfernen?"
+
+msgctxt "MediaCatalog"
+msgid "Removed from the group favourites."
+msgstr "Aus den Gruppenfavoriten entfernt."
+
+msgctxt "MediaCatalog"
+msgid "This group has no favourites yet."
+msgstr "Diese Gruppe hat noch keine Favoriten."
+
+msgctxt "MediaCatalog"
+msgid "You do not moderate any Klango group."
+msgstr "Sie moderieren keine Klango-Gruppe."
+
+msgctxt "MediaCatalog"
+msgid "Add to the favourites of which group?"
+msgstr "Zu den Favoriten welcher Gruppe hinzufügen?"
+
+msgctxt "MediaCatalog"
+msgid "Added to the favourites of %{group}."
+msgstr "Zu den Favoriten von %{group} hinzugefügt."
+
+msgctxt "MediaCatalog"
+msgid "This entry is already among the favourites of %{group}."
+msgstr "Dieser Eintrag ist bereits unter den Favoriten von %{group}."
+
+msgctxt "MediaCatalog"
+msgid "Your history is empty."
+msgstr "Ihr Verlauf ist leer."
+
+msgctxt "MediaCatalog"
+msgid "Remove from history"
+msgstr "Aus dem Verlauf entfernen"
+
+msgctxt "MediaCatalog"
+msgid "Clear history"
+msgstr "Verlauf leeren"
+
+msgctxt "MediaCatalog"
+msgid "Do you want to clear your history?"
+msgstr "Möchten Sie Ihren Verlauf leeren?"
+
+msgctxt "MediaCatalog"
+msgid "The history has been cleared."
+msgstr "Der Verlauf wurde geleert."
+
+msgctxt "MediaCatalog"
+msgid "Address of a stream, feed or web page, or the number of a catalog entry"
+msgstr "Adresse eines Streams, Feeds oder einer Webseite oder die Nummer eines Katalogeintrags"
+
+msgctxt "MediaCatalog"
+msgid "There is no entry with this number in the catalog."
+msgstr "Im Katalog gibt es keinen Eintrag mit dieser Nummer."
+
+msgctxt "MediaCatalog"
+msgid "People who can see your favourites"
+msgstr "Personen, die Ihre Favoriten sehen können"
+
+msgctxt "MediaCatalog"
+msgid "Nobody yet"
+msgstr "Noch niemand"
+
+msgctxt "MediaCatalog"
+msgid "Publish my favourites for everyone"
+msgstr "Meine Favoriten für alle veröffentlichen"
+
+msgctxt "MediaCatalog"
+msgid "Share with a user"
+msgstr "Mit einem Benutzer teilen"
+
+msgctxt "MediaCatalog"
+msgid "Who should see your favourites?"
+msgstr "Wer soll Ihre Favoriten sehen?"
+
+msgctxt "MediaCatalog"
+msgid "%{user} can now see your favourites."
+msgstr "%{user} kann jetzt Ihre Favoriten sehen."
+
+msgctxt "MediaCatalog"
+msgid "%{user} can already see your favourites."
+msgstr "%{user} kann Ihre Favoriten bereits sehen."
+
+msgctxt "MediaCatalog"
+msgid "Do you want to stop sharing your favourites with %{user}?"
+msgstr "Möchten Sie Ihre Favoriten nicht mehr mit %{user} teilen?"
+
+msgctxt "MediaCatalog"
+msgid "%{user} can no longer see your favourites."
+msgstr "%{user} kann Ihre Favoriten nicht mehr sehen."
+
+msgctxt "MediaCatalog"
+msgid "Stop sharing"
+msgstr "Nicht mehr teilen"
+
+msgctxt "MediaCatalog"
+msgid "Everyone can now see your favourites."
+msgstr "Jetzt können alle Ihre Favoriten sehen."
+
+msgctxt "MediaCatalog"
+msgid "Your favourites are no longer public."
+msgstr "Ihre Favoriten sind nicht mehr öffentlich."
+
+msgctxt "MediaCatalog"
+msgid "Your correction or note for the editors of the catalog about %{title}"
+msgstr "Ihre Korrektur oder Ihr Hinweis an die Katalogredaktion zu %{title}"
+
+msgctxt "MediaCatalog"
+msgid "Your note has been sent to the editors."
+msgstr "Ihr Hinweis wurde an die Redaktion gesendet."
+
+msgctxt "MediaCatalog"
+msgid "Do you want to hide %{title} in the catalog?"
+msgstr "Möchten Sie %{title} im Katalog verstecken?"
+
+msgctxt "MediaCatalog"
+msgid "Do you want to show %{title} in the catalog again?"
+msgstr "Möchten Sie %{title} im Katalog wieder anzeigen?"
+
+msgctxt "MediaCatalog"
+msgid "The entry is hidden."
+msgstr "Der Eintrag ist versteckt."
+
+msgctxt "MediaCatalog"
+msgid "The entry is visible again."
+msgstr "Der Eintrag ist wieder sichtbar."
+
+msgctxt "MediaCatalog"
+msgid "Description"
+msgstr "Beschreibung"
+
+msgctxt "MediaCatalog"
+msgid "No categories"
+msgstr "Keine Kategorien"
+
+msgctxt "MediaCatalog"
+msgid "Add a category"
+msgstr "Kategorie hinzufügen"
+
+msgctxt "MediaCatalog"
+msgid "Category"
+msgstr "Kategorie"
+
+msgctxt "MediaCatalog"
+msgid "Remove this category"
+msgstr "Diese Kategorie entfernen"
+
+msgctxt "MediaCatalog"
+msgid "Enter a title."
+msgstr "Geben Sie einen Titel ein."
+
+msgctxt "MediaCatalog"
+msgid "The entry has been saved."
+msgstr "Der Eintrag wurde gespeichert."
+
+msgctxt "GroupMessage"
+msgid "Message to the members of a group"
+msgstr "Nachricht an die Mitglieder einer Gruppe"
+
+msgctxt "Notes"
+msgid "Copy to this device"
+msgstr "Auf dieses Gerät kopieren"
+
+msgctxt "Notes"
+msgid "Notes on this device"
+msgstr "Notizen auf diesem Gerät"
+
+msgctxt "Notes"
+msgid "Group notes"
+msgstr "Gruppennotizen"
+
+msgctxt "Notes"
+msgid "Notes of which group?"
+msgstr "Notizen welcher Gruppe?"
+
+msgctxt "Notes"
+msgid "Share with a group"
+msgstr "Mit einer Gruppe teilen"
+
+msgctxt "Notes"
+msgid "Share the note with which group?"
+msgstr "Mit welcher Gruppe möchten Sie die Notiz teilen?"
+
+msgctxt "Notes"
+msgid "The members of %{group} can now read this note."
+msgstr "Die Mitglieder von %{group} können diese Notiz jetzt lesen."
+
+msgctxt "Notes"
+msgid "Stop sharing with a group"
+msgstr "Nicht mehr mit einer Gruppe teilen"
+
+msgctxt "Notes"
+msgid "This note is not shared with any group."
+msgstr "Diese Notiz ist mit keiner Gruppe geteilt."
+
+msgctxt "Notes"
+msgid "Stop sharing with which group?"
+msgstr "Mit welcher Gruppe nicht mehr teilen?"
+
+msgctxt "Notes"
+msgid "The members of %{group} can no longer read this note."
+msgstr "Die Mitglieder von %{group} können diese Notiz nicht mehr lesen."
+
+msgctxt "Polls"
+msgid "Polls: %{source}"
+msgstr "Umfragen: %{source}"
+
+msgctxt "Polls"
+msgid "%{name}, %{count} poll"
+msgid_plural "%{name}, %{count} polls"
+msgstr[0] "%{name}, %{count} Umfrage"
+msgstr[1] "%{name}, %{count} Umfragen"
+
+msgctxt "Polls"
+msgid "There are no public polls."
+msgstr "Es gibt keine öffentlichen Umfragen."
+
+msgctxt "Polls"
+msgid "No language"
+msgstr "Ohne Sprache"
+
+msgctxt "Polls"
+msgid "You are not a member of any Klango group."
+msgstr "Sie sind in keiner Klango-Gruppe Mitglied."
+
+msgctxt "Polls"
+msgid "Group"
+msgstr "Gruppe"
+
+msgctxt "Polls"
+msgid "My polls and drafts"
+msgstr "Meine Umfragen und Entwürfe"
+
+msgctxt "Polls"
+msgid "Browse polls"
+msgstr "Umfragen durchsuchen"
+
+msgctxt "Polls"
+msgid "By author"
+msgstr "Nach Autor"
+
+msgctxt "Polls"
+msgid "By language"
+msgstr "Nach Sprache"
+
+msgctxt "Polls"
+msgid "Polls of my groups"
+msgstr "Umfragen meiner Gruppen"
+
+msgctxt "Polls"
+msgid "All polls"
+msgstr "Alle Umfragen"
+
+msgctxt "Polls"
+msgid "Everyone"
+msgstr "Alle"
+
+msgctxt "Polls"
+msgid "Group %{name}"
+msgstr "Gruppe %{name}"
+
+msgctxt "Polls"
+msgid "Who can vote"
+msgstr "Wer darf abstimmen"
+
+msgctxt "Polls"
+msgid "Save as draft"
+msgstr "Als Entwurf speichern"
+
+msgctxt "Polls"
+msgid "The poll has been saved. Its questions cannot be changed any more."
+msgstr "Die Umfrage wurde gespeichert. Ihre Fragen lassen sich nicht mehr ändern."
+
+msgctxt "Polls"
+msgid "The poll has been saved."
+msgstr "Die Umfrage wurde gespeichert."
+
+msgctxt "Polls"
+msgid "Why can't I change the questions?"
+msgstr "Warum kann ich die Fragen nicht ändern?"
+
+msgctxt "Polls"
+msgid "The questions of a published poll or a poll with votes cannot be changed any more. Withdraw the poll first; once someone has voted, the questions stay as they are."
+msgstr "Die Fragen einer veröffentlichten Umfrage oder einer Umfrage mit Stimmen lassen sich nicht mehr ändern. Ziehen Sie die Umfrage zuerst zurück; hat schon jemand abgestimmt, bleiben die Fragen, wie sie sind."
+
+msgctxt "Polls"
+msgid "The poll has been saved as a draft. You find it under My polls and drafts."
+msgstr "Die Umfrage wurde als Entwurf gespeichert. Sie finden sie unter Meine Umfragen und Entwürfe."
+
+msgctxt "Polls"
+msgid "The poll has been created for the members of %{group}."
+msgstr "Die Umfrage wurde für die Mitglieder von %{group} angelegt."
+
+msgctxt "Polls"
+msgid "Save my answers for later"
+msgstr "Meine Antworten für später speichern"
+
+msgctxt "Polls"
+msgid "Your answers have been saved. You can complete and send them later."
+msgstr "Ihre Antworten wurden gespeichert. Sie können sie später vervollständigen und absenden."
+
+msgctxt "Polls"
+msgid "Your saved answers have been filled in."
+msgstr "Ihre gespeicherten Antworten wurden eingesetzt."
+
+msgctxt "Polls"
+msgid "Status"
+msgstr "Status"
+
+msgctxt "Polls"
+msgid "draft"
+msgstr "Entwurf"
+
+msgctxt "Polls"
+msgid "in a group"
+msgstr "in einer Gruppe"
+
+msgctxt "Polls"
+msgid "only with the link"
+msgstr "nur über den Link"
+
+msgctxt "Polls"
+msgid "public"
+msgstr "öffentlich"
+
+msgctxt "Polls"
+msgid "Edit"
+msgstr "Bearbeiten"
+
+msgctxt "Polls"
+msgid "Publish"
+msgstr "Veröffentlichen"
+
+msgctxt "Polls"
+msgid "Withdraw (make it a draft again)"
+msgstr "Zurückziehen (wieder zum Entwurf machen)"
+
+msgctxt "Polls"
+msgid "Do you want to withdraw %{name}? Nobody can vote until you publish it again."
+msgstr "Möchten Sie %{name} zurückziehen? Niemand kann abstimmen, bis Sie sie wieder veröffentlichen."
+
+msgctxt "Polls"
+msgid "The poll is a draft again."
+msgstr "Die Umfrage ist wieder ein Entwurf."
+
+msgctxt "Polls"
+msgid "For everyone"
+msgstr "Für alle"
+
+msgctxt "Polls"
+msgid "Only for people with the link"
+msgstr "Nur für Personen mit dem Link"
+
+msgctxt "Polls"
+msgid "For the members of %{group}"
+msgstr "Für die Mitglieder von %{group}"
+
+msgctxt "Polls"
+msgid "Publish %{name}"
+msgstr "%{name} veröffentlichen"
+
+msgctxt "Polls"
+msgid "The poll has been published."
+msgstr "Die Umfrage wurde veröffentlicht."
+
+msgctxt "GroupMessage"
+msgid "All members"
+msgstr "Alle Mitglieder"
+
+msgctxt "GroupMessage"
+msgid "Moderators only"
+msgstr "Nur Moderatoren"
+
+msgctxt "GroupMessage"
+msgid "Suspended members"
+msgstr "Gesperrte Mitglieder"
+
+msgctxt "GroupMessage"
+msgid "Message to the members of %{group}"
+msgstr "Nachricht an die Mitglieder von %{group}"
+
+msgctxt "GroupMessage"
+msgid "Recipients"
+msgstr "Empfänger"
+
+msgctxt "GroupMessage"
+msgid "Send"
+msgstr "Senden"
+
+msgctxt "GroupMessage"
+msgid "Are you sure you want to discard this message?"
+msgstr "Möchten Sie diese Nachricht wirklich verwerfen?"
+
+msgctxt "GroupMessage"
+msgid "The message is empty."
+msgstr "Die Nachricht ist leer."
+
+msgctxt "GroupMessage"
+msgid "The message has been sent to %{count} person."
+msgid_plural "The message has been sent to %{count} people."
+msgstr[0] "Die Nachricht wurde an %{count} Person gesendet."
+msgstr[1] "Die Nachricht wurde an %{count} Personen gesendet."
+
+msgctxt "GroupMessage"
+msgid "Nobody in this group could receive the message."
+msgstr "In dieser Gruppe konnte niemand die Nachricht empfangen."
+
+msgctxt "GroupMessage"
+msgid "You are not a member of any Klango group."
+msgstr "Sie sind in keiner Klango-Gruppe Mitglied."
+
+msgctxt "GroupMessage"
+msgid "Send a message to the members of which group?"
+msgstr "An die Mitglieder welcher Gruppe möchten Sie schreiben?"
+
+msgctxt "Notes"
+msgid "Enter a title for the note."
+msgstr "Geben Sie einen Titel für die Notiz ein."
+
+msgctxt "Notes"
+msgid "You are not a member of any Klango group."
+msgstr "Sie sind in keiner Klango-Gruppe Mitglied."
+
+msgctxt "Notes"
+msgid "The note has been saved on this device."
+msgstr "Die Notiz wurde auf diesem Gerät gespeichert."
+
+msgctxt "Notes"
+msgid "There are no notes on this device yet."
+msgstr "Auf diesem Gerät gibt es noch keine Notizen."
+
+msgctxt "Notes"
+msgid "Open"
+msgstr "Öffnen"
+
+msgctxt "Notes"
+msgid "Save on the server"
+msgstr "Auf dem Server speichern"
+
+msgctxt "Notes"
+msgid "The note has been saved on the server."
+msgstr "Die Notiz wurde auf dem Server gespeichert."
+
+msgctxt "Notes"
+msgid "Shared by"
+msgstr "Geteilt von"
+
+msgctxt "Notes"
+msgid "Notes of %{group}"
+msgstr "Notizen von %{group}"
+
+msgctxt "Notes"
+msgid "Nobody has shared a note with this group yet."
+msgstr "Bisher hat niemand eine Notiz mit dieser Gruppe geteilt."
+
+msgctxt "UsersKlango"
+msgid "Administrator of the media catalog"
+msgstr "Administrator des Medienkatalogs"
+
+msgctxt "UsersKlango"
+msgid "Editor of the media catalog"
+msgstr "Redakteur des Medienkatalogs"
+
+msgctxt "UsersKlango"
+msgid "Forum moderator"
+msgstr "Forenmoderator"
+
+msgctxt "UsersKlango"
+msgid "Developer"
+msgstr "Entwickler"
+
+msgctxt "UsersKlango"
+msgid "Translator"
+msgstr "Übersetzer"
+
+msgctxt "UsersKlango"
+msgid "Beta tester"
+msgstr "Betatester"
+
+msgctxt "UsersKlango"
+msgid "Very important person of the network"
+msgstr "Sehr wichtige Person im Netzwerk"
+
+msgctxt "UsersKlango"
+msgid "Administrator"
+msgstr "Administrator"
+
+msgctxt "UsersKlango"
+msgid "Founder"
+msgstr "Gründer"
+
+msgctxt "UsersKlango"
+msgid "Moderator"
+msgstr "Moderator"
+
+msgctxt "UsersKlango"
+msgid "Tester"
+msgstr "Tester"
+
+msgctxt "UsersKlango"
+msgid "Comment on %{user}"
+msgstr "Kommentar zu %{user}"
+
+msgctxt "UsersKlango"
+msgid "Others may see this comment"
+msgstr "Andere dürfen diesen Kommentar sehen"
+
+msgctxt "UsersKlango"
+msgid "Delete comment"
+msgstr "Kommentar löschen"
+
+msgctxt "UsersKlango"
+msgid "The comment has been saved."
+msgstr "Der Kommentar wurde gespeichert."
+
+msgctxt "UsersKlango"
+msgid "The comment has been deleted."
+msgstr "Der Kommentar wurde gelöscht."
+
+msgctxt "UsersKlango"
+msgid "My status history"
+msgstr "Mein Statusverlauf"
+
+msgctxt "UsersKlango"
+msgid "Status history of %{user}"
+msgstr "Statusverlauf von %{user}"
+
+msgctxt "UsersKlango"
+msgid "There is no status in the history."
+msgstr "Der Verlauf enthält keinen Status."
+
+msgctxt "UsersKlango"
+msgid "Copy to the clipboard"
+msgstr "In die Zwischenablage kopieren"
+
+msgctxt "UsersKlango"
+msgid "Copied to the clipboard."
+msgstr "In die Zwischenablage kopiert."
+
+msgctxt "UsersKlango"
+msgid "Do you want to delete this status from your history?"
+msgstr "Möchten Sie diesen Status aus Ihrem Verlauf löschen?"
+
+msgctxt "UsersKlango"
+msgid "The contact list is empty."
+msgstr "Die Kontaktliste ist leer."
+
+msgctxt "UsersKlango"
+msgid "%{user} has not made any contacts public."
+msgstr "%{user} hat keine Kontakte öffentlich gemacht."
+
+msgctxt "UsersKlango"
+msgid "My contacts with comments"
+msgstr "Meine Kontakte mit Kommentaren"
+
+msgctxt "UsersKlango"
+msgid "Public contacts of %{user}"
+msgstr "Öffentliche Kontakte von %{user}"
+
+msgctxt "UsersKlango"
+msgid "Special users"
+msgstr "Besondere Benutzer"
+
+msgctxt "UsersKlango"
+msgid "Nobody has a special role."
+msgstr "Niemand hat eine besondere Rolle."
+
+msgctxt "UsersKlango"
+msgid "Recently changed audio avatars"
+msgstr "Zuletzt geänderte Audio-Avatare"
+
+msgctxt "UsersKlango"
+msgid "Nobody has changed an audio avatar yet."
+msgstr "Bisher hat niemand einen Audio-Avatar geändert."

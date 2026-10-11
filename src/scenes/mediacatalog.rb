@@ -7,7 +7,10 @@
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 
 # Klango media catalog: radio stations, podcasts and other media entries with
-# categories, search, lists, favourites and ratings (Media menu).
+# categories, search, lists, favourites and ratings (Media menu). Since 0.4
+# also the play history kept on this device, favourites of friends, public
+# and group favourites, sharing the own favourites, entering an address and
+# notes to the catalog's editors (editors and administrators maintain entries).
 
 class Scene_MediaCatalog
   def initialize
@@ -45,13 +48,20 @@ class Scene_MediaCatalog
     entries << [p_("MediaCatalog", "Browse categories"), proc { browse_categories }]
     entries << [p_("MediaCatalog", "Search"), proc { search }]
     entries << [p_("MediaCatalog", "My favourites"), proc { show_favorites }] if Session.logged?
+    entries << [p_("MediaCatalog", "Favourites of friends"), proc { show_owners(:shared) }] if Session.logged?
+    entries << [p_("MediaCatalog", "Public favourites"), proc { show_owners(:public) }]
+    entries << [p_("MediaCatalog", "Group favourites"), proc { show_groups }] if Session.logged?
+    entries << [p_("MediaCatalog", "My history"), proc { show_history }]
     entries << [p_("MediaCatalog", "Popular"), proc { show_list("popular", p_("MediaCatalog", "Popular")) }]
     entries << [p_("MediaCatalog", "Top rated"), proc { show_list("top_rated", p_("MediaCatalog", "Top rated")) }]
+    entries << [p_("MediaCatalog", "Recently rated"), proc { show_list("recently_rated", p_("MediaCatalog", "Recently rated")) }]
     entries << [p_("MediaCatalog", "Recently added"), proc { show_list("newest", p_("MediaCatalog", "Recently added")) }]
     entries << [p_("MediaCatalog", "Recently played"), proc { show_list("recently_played", p_("MediaCatalog", "Recently played")) }]
     entries << [p_("MediaCatalog", "Random selection"), proc { show_list("random", p_("MediaCatalog", "Random selection")) }]
+    entries << [p_("MediaCatalog", "Enter an address"), proc { enter_address }]
     entries << [p_("MediaCatalog", "Media type: %{type}") % { type: type_name(@type) }, proc { choose_type }]
     entries << [p_("MediaCatalog", "Add my own stream or podcast"), proc { create_bookmark }] if Session.logged?
+    entries << [p_("MediaCatalog", "Share my favourites"), proc { manage_sharing }] if Session.logged?
     entries
   end
 
@@ -120,15 +130,17 @@ class Scene_MediaCatalog
   # -------------------------------------------------------------- list screen
 
   # Shows categories and items of a paged source. The loader receives an
-  # offset and returns an EltenLink::MediaPage (or nil on error).
-  def show_page(header, &loader)
+  # offset and returns an EltenLink::MediaPage (or nil on error). extra, if
+  # given, adds options to the context menu of an item: it is called with the
+  # menu, the item and a proc that takes the item out of the list.
+  def show_page(header, extra: nil, empty_message: nil, &loader)
     page = catalog_call { loader.call(0) }
     return if page == nil
     categories = page.categories.to_a
     items = page.items.to_a
     more = page.more
     if categories.empty? && items.empty?
-      alert(p_("MediaCatalog", "No entries found."))
+      alert(empty_message || p_("MediaCatalog", "No entries found."))
       return
     end
     rows = proc do
@@ -142,12 +154,19 @@ class Scene_MediaCatalog
       list.options = rows.call
       list.index = [index, list.options.size - 1].min
     end
+    remove = proc do |item|
+      items.delete(item)
+      refresh.call
+      list.focus if !list.options.empty?
+    end
     list.bind_context do |menu|
       index = list.index
       if index < categories.size
         category_context(menu, categories[index], refresh)
       elsif index < categories.size + items.size
-        item_context(menu, items[index - categories.size], refresh)
+        item = items[index - categories.size]
+        item_context(menu, item, refresh)
+        extra.call(menu, item, remove) if extra != nil
       end
     end
     list.focus
@@ -226,14 +245,25 @@ class Scene_MediaCatalog
     actions[:episodes] = p_("MediaCatalog", "Episodes") if item.feed?
     actions[:youtube] = p_("MediaCatalog", "Open in YouTube") if item.type == "youtube" && item.url.to_s != "" && youtube_available?
     actions[:open] = p_("MediaCatalog", "Open in the web browser") if item.type == "webpage" && item.url.to_s != ""
-    if Session.logged?
+    # Entries without a catalog number (history of typed addresses) have no
+    # favourites, ratings or details on the server.
+    catalogued = item.id.to_i > 0
+    if Session.logged? && catalogued
       actions[:favorite] = item.favorite ? p_("MediaCatalog", "Remove from favourites") : p_("MediaCatalog", "Add to favourites")
+      actions[:group_favorite] = p_("MediaCatalog", "Add to group favourites") if editable_groups.size > 0
       actions[:rate] = p_("MediaCatalog", "Rate")
     end
-    actions[:ratings] = p_("MediaCatalog", "Show ratings")
-    actions[:details] = p_("MediaCatalog", "Details")
+    actions[:ratings] = p_("MediaCatalog", "Show ratings") if catalogued
+    actions[:details] = p_("MediaCatalog", "Details") if catalogued
     actions[:homepage] = p_("MediaCatalog", "Open homepage") if item.homepage.to_s != ""
     actions[:copy] = p_("MediaCatalog", "Copy address to the clipboard") if item.url.to_s != ""
+    if Session.logged? && catalogued
+      actions[:report] = p_("MediaCatalog", "Send a correction or note to the editors")
+      actions[:edit] = p_("MediaCatalog", "Edit entry") if permissions["editor"]
+      if permissions["admin"]
+        actions[:hide] = item.hidden ? p_("MediaCatalog", "Show this entry in the catalog again") : p_("MediaCatalog", "Hide this entry in the catalog")
+      end
+    end
     actions
   end
 
@@ -254,12 +284,17 @@ class Scene_MediaCatalog
   end
 
   def run_item_action(item, action)
+    Klangten::MediaHistory.add(item) if [:play, :episodes, :youtube, :open].include?(action)
     case action
     when :play then play_item(item)
     when :episodes then show_episodes(item)
     when :youtube then open_youtube(item)
     when :open then platform_open_url(item.url)
     when :favorite then toggle_favorite(item)
+    when :group_favorite then add_group_favorite(item)
+    when :report then report_item(item)
+    when :edit then edit_item(item)
+    when :hide then toggle_hidden(item)
     when :rate then rate_item(item)
     when :ratings then show_ratings(item)
     when :details then show_details(item)
@@ -502,6 +537,372 @@ class Scene_MediaCatalog
       end
       if item != nil
         alert(p_("MediaCatalog", "Added to favourites."))
+        form.resume
+      end
+    end
+    form.wait
+  end
+
+  # ------------------------------------------------- Klangten 0.4 additions
+
+  # What the catalog's editorial team may do ({"editor", "admin"}), asked once.
+  def permissions
+    return @permissions if @permissions != nil
+    @permissions = { "editor" => false, "admin" => false }
+    return @permissions if !Session.logged?
+    begin
+      @permissions = EltenLink::Media.permissions(elten_link)
+    rescue EltenLink::Error => e
+      Log.warning("Media catalog permissions failed: #{e.message}")
+    end
+    @permissions
+  end
+
+  # Klango groups of the account with their favourites, asked once.
+  def media_groups
+    return @media_groups if @media_groups != nil
+    @media_groups = []
+    return @media_groups if !Session.logged?
+    begin
+      @media_groups = EltenLink::Media.groups(elten_link)
+    rescue EltenLink::Error => e
+      Log.warning("Media catalog groups failed: #{e.message}")
+    end
+    @media_groups
+  end
+
+  def editable_groups
+    media_groups.select(&:can_edit)
+  end
+
+  # A list of names with a context menu; returns when Escape is pressed.
+  # rows: proc returning [label, object] pairs; open: proc called on Enter;
+  # context: proc(menu, object, reload) for the context menu.
+  def show_simple_list(header, rows, open:, context: nil)
+    entries = rows.call
+    list = ListBox.new(entries.map(&:first), header: header, index: 0, flags: 0, quiet: false)
+    reload = proc do
+      entries = rows.call
+      index = list.index
+      list.options = entries.map(&:first)
+      list.index = [[index, entries.size - 1].min, 0].max
+    end
+    list.bind_context { |menu| context.call(menu, entries[list.index][1], reload) if context != nil && entries[list.index] != nil }
+    list.focus
+    loop do
+      loop_update
+      list.update
+      break if key_pressed?(:key_escape) || $scene != self || entries.empty?
+      next if !key_pressed?(:key_enter) || entries[list.index] == nil
+      open.call(entries[list.index][1])
+      break if $scene != self
+      list.focus
+    end
+  end
+
+  # ------------------------------------------- favourites of other people
+
+  def show_owners(kind)
+    owners = catalog_call do
+      kind == :shared ? EltenLink::Media.shared_owners(elten_link) : EltenLink::Media.public_owners(elten_link)
+    end
+    return if owners == nil
+    if owners.empty?
+      alert(kind == :shared ? p_("MediaCatalog", "Nobody has shared their favourites with you yet.") : p_("MediaCatalog", "Nobody has published their favourites yet."))
+      return
+    end
+    header = kind == :shared ? p_("MediaCatalog", "Favourites of friends") : p_("MediaCatalog", "Public favourites")
+    rows = proc do
+      owners.map { |owner| [np_("MediaCatalog", "%{user}, %{count} favourite", "%{user}, %{count} favourites", owner.favorites) % { user: owner.user, count: owner.favorites }, owner] }
+    end
+    context = proc do |menu, owner, reload|
+      menu.option(p_("MediaCatalog", "Open")) { show_owner_favorites(owner) }
+      menu.useroption(owner.user) if Session.logged?
+      if kind == :shared
+        menu.option(p_("MediaCatalog", "Remove from my list"), nil, :del) do
+          if confirm(p_("MediaCatalog", "Do you want to remove the favourites of %{user} from your list?") % { user: owner.user })
+            if catalog_call { EltenLink::Media.leave_shared(elten_link, owner.user) }
+              owners.delete(owner)
+              alert(p_("MediaCatalog", "Removed from your list."))
+              reload.call
+            end
+          end
+        end
+      end
+    end
+    show_simple_list(header, rows, open: proc { |owner| show_owner_favorites(owner) }, context: context)
+  end
+
+  def show_owner_favorites(owner)
+    result = catalog_call { EltenLink::Media.user_favorites(elten_link, owner.user) }
+    return if result == nil
+    page = EltenLink::MediaPage.new
+    page.categories, page.items = result
+    page.more = false
+    show_page(p_("MediaCatalog", "Favourites of %{user}") % { user: owner.user }, empty_message: p_("MediaCatalog", "This list of favourites is empty.")) { |_offset| page }
+  end
+
+  # ------------------------------------------------------ group favourites
+
+  def show_groups
+    groups = catalog_call { EltenLink::Media.groups(elten_link) }
+    return if groups == nil
+    @media_groups = groups
+    if groups.empty?
+      alert(p_("MediaCatalog", "You are not a member of any Klango group."))
+      return
+    end
+    rows = proc do
+      groups.map { |group| [np_("MediaCatalog", "%{group}, %{count} entry", "%{group}, %{count} entries", group.items) % { group: group.name, count: group.items }, group] }
+    end
+    show_simple_list(p_("MediaCatalog", "Group favourites"), rows, open: proc { |group| show_group_favorites(group) })
+  end
+
+  def show_group_favorites(group)
+    result = catalog_call { EltenLink::Media.group_favorites(elten_link, group.id) }
+    return if result == nil
+    info, items = result
+    page = EltenLink::MediaPage.new
+    page.categories = []
+    page.items = items
+    page.more = false
+    extra = nil
+    if info.can_edit
+      extra = proc do |menu, item, remove|
+        menu.option(p_("MediaCatalog", "Remove from group favourites"), nil, :del) do
+          if confirm(p_("MediaCatalog", "Do you want to remove %{title} from the favourites of the group?") % { title: item.title })
+            if catalog_call { EltenLink::Media.remove_group_favorite(elten_link, group.id, item.id) }
+              alert(p_("MediaCatalog", "Removed from the group favourites."))
+              group.items = [group.items - 1, 0].max
+              remove.call(item)
+            end
+          end
+        end
+      end
+    end
+    show_page(group.name, extra: extra, empty_message: p_("MediaCatalog", "This group has no favourites yet.")) { |_offset| page }
+  end
+
+  def add_group_favorite(item)
+    groups = editable_groups
+    return alert(p_("MediaCatalog", "You do not moderate any Klango group.")) if groups.empty?
+    index = 0
+    if groups.size > 1
+      index = selector(groups.map(&:name), header: p_("MediaCatalog", "Add to the favourites of which group?"), start_index: 0, cancel_index: -1)
+      return if index == nil || index < 0
+    end
+    group = groups[index]
+    added = catalog_call { EltenLink::Media.add_group_favorite(elten_link, group.id, item.id) }
+    return if added == nil
+    if added
+      group.items += 1
+      alert(p_("MediaCatalog", "Added to the favourites of %{group}.") % { group: group.name })
+    else
+      alert(p_("MediaCatalog", "This entry is already among the favourites of %{group}.") % { group: group.name })
+    end
+  end
+
+  # ------------------------------------------------------------- history
+
+  def show_history
+    entries = Klangten::MediaHistory.entries
+    if entries.empty?
+      alert(p_("MediaCatalog", "Your history is empty."))
+      return
+    end
+    by_item = {}
+    items = entries.map do |entry|
+      item = EltenLink::Media.stub_item(id: entry.id, title: entry.title, type: entry.type, url: entry.url)
+      by_item[item.object_id] = entry
+      item
+    end
+    page = EltenLink::MediaPage.new
+    page.categories = []
+    page.items = items
+    page.more = false
+    extra = proc do |menu, item, remove|
+      menu.option(p_("MediaCatalog", "Remove from history"), nil, :del) do
+        entry = by_item[item.object_id]
+        Klangten::MediaHistory.remove(entry) if entry != nil
+        remove.call(item)
+      end
+      menu.option(p_("MediaCatalog", "Clear history")) do
+        if confirm(p_("MediaCatalog", "Do you want to clear your history?"))
+          Klangten::MediaHistory.clear
+          items.dup.each { |old| remove.call(old) }
+          alert(p_("MediaCatalog", "The history has been cleared."))
+        end
+      end
+    end
+    show_page(p_("MediaCatalog", "My history"), extra: extra) { |_offset| page }
+  end
+
+  # ------------------------------------------------------ entering an address
+
+  def enter_address
+    address = input_text(p_("MediaCatalog", "Address of a stream, feed or web page, or the number of a catalog entry"), escapable: true)
+    return if address == nil || address.strip == ""
+    address = address.strip
+    item = nil
+    begin
+      item = EltenLink::Media.lookup(elten_link, address)
+    rescue EltenLink::Error => e
+      Log.warning("Media catalog lookup failed: #{e.message}")
+    end
+    return item_action(item) if item != nil
+    if address =~ /\A\d+\z/
+      alert(p_("MediaCatalog", "There is no entry with this number in the catalog."))
+      return
+    end
+    address = "http://" + address if address !~ %r{\A[a-z][a-z0-9+.-]*://}i
+    item = EltenLink::Media.stub_item(title: address, url: address)
+    Klangten::MediaHistory.add(item)
+    player(address, label: address)
+  end
+
+  # ---------------------------------------------- sharing my favourites
+
+  def manage_sharing
+    result = catalog_call { EltenLink::Media.favorite_shares(elten_link) }
+    return if result == nil
+    users, published = result
+    users_list = ListBox.new(users.dup, header: p_("MediaCatalog", "People who can see your favourites"), empty_label: p_("MediaCatalog", "Nobody yet"))
+    public_box = CheckBox.new(p_("MediaCatalog", "Publish my favourites for everyone"), checked: published)
+    add_button = Button.new(p_("MediaCatalog", "Share with a user"))
+    close = Button.new(_("Close"))
+    form = Form.new([users_list, public_box, add_button, close])
+    add_share = proc do
+      user = input_user(p_("MediaCatalog", "Who should see your favourites?"))
+      if user != nil && user.to_s != ""
+        added = catalog_call { EltenLink::Media.share_favorites(elten_link, user) }
+        if added != nil
+          users << user if !users.include?(user)
+          users_list.options = users.dup
+          alert(added ? p_("MediaCatalog", "%{user} can now see your favourites.") % { user: user } : p_("MediaCatalog", "%{user} can already see your favourites.") % { user: user })
+        end
+      end
+    end
+    remove_share = proc do
+      user = users[users_list.index]
+      if user != nil && confirm(p_("MediaCatalog", "Do you want to stop sharing your favourites with %{user}?") % { user: user })
+        if catalog_call { EltenLink::Media.unshare_favorites(elten_link, user) }
+          users.delete(user)
+          users_list.options = users.dup
+          users_list.index = [[users_list.index, users.size - 1].min, 0].max
+          alert(p_("MediaCatalog", "%{user} can no longer see your favourites.") % { user: user })
+        end
+      end
+    end
+    users_list.bind_context do |menu|
+      menu.option(p_("MediaCatalog", "Share with a user"), nil, "n") { add_share.call }
+      menu.option(p_("MediaCatalog", "Stop sharing"), nil, :del) { remove_share.call } if !users.empty?
+    end
+    public_box.on(:change) do
+      wanted = public_box.checked == true
+      if catalog_call { EltenLink::Media.publish_favorites(elten_link, wanted) }
+        alert(wanted ? p_("MediaCatalog", "Everyone can now see your favourites.") : p_("MediaCatalog", "Your favourites are no longer public."))
+      else
+        public_box.checked = !wanted
+      end
+    end
+    add_button.on(:press) { add_share.call }
+    close.on(:press) { form.resume }
+    form.cancel_button = close
+    form.wait
+  end
+
+  # ------------------------------------------------- editors and corrections
+
+  def report_item(item)
+    text = input_text(p_("MediaCatalog", "Your correction or note for the editors of the catalog about %{title}") % { title: item.title }, flags: EditBox::Flags::MultiLine, escapable: true)
+    return if text == nil || text.strip == ""
+    if catalog_call { EltenLink::Media.report(elten_link, item.id, text.strip) } != nil
+      alert(p_("MediaCatalog", "Your note has been sent to the editors."))
+    end
+  end
+
+  def toggle_hidden(item)
+    hide = !item.hidden
+    question = hide ? p_("MediaCatalog", "Do you want to hide %{title} in the catalog?") : p_("MediaCatalog", "Do you want to show %{title} in the catalog again?")
+    return if !confirm(question % { title: item.title })
+    hidden = catalog_call { EltenLink::Media.report(elten_link, item.id, "", hide: hide ? :hide : :unhide) }
+    return if hidden == nil
+    item.hidden = hidden
+    alert(hidden ? p_("MediaCatalog", "The entry is hidden.") : p_("MediaCatalog", "The entry is visible again."))
+  end
+
+  # Flat list of all categories as [id, "Parent / Child"] pairs.
+  def category_choices
+    return @category_choices if @category_choices != nil
+    data = catalog_call { elten_link.api_data("GET", "/api/v1/media/categories/tree", { "depth" => 8 }) }
+    return [] if data == nil
+    out = []
+    walk = proc do |nodes, prefix|
+      Array(nodes).each do |node|
+        name = prefix == "" ? node["name"].to_s : "#{prefix} / #{node["name"]}"
+        out << [node["id"].to_i, name]
+        walk.call(node["children"], name)
+      end
+    end
+    walk.call(data["categories"], "")
+    @category_choices = out
+  end
+
+  def edit_item(item)
+    full = catalog_call { EltenLink::Media.item(elten_link, item.id) }
+    return if full == nil
+    choices = category_choices
+    names = choices.to_h
+    tags = full.tag_ids.to_a.dup
+    tag_label = proc { |id| names[id] || full.tags.to_a[full.tag_ids.to_a.index(id).to_i].to_s }
+    form = Form.new([
+      title = EditBox.new(p_("MediaCatalog", "Title"), text: full.title.to_s),
+      description = EditBox.new(p_("MediaCatalog", "Description"), type: EditBox::Flags::MultiLine, text: full.description.to_s),
+      keywords = EditBox.new(p_("MediaCatalog", "Keywords"), text: full.keywords.to_s),
+      homepage = EditBox.new(p_("MediaCatalog", "Homepage (optional)"), text: full.homepage.to_s),
+      language = EditBox.new(p_("MediaCatalog", "Language"), text: full.language.to_s),
+      categories = ListBox.new(tags.map { |id| tag_label.call(id) }, header: p_("MediaCatalog", "Categories"), empty_label: p_("MediaCatalog", "No categories")),
+      save = Button.new(_("Save")),
+      cancel = Button.new(_("Cancel"))
+    ])
+    categories.bind_context do |menu|
+      menu.option(p_("MediaCatalog", "Add a category"), nil, "n") do
+        available = choices.reject { |choice| tags.include?(choice[0]) }
+        index = available.empty? ? -1 : selector(available.map { |choice| choice[1] }, header: p_("MediaCatalog", "Category"), start_index: 0, cancel_index: -1)
+        if index != nil && index >= 0
+          tags << available[index][0]
+          categories.options = tags.map { |id| tag_label.call(id) }
+          categories.index = tags.size - 1
+        end
+        categories.focus
+      end
+      if !tags.empty?
+        menu.option(p_("MediaCatalog", "Remove this category"), nil, :del) do
+          tags.delete_at(categories.index)
+          categories.options = tags.map { |id| tag_label.call(id) }
+          categories.index = [[categories.index, tags.size - 1].min, 0].max
+          categories.focus
+        end
+      end
+    end
+    form.cancel_button = cancel
+    cancel.on(:press) { form.resume }
+    save.on(:press) do
+      if title.text.to_s.strip == ""
+        alert(p_("MediaCatalog", "Enter a title."))
+        next
+      end
+      fields = {
+        title: title.text.to_s.strip, description: description.text.to_s.strip, keywords: keywords.text.to_s.strip,
+        homepage: homepage.text.to_s.strip, language: language.text.to_s.strip, categories: tags
+      }
+      updated = catalog_call { EltenLink::Media.update_item(elten_link, item.id, fields) }
+      if updated != nil
+        item.title = updated.title
+        item.description = updated.description
+        item.homepage = updated.homepage
+        item.language = updated.language
+        alert(p_("MediaCatalog", "The entry has been saved."))
         form.resume
       end
     end

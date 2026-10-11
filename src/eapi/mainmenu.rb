@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes; Import data from Klango in Tools.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes; Import data from Klango in Tools; special users, recent avatars and status history.
 
 module GlobalMenu
   def self.developer_mode?
@@ -87,6 +87,10 @@ module GlobalMenu
     m.scene(p_("MainMenu", "User searc&h"), Scene_UserSearch)
     m.scene(p_("MainMenu", "Recently &active users"), Scene_Users_RecentlyActived) if Session.logged?
     m.scene(p_("MainMenu", "Recently &registered users"), Scene_Users_RecentlyRegistered) if Session.logged?
+    # Klangten 0.4: Klango's special users, recently changed audio avatars and the own status history.
+    m.scene(p_("UsersKlango", "S&pecial users"), Scene_Users_Roles)
+    m.scene(p_("UsersKlango", "Recently changed audio a&vatars"), Scene_Users_RecentAvatars) if Session.logged?
+    m.scene(p_("UsersKlango", "My status hi&story"), Scene_StatusHistory) if Session.logged?
     }
     if Session.logged?
             @menu.scene(p_("MainMenu", "Call &history"), Scene_CallHistory)
