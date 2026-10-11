@@ -309,3 +309,328 @@ The document reader of the file manager (`src/eapi/document_text.rb`, including 
 - **yt-dlp** (<https://github.com/yt-dlp/yt-dlp>): Klangten's YouTube feature downloads the latest official yt-dlp release for the platform on first use (the "onedir" zip builds where available, which start much faster than the single-file executables) and checks it against the release's `SHA2-256SUMS`. yt-dlp, Deno and the YouTube data are stored below Klangten's data directory in `youtube/` (programs in `youtube/bin`). yt-dlp is released under **The Unlicense** (public domain dedication). The stand-alone executables are built with PyInstaller and contain the Python runtime (PSF licence) and further bundled libraries under their own licences (see yt-dlp's `THIRD_PARTY_LICENSES.txt`).
 - **Deno** (<https://github.com/denoland/deno>), used by yt-dlp as JavaScript runtime: downloaded from the official GitHub releases on first use and checked against the release's `.sha256sum` file; **MIT** licence, with bundled components (V8 BSD-3-Clause and others) under their own licences.
 - Both are stored in `youtube/` in Klangten's data directory (`File.join(Dirs.eltendata, "youtube")`) and are not part of Klangten's distribution. On Android, YouTube uses NewPipeExtractor (GPL-3.0-or-later, TeamNewPipe) inside the app instead (`docs/android.md`); iOS has no YouTube feature. "YouTube" is a trademark of Google LLC and is used only descriptively.
+
+## Components added in Klangten 0.4
+
+### Spotify library (`ext/klangten_spotify`) — Klangten code with librespot (MIT)
+
+- **Files:** `bin/osx/libklangten_spotify.dylib` (macOS arm64), `bin/windows-x64/klangten_spotify.dll`, `bin/windows-x86/klangten_spotify.dll` and, built by hand, `bin/linux-x64/` or `bin/linux-arm64/libklangten_spotify.so`. They are **not checked in**: the release workflows build them from `ext/klangten_spotify` (`tools/build-spotify.sh`, `tools\build-spotify.bat`) right before packaging, so every release contains a library built from the source in the same commit. Loaded at run time by `src/eapi/spotify.rb`; without the file Klangten only hides Spotify. Not shipped on iOS and Android.
+- **Licence of the library's own code** (`ext/klangten_spotify/src`): Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT), GPL-3.0, like the rest of Klangten.
+- **librespot** 0.8.0 (<https://github.com/librespot-org/librespot>): the crates `librespot-core`, `-playback`, `-metadata`, `-oauth`, `-protocol` and `-audio`, MIT licence, "Copyright (c) 2015 Paul Lietar" and the librespot contributors. `librespot-core` is **vendored with two small changes** in `ext/klangten_spotify/vendor/librespot-core` (no `exit(1)` for an account without Premium; wall-clock liveness of the connection); the changes and the full diff against the crates.io package are in `vendor/librespot-core/PATCHES.md`, the licence text in `vendor/librespot-core/LICENSE`. The changes are licensed under the MIT licence as well.
+- **Statically linked crates**, from `cargo metadata --filter-platform` for the four targets (osx = aarch64-apple-darwin, w64/w86 = x86_64/i686-pc-windows-msvc, l64 = x86_64-unknown-linux-gnu; normal and build dependencies, so a few entries such as `cc`, `vergen` or the `*-macro`/`*-derive` crates are only used while building). The licence texts are part of each crate's source package on crates.io and must accompany binary releases. Notes: the `symphonia` crates are MPL-2.0 (unmodified; source <https://github.com/pdeljanov/Symphonia>); `priority-queue` is used under its MPL-2.0 option; `webpki` 0.22.4 carries an ISC-style licence file; `webpki-roots` is CDLA-Permissive-2.0; `ring` contains BoringSSL/OpenSSL-derived code under ISC and Apache-2.0; `encoding_rs` contains BSD-3-Clause parts; the `icu_*`/`zerovec`-family crates carry Unicode-3.0 data. Where a crate offers a choice ("OR"), it is used under the MIT or Apache-2.0 option.
+- **Spotify:** "Spotify" is a trademark of Spotify AB. Klangten uses the name only descriptively and is not affiliated with or endorsed by Spotify. The library signs in through Spotify's own web login (OAuth, librespot's public client id) and needs a Spotify Premium account; it neither caches nor records audio, and Klangten offers no way to save it.
+
+| Crate | Version | Licence | Platforms |
+| --- | --- | --- | --- |
+| adler2 | 2.0.1 | 0BSD OR MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| aes | 0.8.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| aho-corasick | 1.1.4 | Unlicense OR MIT | osx, w64, w86, l64 |
+| allocator-api2 | 0.2.21 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| anyhow | 1.0.104 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| arrayvec | 0.7.8 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| async-trait | 0.1.91 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| atomic-waker | 1.1.2 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| autocfg | 1.5.1 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| base64 | 0.22.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| base64ct | 1.8.3 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| bitflags | 1.3.2 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| bitflags | 2.13.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| block-buffer | 0.10.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| bytemuck | 1.25.1 | Zlib OR Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| byteorder | 1.5.0 | Unlicense OR MIT | osx, w64, w86, l64 |
+| bytes | 1.12.1 | MIT | osx, w64, w86, l64 |
+| cc | 1.2.67 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| cfg-if | 1.0.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| cfg_aliases | 0.2.1 | MIT | osx, w64, w86, l64 |
+| chacha20 | 0.10.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| chrono | 0.4.45 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| cipher | 0.4.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| const-oid | 0.9.6 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| core-foundation | 0.10.1 | MIT OR Apache-2.0 | osx |
+| core-foundation | 0.9.4 | MIT OR Apache-2.0 | osx |
+| core-foundation-sys | 0.8.7 | MIT OR Apache-2.0 | osx |
+| cpufeatures | 0.2.17 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| cpufeatures | 0.3.0 | MIT OR Apache-2.0 | w64, w86, l64 |
+| crc32fast | 1.5.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| crypto-common | 0.1.7 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| ctr | 0.9.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| darling | 0.20.11 | MIT | osx, w64, w86, l64 |
+| darling_core | 0.20.11 | MIT | osx, w64, w86, l64 |
+| darling_macro | 0.20.11 | MIT | osx, w64, w86, l64 |
+| data-encoding | 2.11.0 | MIT | osx, w64, w86, l64 |
+| der | 0.7.10 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| deranged | 0.5.8 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| derive_builder | 0.20.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| derive_builder_core | 0.20.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| derive_builder_macro | 0.20.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| digest | 0.10.7 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| displaydoc | 0.2.6 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| either | 1.16.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| encoding_rs | 0.8.35 | (Apache-2.0 OR MIT) AND BSD-3-Clause | osx, w64, w86, l64 |
+| equivalent | 1.0.2 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| errno | 0.3.14 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| fastrand | 2.5.0 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| find-msvc-tools | 0.1.9 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| flate2 | 1.1.9 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| fnv | 1.0.7 | Apache-2.0 / MIT | osx, w64, w86, l64 |
+| foldhash | 0.2.0 | Zlib | osx, w64, w86, l64 |
+| form_urlencoded | 1.2.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| futures-channel | 0.3.32 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| futures-core | 0.3.32 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| futures-io | 0.3.32 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| futures-sink | 0.3.32 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| futures-task | 0.3.32 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| futures-timer | 3.0.4 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| futures-util | 0.3.32 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| generic-array | 0.14.7 | MIT | osx, w64, w86, l64 |
+| getrandom | 0.2.17 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| getrandom | 0.3.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| getrandom | 0.4.3 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| governor | 0.10.4 | MIT | osx, w64, w86, l64 |
+| h2 | 0.4.15 | MIT | osx, w64, w86, l64 |
+| hashbrown | 0.16.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| hashbrown | 0.17.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| headers | 0.4.1 | MIT | osx, w64, w86, l64 |
+| headers-core | 0.3.0 | MIT | osx, w64, w86, l64 |
+| hmac | 0.12.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| home | 0.5.12 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| http | 1.4.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| http-body | 1.1.0 | MIT | osx, w64, w86, l64 |
+| http-body-util | 0.1.4 | MIT | osx, w64, w86, l64 |
+| httparse | 1.10.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| httpdate | 1.0.3 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| hyper | 1.10.1 | MIT | osx, w64, w86, l64 |
+| hyper-proxy2 | 0.1.0 | MIT | osx, w64, w86, l64 |
+| hyper-rustls | 0.26.0 | Apache-2.0 OR ISC OR MIT | osx, w64, w86, l64 |
+| hyper-rustls | 0.27.9 | Apache-2.0 OR ISC OR MIT | osx, w64, w86, l64 |
+| hyper-util | 0.1.20 | MIT | osx, w64, w86, l64 |
+| iana-time-zone | 0.1.65 | MIT OR Apache-2.0 | osx, l64 |
+| icu_collections | 2.2.0 | Unicode-3.0 | osx, w64, w86, l64 |
+| icu_locale_core | 2.2.0 | Unicode-3.0 | osx, w64, w86, l64 |
+| icu_normalizer | 2.2.0 | Unicode-3.0 | osx, w64, w86, l64 |
+| icu_normalizer_data | 2.2.0 | Unicode-3.0 | osx, w64, w86, l64 |
+| icu_properties | 2.2.0 | Unicode-3.0 | osx, w64, w86, l64 |
+| icu_properties_data | 2.2.0 | Unicode-3.0 | osx, w64, w86, l64 |
+| icu_provider | 2.2.0 | Unicode-3.0 | osx, w64, w86, l64 |
+| ident_case | 1.0.1 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| idna | 1.1.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| idna_adapter | 1.2.2 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| indexmap | 2.14.0 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| inout | 0.1.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| ipnet | 2.12.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| is-docker | 0.2.0 | MIT | l64 |
+| is-wsl | 0.4.0 | MIT | l64 |
+| itoa | 1.0.18 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| lazy_static | 1.5.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| libc | 0.2.186 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| libm | 0.2.16 | MIT | osx, w64, w86, l64 |
+| librespot-audio | 0.8.0 | MIT | osx, w64, w86, l64 |
+| librespot-core | 0.8.0 | MIT | osx, w64, w86, l64 |
+| librespot-metadata | 0.8.0 | MIT | osx, w64, w86, l64 |
+| librespot-oauth | 0.8.0 | MIT | osx, w64, w86, l64 |
+| librespot-playback | 0.8.0 | MIT | osx, w64, w86, l64 |
+| librespot-protocol | 0.8.0 | MIT | osx, w64, w86, l64 |
+| linux-raw-sys | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | l64 |
+| linux-raw-sys | 0.4.15 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | l64 |
+| litemap | 0.8.2 | Unicode-3.0 | osx, w64, w86, l64 |
+| lock_api | 0.4.14 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| log | 0.4.33 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| lru-slab | 0.1.2 | MIT OR Apache-2.0 OR Zlib | osx, w64, w86, l64 |
+| memchr | 2.8.3 | Unlicense OR MIT | osx, w64, w86, l64 |
+| mime | 0.3.17 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| miniz_oxide | 0.8.9 | MIT OR Zlib OR Apache-2.0 | osx, w64, w86, l64 |
+| mio | 1.2.2 | MIT | osx, w64, w86, l64 |
+| nonzero_ext | 0.3.0 | Apache-2.0 | osx, w64, w86, l64 |
+| ntapi | 0.4.3 | Apache-2.0 OR MIT | w64, w86 |
+| num-bigint | 0.4.8 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| num-bigint-dig | 0.8.6 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| num-conv | 0.2.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| num-derive | 0.4.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| num-integer | 0.1.46 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| num-iter | 0.1.46 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| num-traits | 0.2.19 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| num_threads | 0.1.7 | MIT OR Apache-2.0 | osx, l64 |
+| oauth2 | 5.0.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| objc2-core-foundation | 0.3.2 | Zlib OR Apache-2.0 OR MIT | osx |
+| objc2-io-kit | 0.3.2 | Zlib OR Apache-2.0 OR MIT | osx |
+| once_cell | 1.21.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| open | 5.4.0 | MIT | osx, w64, w86, l64 |
+| openssl-probe | 0.1.6 | MIT/Apache-2.0 | l64 |
+| openssl-probe | 0.2.1 | MIT OR Apache-2.0 | l64 |
+| parking_lot | 0.12.5 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| parking_lot_core | 0.9.12 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| pbkdf2 | 0.12.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| pem-rfc7468 | 0.7.0 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| percent-encoding | 2.3.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| pin-project-lite | 0.2.17 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| pkcs1 | 0.7.5 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| pkcs8 | 0.10.2 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| portable-atomic | 1.14.0 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| potential_utf | 0.1.5 | Unicode-3.0 | osx, w64, w86, l64 |
+| powerfmt | 0.2.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| ppv-lite86 | 0.2.21 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| priority-queue | 2.7.0 | LGPL-3.0-or-later OR MPL-2.0 | osx, w64, w86, l64 |
+| proc-macro2 | 1.0.106 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| protobuf | 3.7.2 | MIT | osx, w64, w86, l64 |
+| protobuf-codegen | 3.7.2 | MIT | osx, w64, w86, l64 |
+| protobuf-json-mapping | 3.7.2 | MIT | osx, w64, w86, l64 |
+| protobuf-parse | 3.7.2 | MIT | osx, w64, w86, l64 |
+| protobuf-support | 3.7.2 | MIT | osx, w64, w86, l64 |
+| quick-xml | 0.38.4 | MIT | osx, w64, w86, l64 |
+| quinn | 0.11.11 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| quinn-proto | 0.11.16 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| quinn-udp | 0.5.15 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| quote | 1.0.46 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand | 0.10.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand | 0.8.7 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand | 0.9.5 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand_chacha | 0.3.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand_chacha | 0.9.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand_core | 0.10.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand_core | 0.6.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand_core | 0.9.5 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand_distr | 0.5.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rand_pcg | 0.10.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| regex | 1.13.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| regex-automata | 0.4.15 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| regex-syntax | 0.8.11 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| reqwest | 0.12.28 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| ring | 0.17.14 | Apache-2.0 AND ISC | osx, w64, w86, l64 |
+| rsa | 0.9.10 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rustc-hash | 2.1.3 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| rustix | 0.38.44 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| rustix | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | osx, l64 |
+| rustls | 0.22.4 | Apache-2.0 OR ISC OR MIT | osx, w64, w86, l64 |
+| rustls | 0.23.42 | Apache-2.0 OR ISC OR MIT | osx, w64, w86, l64 |
+| rustls-native-certs | 0.7.3 | Apache-2.0 OR ISC OR MIT | osx, w64, w86, l64 |
+| rustls-native-certs | 0.8.4 | Apache-2.0 OR ISC OR MIT | osx, w64, w86, l64 |
+| rustls-pemfile | 2.2.0 | Apache-2.0 OR ISC OR MIT | osx, w64, w86, l64 |
+| rustls-pki-types | 1.15.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| rustls-webpki | 0.102.8 | ISC | osx, w64, w86, l64 |
+| rustls-webpki | 0.103.13 | ISC | osx, w64, w86, l64 |
+| rustversion | 1.0.23 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| ryu | 1.0.23 | Apache-2.0 OR BSL-1.0 | osx, w64, w86, l64 |
+| schannel | 0.1.29 | MIT | w64, w86 |
+| scopeguard | 1.2.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| security-framework | 2.11.1 | MIT OR Apache-2.0 | osx |
+| security-framework | 3.7.0 | MIT OR Apache-2.0 | osx |
+| security-framework-sys | 2.17.0 | MIT OR Apache-2.0 | osx |
+| serde | 1.0.228 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| serde_core | 1.0.228 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| serde_derive | 1.0.228 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| serde_json | 1.0.150 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| serde_path_to_error | 0.1.20 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| serde_urlencoded | 0.7.1 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| sha1 | 0.10.7 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| sha2 | 0.10.9 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| shannon | 0.2.0 | MIT | osx, w64, w86, l64 |
+| shell-words | 1.1.1 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| shlex | 2.0.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| signature | 2.2.0 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| simd-adler32 | 0.3.9 | MIT | osx, w64, w86, l64 |
+| slab | 0.4.12 | MIT | osx, w64, w86, l64 |
+| smallvec | 1.15.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| socket2 | 0.6.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| spin | 0.9.9 | MIT | osx, w64, w86, l64 |
+| spinning_top | 0.3.0 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| spki | 0.7.3 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| stable_deref_trait | 1.2.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| strsim | 0.11.1 | MIT | osx, w64, w86, l64 |
+| subtle | 2.6.1 | BSD-3-Clause | osx, w64, w86, l64 |
+| symphonia | 0.5.5 | MPL-2.0 | osx, w64, w86, l64 |
+| symphonia-bundle-flac | 0.5.5 | MPL-2.0 | osx, w64, w86, l64 |
+| symphonia-bundle-mp3 | 0.5.5 | MPL-2.0 | osx, w64, w86, l64 |
+| symphonia-codec-vorbis | 0.5.5 | MPL-2.0 | osx, w64, w86, l64 |
+| symphonia-core | 0.5.5 | MPL-2.0 | osx, w64, w86, l64 |
+| symphonia-format-ogg | 0.5.5 | MPL-2.0 | osx, w64, w86, l64 |
+| symphonia-metadata | 0.5.5 | MPL-2.0 | osx, w64, w86, l64 |
+| symphonia-utils-xiph | 0.5.5 | MPL-2.0 | osx, w64, w86, l64 |
+| syn | 2.0.118 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| syn | 3.0.2 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| sync_wrapper | 1.0.2 | Apache-2.0 | osx, w64, w86, l64 |
+| synstructure | 0.13.2 | MIT | osx, w64, w86, l64 |
+| sysinfo | 0.36.1 | MIT | osx, w64, w86, l64 |
+| system-configuration | 0.7.0 | MIT OR Apache-2.0 | osx |
+| system-configuration-sys | 0.6.0 | MIT OR Apache-2.0 | osx |
+| tempfile | 3.27.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| thiserror | 1.0.69 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| thiserror | 2.0.18 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| thiserror-impl | 1.0.69 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| thiserror-impl | 2.0.18 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| time | 0.3.53 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| time-core | 0.1.9 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| time-macros | 0.2.31 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| tinystr | 0.8.3 | Unicode-3.0 | osx, w64, w86, l64 |
+| tinyvec | 1.12.0 | Zlib OR Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| tinyvec_macros | 0.1.1 | MIT OR Apache-2.0 OR Zlib | osx, w64, w86, l64 |
+| tokio | 1.52.3 | MIT | osx, w64, w86, l64 |
+| tokio-macros | 2.7.1 | MIT | osx, w64, w86, l64 |
+| tokio-rustls | 0.25.0 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| tokio-rustls | 0.26.4 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| tokio-stream | 0.1.18 | MIT | osx, w64, w86, l64 |
+| tokio-tungstenite | 0.28.0 | MIT | osx, w64, w86, l64 |
+| tokio-util | 0.7.18 | MIT | osx, w64, w86, l64 |
+| tower | 0.5.3 | MIT | osx, w64, w86, l64 |
+| tower-http | 0.6.11 | MIT | osx, w64, w86, l64 |
+| tower-layer | 0.3.3 | MIT | osx, w64, w86, l64 |
+| tower-service | 0.3.3 | MIT | osx, w64, w86, l64 |
+| tracing | 0.1.44 | MIT | osx, w64, w86, l64 |
+| tracing-core | 0.1.36 | MIT | osx, w64, w86, l64 |
+| try-lock | 0.2.5 | MIT | osx, w64, w86, l64 |
+| tungstenite | 0.28.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| typenum | 1.20.1 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| unicode-ident | 1.0.24 | (MIT OR Apache-2.0) AND Unicode-3.0 | osx, w64, w86, l64 |
+| untrusted | 0.9.0 | ISC | osx, w64, w86, l64 |
+| url | 2.5.8 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| utf-8 | 0.7.6 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| utf8_iter | 1.0.4 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| uuid | 1.24.0 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| vergen | 9.0.6 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| vergen-gitcl | 1.0.8 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| vergen-lib | 0.1.6 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| version_check | 0.9.5 | MIT/Apache-2.0 | osx, w64, w86, l64 |
+| want | 0.3.1 | MIT | osx, w64, w86, l64 |
+| web-time | 1.1.0 | MIT OR Apache-2.0 | osx, w64, w86, l64 |
+| webpki | 0.22.4 | (see crate) | osx, w64, w86, l64 |
+| webpki-roots | 1.0.8 | CDLA-Permissive-2.0 | osx, w64, w86, l64 |
+| which | 4.4.2 | MIT | osx, w64, w86, l64 |
+| winapi | 0.3.9 | MIT/Apache-2.0 | w64, w86 |
+| windows | 0.61.3 | MIT OR Apache-2.0 | w64, w86 |
+| windows-collections | 0.2.0 | MIT OR Apache-2.0 | w64, w86 |
+| windows-core | 0.61.2 | MIT OR Apache-2.0 | w64, w86 |
+| windows-future | 0.2.1 | MIT OR Apache-2.0 | w64, w86 |
+| windows-implement | 0.60.2 | MIT OR Apache-2.0 | w64, w86 |
+| windows-interface | 0.59.3 | MIT OR Apache-2.0 | w64, w86 |
+| windows-link | 0.1.3 | MIT OR Apache-2.0 | w64, w86 |
+| windows-link | 0.2.1 | MIT OR Apache-2.0 | w64, w86 |
+| windows-numerics | 0.2.0 | MIT OR Apache-2.0 | w64, w86 |
+| windows-registry | 0.6.1 | MIT OR Apache-2.0 | w64, w86 |
+| windows-result | 0.3.4 | MIT OR Apache-2.0 | w64, w86 |
+| windows-result | 0.4.1 | MIT OR Apache-2.0 | w64, w86 |
+| windows-strings | 0.4.2 | MIT OR Apache-2.0 | w64, w86 |
+| windows-strings | 0.5.1 | MIT OR Apache-2.0 | w64, w86 |
+| windows-sys | 0.59.0 | MIT OR Apache-2.0 | w64, w86 |
+| windows-sys | 0.61.2 | MIT OR Apache-2.0 | w64, w86 |
+| windows-targets | 0.52.6 | MIT OR Apache-2.0 | w64, w86 |
+| windows-threading | 0.1.0 | MIT OR Apache-2.0 | w64, w86 |
+| windows_i686_msvc | 0.52.6 | MIT OR Apache-2.0 | w86 |
+| windows_x86_64_msvc | 0.52.6 | MIT OR Apache-2.0 | w64 |
+| writeable | 0.6.3 | Unicode-3.0 | osx, w64, w86, l64 |
+| yoke | 0.8.3 | Unicode-3.0 | osx, w64, w86, l64 |
+| yoke-derive | 0.8.2 | Unicode-3.0 | osx, w64, w86, l64 |
+| zerocopy | 0.8.54 | BSD-2-Clause OR Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| zerocopy-derive | 0.8.54 | BSD-2-Clause OR Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| zerofrom | 0.1.8 | Unicode-3.0 | osx, w64, w86, l64 |
+| zerofrom-derive | 0.1.7 | Unicode-3.0 | osx, w64, w86, l64 |
+| zeroize | 1.9.0 | Apache-2.0 OR MIT | osx, w64, w86, l64 |
+| zerotrie | 0.2.4 | Unicode-3.0 | osx, w64, w86, l64 |
+| zerovec | 0.11.6 | Unicode-3.0 | osx, w64, w86, l64 |
+| zerovec-derive | 0.11.3 | Unicode-3.0 | osx, w64, w86, l64 |
+| zmij | 1.0.23 | MIT | osx, w64, w86, l64 |
+
+
+### PRISM — Mozilla Public License 2.0
+
+- **File:** `bin/windows-x64/prism.dll`, the unmodified release binary of PRISM v0.18.2 by Ethin Probst (`dynamic/release/bin/prism.dll` from `prism-windows-x64.zip` of <https://github.com/ethindp/prism/releases/tag/v0.18.2>, SHA-256 `cb9712e11af9ebe96457dbf8f5daad4a6c359ae1f59cdf2663282b3a9cc9759c`). Loaded at run time by `src/platforms/windows/eapi/prism.rb` for the voice "Screen reader" (JAWS, NVDA, Narrator, System Access, ZDSR and others). Only Windows x64 has a build; on x86 and ARM64 the voice is not offered.
+- **Licence:** MPL-2.0. The source code of this exact version is available at <https://github.com/ethindp/prism/tree/v0.18.2>; Klangten does not modify it. PRISM's NOTICE and the licence texts of PRISM and of the code it contains are stored in `docs/third-party/prism/` and must accompany binary releases: simdutf (Apache-2.0), the NVDA controller client RPC definitions (originally LGPL-2.1, relicensed to PRISM under MPL-2.0 by permission; the LGPL text is kept for attribution), moderncom (MIT), dr_wav (public domain / MIT-0), concurrentqueue (simplified BSD), {fmt} (MIT), Highway (Apache-2.0 or BSD-3-Clause), Djinni (Apache-2.0, Android only) and NVGT code (zlib-style licence).
+- **GPL compatibility:** MPL-2.0 permits combining with GPL-3.0 software (MPL-2.0 section 3.3); the DLL stays a separate file under its own licence.

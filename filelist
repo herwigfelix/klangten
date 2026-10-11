@@ -94,6 +94,8 @@ src/scenes/palantiri.rb
 src/scenes/log.rb
 src/eapi/speechoutput.rb
 src/platforms/windows/eapi/nvda.rb :windows
+# Klangten: other screen readers (JAWS, Narrator ...) through PRISM (bin/windows-x64/prism.dll)
+src/platforms/windows/eapi/prism.rb :windows
 src/platforms/osx/eapi/speech.rb :osx
 src/platforms/ios/eapi/speech.rb :ios
 src/platforms/osx/eapi/voiceover.rb :osx
