@@ -201,7 +201,7 @@ module KlangtenTest
       last = @events.size
       deadline = Runtime.real_now + 60
       loop do
-        return self if finished? && (raise_if_crashed || true)
+        break if finished?
         break unless Runtime.step(nil)
         raise_if_crashed
         now = Runtime.clock.elapsed
