@@ -166,14 +166,6 @@ if defined?(NVDA)
   loop_update while !NVDA.waiting?
 end
 EltenAPI::InvisibleInterface.reset_for_loading if defined?(EltenAPI::InvisibleInterface) && EltenAPI::InvisibleInterface.respond_to?(:reset_for_loading)
-Log.info("Connecting to #{Klangten::Config::SERVER_NAME} server at #{Klangten::Config.api_base_url}")
-if !EltenLink::System.connected?(elten_link)
-  Log.warning("Failed to connect")
-  $neterror=true
-else
-    Log.info("Connection established")
-      $neterror=false
-            end
       Bass::BASS_SetConfigPtr.call(0x10403,EltenPath.join(Dirs.extras, "soundfont.sf2")) if FileTest.exists?(EltenPath.join(Dirs.extras, "soundfont.sf2"))
                                     startmessage = Elten.version.to_s
                                     # The iOS build announces itself as "Klangten on touch" followed by the
@@ -198,6 +190,23 @@ if Configuration.language==""
            Configuration.voice="NVDA"
                      end
                                                                                  SpeechOutput.apply_current_settings if defined?(SpeechOutput)
+# Klangten: the server is contacted only now, after the interface language and
+# the voice are set up, because a Klango server other than the official one
+# (--srv-host-base-url) has to be confirmed first, before anything goes over the
+# network. Declining ends Klangten.
+if !klangten_confirm_server
+  $immediateexit=true
+  $exit=true
+  exit
+end
+Log.info("Connecting to #{Klangten::Config::SERVER_NAME} server at #{Klangten::Config.api_base_url}")
+if !EltenLink::System.connected?(elten_link)
+  Log.warning("Failed to connect")
+  $neterror=true
+else
+    Log.info("Connection established")
+      $neterror=false
+            end
                                   if $silentstart==nil
   $silentstart=true if $commandline.include?("/silentstart")
 end
@@ -275,7 +284,7 @@ alert(startmessage) if $silentstart != true
               update_available=(bid!=nil)
               $update_version_string=release.version_string if release!=nil && release.version_string.to_s!=""
             else
-            build_info=EltenLink::System.build_info(elten_link, branch: get_updatesbranch, os: platform_os, arch: Klangten::Updates.arch, current_build_id: Elten.build_id)
+            build_info=EltenLink::System.build_info(EltenLink::Client.software(self), branch: get_updatesbranch, os: platform_os, arch: Klangten::Updates.arch, current_build_id: Elten.build_id)
             bid=build_info.build_id
             update_available=build_info.present?
             $update_version_string=build_info.version_string if build_info.version_string.to_s!=""
@@ -293,6 +302,14 @@ if $portable != 1
             if $neterror == true
       if EltenLink::System.connected?(elten_link)
         $neterror = false
+      elsif Klangten::ServerLock.locked?
+        # Klangten: a Klango server without a valid licence says so itself
+        # (read out once; the login repeats it when it is tried).
+        if Klangten::ServerLock.take_announcement != nil
+          alert(klangten_server_lock_message)
+          speech_wait
+        end
+        $offline=true
       else
         alert(_("Error"))
         $offline=true

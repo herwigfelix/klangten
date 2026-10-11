@@ -239,7 +239,7 @@ save
   @form.focus
     }
     @btn_export.on(:press) {
-    loc=get_file(p_("Sounds", "Where do you want to save this theme?"), path: EltenPath.join(Dirs.user, "Documents"), save: true)
+    loc=get_file(p_("Sounds", "Where do you want to save this theme?"), path: Dirs.documents, save: true)
   if loc!=nil
     export_theme_zip(EltenPath.join(loc, File.basename(@theme.file, ".elsnd")+".zip"))
   end
@@ -279,7 +279,7 @@ save
   def extract
   form = Form.new([
   edt_filename = EditBox.new(p_("Sounds", "File name"), type: 0, text: @snd[@sel.index].file+".ogg"),
-  tr_path = FilesTree.new(p_("Sounds", "Destination"), path: EltenPath.join(Dirs.user, "Music"), hide_files: true, quiet: true),
+  tr_path = FilesTree.new(p_("Sounds", "Destination"), path: Dirs.music, hide_files: true, quiet: true),
   btn_extract = Button.new(p_("Sounds", "Extract")),
   btn_cancel = Button.new(_("Cancel"))
   ])

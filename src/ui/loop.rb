@@ -179,6 +179,13 @@ end
            speak(clock_event[1], stop: false, break_sequence: false) if clock_event[1] != nil
          end
        end
+       # Klangten: a Klango server that locked itself for lack of a licence is
+       # announced once with its own text; loading and login screens do it themselves.
+       if Thread.current == $mainthread && loop_update_due?(:klangten_server_lock, PERIODIC_SLOW_SECONDS, loop_now) && Klangten::ServerLock.locked?
+         unless (defined?(Scene_Loading) && $scene.is_a?(Scene_Loading)) || (defined?(Scene_Login) && $scene.is_a?(Scene_Login))
+           klangten_announce_server_lock
+         end
+       end
        EltenAPI::Conference.tick
        EltenAPI::InvisibleInterface.tick
        if $scene != nil && loop_update_due?(:activity_reports, PERIODIC_SLOW_SECONDS, loop_now)

@@ -9,8 +9,11 @@ module EltenLink
       "timeout" => "Request timed out",
       "cancelled" => "Request cancelled",
       "invalid_json" => "Invalid JSON response",
-      "api_error" => "API request failed"
+      "api_error" => "API request failed",
+      "server.license_locked" => "The server has no valid licence"
     }.freeze
+    # Klangten: the server locked itself (Klangten::ServerLock); the message is its text.
+    SERVER_LOCKED = "server.license_locked".freeze
 
     attr_reader :code, :module_name, :response
 
@@ -23,6 +26,10 @@ module EltenLink
 
     def details
       error_payload["details"]
+    end
+
+    def server_locked?
+      code.to_s == SERVER_LOCKED
     end
 
     def retry_after

@@ -588,7 +588,7 @@ class Scene_YouTube
   def download_folder
     base = nil
     if KlangtenYouTube.desktop?
-      downloads = File.join(Dirs.user, "Downloads")
+      downloads = Dirs.downloads
       base = downloads if File.directory?(downloads)
     elsif EltenSystemHelpers.respond_to?(:file_shortcuts)
       shortcut = EltenSystemHelpers.file_shortcuts.to_a.find { |entry| File.basename(entry[1].to_s) == "Download" }

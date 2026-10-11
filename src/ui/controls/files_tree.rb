@@ -781,7 +781,8 @@ module KlangtenFileShortcuts
       else
         items << { "id" => "desktop", "name" => nil, "path" => Dirs.desktop }
         items << { "id" => "documents", "name" => nil, "path" => Dirs.documents }
-        items << { "id" => "music", "name" => nil, "path" => Dirs.music }
+        # With --overwrite-recordings-path documents and music are one folder.
+        items << { "id" => "music", "name" => nil, "path" => Dirs.music } unless same_path?(Dirs.music, Dirs.documents)
       end
       downloads = downloads_dir
       if downloads != nil && items.none? { |item| same_path?(item["path"], downloads) }
@@ -797,7 +798,7 @@ module KlangtenFileShortcuts
 
     def downloads_dir
       return nil if EltenSystemHelpers.respond_to?(:platform_os) && ["ios", "android"].include?(EltenSystemHelpers.platform_os.to_s)
-      dir = File.join(Dirs.user, "Downloads")
+      dir = Dirs.downloads
       File.directory?(dir) ? EltenPath.normalize(dir) : nil
     rescue StandardError
       nil

@@ -1,7 +1,8 @@
 ﻿# A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: architecture in update requests,
-# installer downloads only from the configured Klangten API.
+# installer downloads only from the configured Klangten API; updates, installers, extras and
+# error reports always from the official server (EltenLink::Client.software).
 
 module EltenLink
   ClientStateProfile = Struct.new(:fullname, :gender, keyword_init: true)
@@ -148,7 +149,8 @@ module EltenLink
       end
 
       def installer_url(base_url = nil, branch:, os:, arch: nil)
-        Client.absolute_api_url("/#{installer_module(branch: branch, os: os, arch: arch)}")
+        base = base_url.to_s != "" ? base_url.to_s : Klangten::Config.software_api_base_url
+        "#{base}/#{installer_module(branch: branch, os: os, arch: arch)}"
       end
 
       def installer(client, branch:, os:, arch: nil)
@@ -163,12 +165,13 @@ module EltenLink
           filename: data["filename"].to_s,
           size: data["size"].to_i,
           sha256: data["sha256"].to_s.downcase,
-          url: url == "" ? "" : Client.absolute_api_url(url)
+          url: url == "" ? "" : client.absolute_url(url)
         )
         unless info.valid?
           raise Error.new("Invalid installer metadata", code: "system.invalid_installer_metadata", module_name: "/api/v1/system/installer")
         end
-        # Klangten: the installer is only ever taken from the configured Klangten server.
+        # Klangten: the installer is only ever taken from the official server
+        # (EltenLink::Client.software), never from another Klango server in use.
         unless Klangten::Updates.trusted_url?(info.url)
           raise Error.new("Installer URL outside the Klangten server", code: "system.untrusted_installer_url", module_name: "/api/v1/system/installer")
         end
@@ -176,7 +179,7 @@ module EltenLink
       end
 
       def extra_url(name)
-        Client.absolute_api_url("/api/v1/system/extras/#{name.to_s.urlenc}/download")
+        "#{Klangten::Config.software_api_base_url}/api/v1/system/extras/#{name.to_s.urlenc}/download"
       end
 
       def soundfont_url

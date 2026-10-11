@@ -19,9 +19,39 @@ module EltenLink
 
     attr_reader :context, :last_error
 
-    def initialize(context = nil)
+    # base_url: another server than the configured Klangten API (see .software).
+    # Such a client never sends the session of the configured server.
+    def initialize(context = nil, base_url: nil)
       @context = context
       @last_error = nil
+      @base_url = base_url
+    end
+
+    # Klangten: client for what belongs to the software itself - updates,
+    # installers, extras, error reports. With a Klango server chosen through
+    # --srv-host-base-url these still go to the official server, without the
+    # session of the chosen server; otherwise this is a normal client.
+    def self.software(context = nil)
+      base = Klangten::Config.software_api_base_url
+      return new(context) if base == api_base_url
+      new(context, base_url: base)
+    end
+
+    # Base URL this client talks to.
+    def base_url
+      @base_url || self.class.api_base_url
+    end
+
+    def foreign_base?
+      @base_url != nil
+    end
+
+    def absolute_url(path)
+      return self.class.absolute_api_url(path) unless foreign_base?
+      value = path.to_s
+      return value if value.match?(/\Ahttps?:\/\//i)
+      value = "/" + value if value[0] != "/"
+      "#{@base_url}#{value}"
     end
 
     def json(method, path, params = nil, timeout: DEFAULT_TIMEOUT, headers: nil, cancellation_token: nil)
@@ -36,11 +66,11 @@ module EltenLink
         request_id = SecureRandom.alphanumeric(REQUEST_ID_LENGTH)
         headers[REQUEST_ID_HEADER] = request_id
       end
-      auth_params = self.class.headers_have_auth?(headers) ? {} : self.class.session_auth_params
+      auth_params = (foreign_base? || self.class.headers_have_auth?(headers)) ? {} : self.class.session_auth_params
       request_path = path
       request_params = params
       if ["GET", "DELETE"].include?(method)
-        request_path = self.class.append_query(path, auth_params.merge(params))
+        request_path = self.class.append_query(path, auth_params.merge(params), auth: !foreign_base?)
         request_params = {}
       elsif auth_params.size > 0 && !self.class.path_has_auth?(request_path)
         request_path = self.class.append_query(path, auth_params)
@@ -59,7 +89,7 @@ module EltenLink
           next unless accept_response
 
           response = resp == :error ? nil : resp
-          @last_error = Error.network(module_name: safe_request_path) if resp == :error
+          @last_error = network_error(safe_request_path) if resp == :error
           done = true
         end
       end
@@ -154,16 +184,16 @@ module EltenLink
     def api_binary_payload(method, path, body, headers = {}, params = nil, timeout: DEFAULT_TIMEOUT, cancellation_token: nil)
       raise_if_cancelled!(cancellation_token)
       params = params.is_a?(Hash) ? params.dup : {}
-      self.class.session_auth_params.each { |key, value| params[key] = value if params[key] == nil }
-      request_path = self.class.append_query(path, params)
+      self.class.session_auth_params.each { |key, value| params[key] = value if params[key] == nil } unless foreign_base?
+      request_path = self.class.append_query(path, params, auth: !foreign_base?)
       safe_request_path = self.class.redacted_path(request_path)
       response = nil
       done = false
       @last_error = nil
       request_body = body.respond_to?(:read) ? body : body.to_s.b
-      e_read_url(self.class.absolute_api_url(request_path), method.to_s.upcase, request_body, headers, nil, cancellation_token: cancellation_token) do |resp, _data|
+      e_read_url(absolute_url(request_path), method.to_s.upcase, request_body, headers, nil, cancellation_token: cancellation_token) do |resp, _data|
         response = resp == :error ? nil : resp
-        @last_error = Error.network(module_name: safe_request_path) if resp == :error
+        @last_error = network_error(safe_request_path) if resp == :error
         done = true
       end
 
@@ -196,6 +226,17 @@ module EltenLink
     end
 
     def e_json_request(method, path, params, data=nil, headers: nil, cancellation_token: nil, protocol: nil, &block)
+      # Klangten: another server than the configured API is reached over
+      # HTTP/1.1; the HTTP/2 connection belongs to the configured API.
+      if foreign_base?
+        return ::EltenAPI::HTTPClient.ejrequest_http1(
+          method, path, params, data,
+          headers: headers,
+          cancellation_token: cancellation_token,
+          base_url: @base_url,
+          &block
+        )
+      end
       ::EltenAPI::HTTPClient.ejrequest(
         method, path, params, data,
         headers: headers,
@@ -217,9 +258,10 @@ module EltenLink
       ::EltenAPI::HTTPClient.downloadfile(source, destination, data, cancellation_token: cancellation_token, &block)
     end
 
-    def self.query(params)
+    # auth: false leaves the session out (requests to another server, see .software).
+    def self.query(params, auth: true)
       if params.is_a?(Hash)
-        query_hash(params).flat_map do |key, value|
+        (auth ? query_hash(params) : params).flat_map do |key, value|
           if value.is_a?(Array)
             value.map { |item| ["#{key}[]", item] }
           else
@@ -275,8 +317,8 @@ module EltenLink
       nil
     end
 
-    def self.append_query(path, params)
-      query_string = query(params)
+    def self.append_query(path, params, auth: true)
+      query_string = query(params, auth: auth)
       return path if query_string == ""
       separator = path.include?("?") ? "&" : "?"
       path + separator + query_string
@@ -380,6 +422,17 @@ module EltenLink
       cached_response.is_a?(String) ? cached_response : nil
     rescue JSON::ParserError, TypeError
       nil
+    end
+
+    # Klangten: a server without a valid licence answers every request with a
+    # short text (Klangten::ServerLock); that text is the error message then.
+    def network_error(module_name)
+      text = foreign_base? ? nil : Klangten::ServerLock.message
+      return Error.network(module_name: module_name) if text == nil
+      language = (::Configuration.language.to_s rescue "")
+      Error.new(Klangten::ServerLock.localized(text, language), code: Error::SERVER_LOCKED, module_name: module_name)
+    rescue StandardError
+      Error.network(module_name: module_name)
     end
 
     def api_error(payload, path)

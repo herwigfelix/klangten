@@ -1,7 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: configurable API URL, TLS verification, no payload encryption or realtime stream.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: configurable API URL, TLS verification, no payload encryption or realtime stream, licence lock of a Klango server.
 
 require "base64"
 require "http/2"
@@ -122,7 +122,12 @@ module EltenAPI
                 begin
                   @last_response = Time.now.to_i
                   touch_connection_activity(request_generation)
-                  safe_call(block, decode_body(body, response_headers), data)
+                  decoded = decode_body(body, response_headers)
+                  if note_api_response(response_headers[":status"], response_headers, decoded)
+                    safe_call(block, :error, data)
+                  else
+                    safe_call(block, decoded, data)
+                  end
                 rescue Exception => e
                   log_error("JSON body error: #{format_exception(e)}")
                   safe_call(block, :error, data)
@@ -156,8 +161,11 @@ module EltenAPI
         end
       end
 
-      def ejrequest_http1(method, path, params, data=nil, headers: nil, cancellation_token: nil, &block)
+      # base_url: Klangten sends updates and error reports to the official
+      # server even while another Klango server is in use (EltenLink::Client.software).
+      def ejrequest_http1(method, path, params, data=nil, headers: nil, cancellation_token: nil, base_url: nil, &block)
         params = {} unless params.is_a?(Hash)
+        base_url = Klangten::Config.api_base_url if base_url.to_s == ""
         headers = headers.is_a?(Hash) ? headers : {}
         Thread.new do
           Thread.current.report_on_exception = false
@@ -169,7 +177,7 @@ module EltenAPI
               "Accept-Encoding" => "zstd, identity"
             }.merge(headers)
             response = readurl_sync(
-              "#{Klangten::Config.api_base_url}#{path}",
+              "#{base_url}#{path}",
               method,
               json,
               request_headers,
@@ -773,11 +781,38 @@ module EltenAPI
         end
         status = response[:status].to_i
         if status < 200 || status >= 300
-          decoded = accept_any_status ? (decode_body(response[:body], response[:headers]) rescue "") : ""
-          return { body: :error, headers: response[:headers] } unless decoded.to_s.lstrip.start_with?("{")
-          return { body: decoded, headers: response[:headers] }
+          decoded = (accept_any_status || api_server_uri?(uri)) ? (decode_body(response[:body], response[:headers]) rescue "") : ""
+          return { body: :error, headers: response[:headers], status: status } if api_server_uri?(uri) && note_api_response(status, response[:headers], decoded)
+          return { body: :error, headers: response[:headers], status: status } unless accept_any_status && decoded.to_s.lstrip.start_with?("{")
+          return { body: decoded, headers: response[:headers], status: status }
         end
-        { body: decode_body(response[:body], response[:headers]), headers: response[:headers] }
+        note_api_response(status, response[:headers], nil) if api_server_uri?(uri)
+        { body: decode_body(response[:body], response[:headers]), headers: response[:headers], status: status }
+      end
+
+      # Klangten: a Klango server without a valid licence answers with HTTP 503
+      # and a short text (Klangten::ServerLock). Returns true for that answer and
+      # records the text; any other answer of the server ends a recorded lock.
+      def note_api_response(status, headers, body)
+        text = Klangten::ServerLock.message_from_response(status, headers, body)
+        if text != nil
+          log_warning("The Klango server #{Klangten::Config.api_base_url} is locked: #{text.gsub(/\s+/, " ")}") unless Klangten::ServerLock.locked?
+          Klangten::ServerLock.report(text)
+          return true
+        end
+        Klangten::ServerLock.clear if status.to_i != 503 && Klangten::ServerLock.locked?
+        false
+      rescue Exception
+        false
+      end
+
+      def api_server_uri?(uri)
+        base = URI.parse(Klangten::Config.api_base_url)
+        uri.scheme.to_s.downcase == base.scheme.to_s.downcase &&
+          uri.host.to_s.downcase == base.host.to_s.downcase &&
+          uri.port == base.port
+      rescue Exception
+        false
       end
 
       def http1_request_uri(uri, method, body, headers, data=nil, cancellation_token=nil)

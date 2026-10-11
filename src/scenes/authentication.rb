@@ -119,7 +119,7 @@ class Scene_Authentication
     speech_wait
     link=data["link"].to_s
     start=data["start"].to_s
-    bot=EltenAPI::Common::TWO_FACTOR_TELEGRAM_BOT
+    bot=klangten_two_factor_telegram_bot(link)
     header=p_("Authentication", "Now connect Telegram with your account. Either open the link, which opens a chat with the Klango bot %{bot} in Telegram, and press Start there. Or send the bot this message yourself: %{start}. The link and the message are valid for 15 minutes. The bot then replies with a six-digit code, which you enter here.")%{:bot=>bot, :start=>start}
     options=[]
     actions=[]

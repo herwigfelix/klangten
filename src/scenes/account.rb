@@ -1012,7 +1012,7 @@ tm=Time.at(time.to_i)
 nm=sprintf(Session.name+"_%04d%02d%02d%02d%02d.zip", tm.year, tm.month, tm.day, tm.hour, tm.min)
             dialog_open
         form=Form.new([
-        tr_path = FilesTree.new(p_("Account", "Destination"), path: EltenPath.join(Dirs.user, "Downloads"), hide_files: true, quiet: true),
+        tr_path = FilesTree.new(p_("Account", "Destination"), path: Dirs.downloads, hide_files: true, quiet: true),
         edt_filename = EditBox.new(p_("Account", "File name"),type: 0,text: nm,quiet: true),
         btn_save = Button.new(_("Save")),
         btn_cancel = Button.new(_("Cancel"))

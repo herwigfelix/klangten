@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: product identity, data directory and window class; Android reuses the iOS layer.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: product identity, data directory and window class; Android reuses the iOS layer; start options for the data directory, the recordings directory and the server.
 
 root = File.expand_path(__dir__)
 Dir.chdir(root)
@@ -12,6 +12,10 @@ $LOAD_PATH.unshift(File.join(root, "src")) unless defined?(::EltenEmbedded)
 # Klangten: the product configuration is needed before the filelist is loaded
 # (data directory, window identity). The filelist entry is then a no-op.
 load File.join(root, "src", "eltenlink", "klangten_config.rb")
+# The start options (--overwrite-config-path, --overwrite-recordings-path,
+# --srv-host-base-url) decide where the data directory is; they are applied
+# below, as soon as the command line can be read on every platform.
+load File.join(root, "src", "eltenlink", "klangten_startup.rb")
 
 module Elten
   # Version of the Elten sources this Klangten build is based on.
@@ -175,7 +179,9 @@ module EltenBoot
 
     def early_datadir
       return @early_datadir if @early_datadir != nil
-      datadir = datadir_argument
+      # Klangten: --overwrite-config-path (Klangten::Startup) wins over /datadir and portable mode.
+      datadir = Klangten::Config.config_dir_override
+      datadir = datadir_argument if datadir == nil
       datadir = File.join(".", Klangten::Config::PORTABLE_DATA_DIR) if datadir == nil && portable?
       datadir = Klangten::Config.data_dir(appdata) if datadir == nil
       @early_datadir = datadir
@@ -198,6 +204,16 @@ module EltenBoot
       @developer_mode
     rescue Exception
       @developer_mode = false
+    end
+
+    # Klangten: applies the start options of Klangten::Startup. On Windows the
+    # wide command line is read, so paths outside the ANSI code page survive.
+    def apply_startup_options!(source_root)
+      args = command_line_args
+      args = ARGV if args == nil || args.empty?
+      Klangten::Startup.apply!(args, base_dir: Klangten::Startup.base_dir(source_root: source_root))
+    rescue Exception
+      Klangten::Startup.apply!(ARGV, base_dir: Klangten::Startup.base_dir(source_root: source_root)) rescue nil
     end
 
     def launched_by_launcher?
@@ -608,6 +624,7 @@ begin
   require "fiddle"
   boot_trace.call("elten.rb after require fiddle")
   $commandline = EltenBoot.command_line_text
+  EltenBoot.apply_startup_options!(root)
   $developer_mode = EltenBoot.developer_mode?
   $developer = $developer_mode
   boot_trace.call("elten.rb before activate_existing_instance")

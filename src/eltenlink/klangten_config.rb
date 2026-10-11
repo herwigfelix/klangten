@@ -18,7 +18,16 @@
 # processed; the filelist entry then finds it already loaded.
 #
 # Environment overrides (all optional):
-#   KLANGTEN_API_URL          REST API base URL, e.g. http://127.0.0.1:5100
+#   KLANGO_SRV_HOST_BASE_URL  base address of another Klango server, e.g.
+#                             https://example.org (also the start option
+#                             --srv-host-base-url, see Klangten::Startup); the
+#                             Klangten API is then expected at ten.<host>
+#   KLANGTEN_CONFIG_DIR       replaces the data directory (--overwrite-config-path)
+#   KLANGTEN_RECORDINGS_DIR   where recordings, downloads and documents go
+#                             (--overwrite-recordings-path)
+#   KLANGTEN_API_URL          developer switch: REST API base URL, e.g.
+#                             http://127.0.0.1:5100; wins over everything above
+#                             and is also used for updates and error reports
 #   KLANGTEN_TCLIB            path of the TeamConference core library (conference host and
 #                             ports are delivered by the server with the conference token)
 #   KLANGTEN_RELAY_HOST       host of the program relay
@@ -42,8 +51,20 @@ module Klangten
     UPSTREAM_SOURCE_URL = "https://github.com/dawidpieper/elten3".freeze
     SERVER_NAME = "Klango".freeze
 
+    # The official Klango server. Another one can be chosen at startup
+    # (--srv-host-base-url, Klangten::Startup); updates, error reports and
+    # everything else that belongs to the software itself still come from the
+    # official one (software_api_base_url).
+    OFFICIAL_SERVER_URL = "https://klango.online".freeze
     DEFAULT_API_URL = "https://ten.klango.online".freeze
     API_URL_ENV = "KLANGTEN_API_URL".freeze
+    SERVER_URL_ENV = "KLANGO_SRV_HOST_BASE_URL".freeze
+    CONFIG_DIR_ENV = "KLANGTEN_CONFIG_DIR".freeze
+    RECORDINGS_DIR_ENV = "KLANGTEN_RECORDINGS_DIR".freeze
+    # The Klango server answers the Klangten API on this subdomain; the other
+    # service subdomains of a server name are replaced by it.
+    API_SUBDOMAIN = "ten".freeze
+    SERVICE_SUBDOMAINS = %w[www web chat].freeze
 
     # Placeholders until the project has its own public pages.
     WEBSITE_URL = "https://klango.online".freeze
@@ -109,18 +130,104 @@ module Klangten
         VENDOR
       end
 
+      # Klangten API in use: the developer switch KLANGTEN_API_URL, else the API
+      # of the chosen Klango server, else ten.klango.online.
       def api_url
-        value = ENV[API_URL_ENV].to_s.strip
-        value = DEFAULT_API_URL if value == "" || parse_url(value) == nil
+        developer_api_url || api_url_for_server(server_url) || DEFAULT_API_URL
+      end
+
+      # KLANGTEN_API_URL when it holds a usable address, else nil.
+      def developer_api_url
+        value = env_value(API_URL_ENV)
+        return nil if value == nil || parse_url(value) == nil
         value.sub(/\/+\z/, "")
+      end
+
+      # Base address of the chosen Klango server ("https://example.org"),
+      # the official one when none (or an unusable one) was given.
+      def server_url
+        normalize_server_url(ENV[SERVER_URL_ENV]) || OFFICIAL_SERVER_URL
+      end
+
+      # "example.org", "https://Moradio.online/" -> "https://example.org".
+      # Without a scheme https is assumed; a path is dropped. nil if unusable.
+      def normalize_server_url(value)
+        text = value.to_s.strip.sub(/\A["']+/, "").sub(/["']+\z/, "").strip
+        return nil if text == ""
+        text = "https://" + text unless text.include?("://")
+        uri = parse_url(text)
+        return nil if uri == nil
+        format_url(uri.scheme, uri.host, uri.port)
+      end
+
+      # Klangten API of a Klango server: https://example.org ->
+      # https://ten.example.org. A ten. host is kept, www./web./chat. are
+      # replaced by ten. IP addresses and localhost cannot carry a subdomain and
+      # are used as given (a local development server answers the Klangten API
+      # directly, python -m klango.klangten).
+      def api_url_for_server(value)
+        base = normalize_server_url(value)
+        return nil if base == nil
+        uri = parse_url(base)
+        host = uri.host.to_s.downcase
+        unless host_without_subdomain?(host)
+          labels = host.split(".")
+          if labels.first == API_SUBDOMAIN
+            # already the Klangten API host
+          elsif SERVICE_SUBDOMAINS.include?(labels.first) && labels.size > 2
+            host = ([API_SUBDOMAIN] + labels.drop(1)).join(".")
+          else
+            host = "#{API_SUBDOMAIN}.#{host}"
+          end
+        end
+        format_url(uri.scheme, host, uri.port)
+      end
+
+      # True when Klangten talks to the official server (ten.klango.online).
+      def official_server?
+        same_base_url?(api_url, DEFAULT_API_URL)
+      end
+
+      # The server chosen with --srv-host-base-url is not the official one and
+      # has to be confirmed by the user before anything goes over the network.
+      # The developer switch KLANGTEN_API_URL is exempt.
+      def server_confirmation_required?
+        developer_api_url == nil && !official_server?
+      end
+
+      # Where updates, installers, extras and error reports come from: always the
+      # official server; only the developer switch redirects them as well.
+      def software_api_base_url
+        return api_base_url if developer_api_url != nil
+        base_url_of(DEFAULT_API_URL)
+      end
+
+      # Web address of the server in use, for its terms and its operator.
+      def server_web_url
+        return OFFICIAL_SERVER_URL if official_server?
+        return api_base_url if developer_api_url != nil
+        server_url
+      end
+
+      # Fallback address of the server terms when the server names none.
+      def server_terms_url
+        official_server? ? SERVER_TERMS_URL : server_web_url
+      end
+
+      # Data directory and recordings directory chosen at startup (absolute,
+      # see Klangten::Startup), nil when not chosen.
+      def config_dir_override
+        env_value(CONFIG_DIR_ENV)
+      end
+
+      def recordings_dir_override
+        env_value(RECORDINGS_DIR_ENV)
       end
 
       # Base URL without trailing slash, e.g. "https://ten.klango.online".
       def api_base_url
         uri = api_uri
-        default_port = uri.scheme == "https" ? 443 : 80
-        port = uri.port == default_port ? "" : ":#{uri.port}"
-        "#{uri.scheme}://#{uri.host}#{port}"
+        format_url(uri.scheme, uri.host, uri.port)
       end
 
       def api_uri
@@ -212,6 +319,31 @@ module Klangten
         value = ENV[name].to_s.strip
         value == "" ? nil : value
       end
+
+      def format_url(scheme, host, port)
+        scheme = scheme.to_s.downcase
+        default_port = scheme == "https" ? 443 : 80
+        port_text = port == nil || port.to_i == default_port ? "" : ":#{port}"
+        "#{scheme}://#{host.to_s.downcase}#{port_text}"
+      end
+
+      def base_url_of(url)
+        uri = parse_url(url)
+        uri == nil ? nil : format_url(uri.scheme, uri.host, uri.port)
+      end
+
+      def same_base_url?(a, b)
+        x = base_url_of(a)
+        x != nil && x == base_url_of(b)
+      end
+
+      def host_without_subdomain?(host)
+        name = host.to_s.downcase.sub(/\A\[/, "").sub(/\]\z/, "")
+        return true if name == "localhost" || name.end_with?(".localhost")
+        return true if name.include?(":") # IPv6
+        return true if name.match?(/\A\d{1,3}(\.\d{1,3}){3}\z/)
+        !name.include?(".")
+      end
     end
   end
 
@@ -247,9 +379,11 @@ module Klangten
         "x64"
       end
 
-      # Updater requests go to the configured Klangten API only; a download
-      # location on any other scheme, host or port is refused.
-      def trusted_url?(url, base_url = Config.api_base_url)
+      # Updater requests go to the official server only (the developer switch
+      # KLANGTEN_API_URL aside), never to a Klango server chosen with
+      # --srv-host-base-url; a download location on any other scheme, host or
+      # port is refused.
+      def trusted_url?(url, base_url = Config.software_api_base_url)
         uri = URI.parse(url.to_s)
         base = URI.parse(base_url.to_s)
         uri.is_a?(URI::HTTP) && base.is_a?(URI::HTTP) &&
@@ -264,7 +398,14 @@ module Klangten
       # (KlangtenSetup.exe, own AppId); macOS: the app replaces itself from
       # Klangten.dmg (see below); Linux: the self-extracting klangten-linux.run,
       # which elevates itself, followed by a restart of /opt/klangten/elten.
-      def install_command(platform, installer, silent: true, open_command: "__elten_native_open__", app_path: nil)
+      #
+      # restart_args are the start options of the running Klangten (data
+      # directory, recordings directory, server; Klangten::Startup) handed to
+      # the updated program on macOS and Linux. On Windows the installer starts
+      # Klangten itself; it inherits them from the environment.
+      def install_command(platform, installer, silent: true, open_command: "__elten_native_open__", app_path: nil, restart_args: nil)
+        restart_args = default_restart_args if restart_args == nil
+        restart_args = restart_args.to_a.map(&:to_s)
         case platform.to_s
         when "windows"
           command = "\"#{installer}\""
@@ -287,6 +428,7 @@ module Klangten
             sleep 2
             dmg="$1"
             app="$2"
+            shift 2
             mnt=$(mktemp -d /tmp/klangten-update.XXXXXX) || exit 1
             cleanup() {
               hdiutil detach "$mnt" -quiet 2>/dev/null || hdiutil detach "$mnt" -force -quiet 2>/dev/null
@@ -313,25 +455,37 @@ module Klangten
             fi
             rm -rf "$app.old"
             cleanup
-            /usr/bin/open -a "$app" 2>/dev/null || /usr/bin/open "$app"
+            if [ "$#" -gt 0 ]; then
+              /usr/bin/open -a "$app" --args "$@" 2>/dev/null || /usr/bin/open "$app"
+            else
+              /usr/bin/open -a "$app" 2>/dev/null || /usr/bin/open "$app"
+            fi
           SH
-          ["/bin/sh", "-c", script, "klangten-update", installer.to_s, target]
+          ["/bin/sh", "-c", script, "klangten-update", installer.to_s, target] + restart_args
         when "linux"
           script = <<~SH
             sleep 2
             installer="$1"
+            silent="$2"
+            shift 2
             chmod 0700 "$installer" || exit 1
-            if [ "$2" = "1" ]; then
+            if [ "$silent" = "1" ]; then
               "$installer" --silent || exit 1
             else
               "$installer" || exit 1
             fi
-            [ -x #{LINUX_INSTALL_DIR}/elten ] && exec #{LINUX_INSTALL_DIR}/elten
+            [ -x #{LINUX_INSTALL_DIR}/elten ] && exec #{LINUX_INSTALL_DIR}/elten "$@"
           SH
-          ["/bin/sh", "-c", script, "klangten-update", installer.to_s, silent ? "1" : "0"]
+          ["/bin/sh", "-c", script, "klangten-update", installer.to_s, silent ? "1" : "0"] + restart_args
         else
           raise ArgumentError, "unsupported platform for updates: #{platform}"
         end
+      end
+
+      def default_restart_args
+        defined?(::Klangten::Startup) ? ::Klangten::Startup.restart_arguments : []
+      rescue StandardError
+        []
       end
     end
   end

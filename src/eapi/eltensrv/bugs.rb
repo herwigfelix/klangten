@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: error reports always go to the official server.
 
 module EltenAPI
   module EltenSRV
@@ -19,7 +20,8 @@ module EltenAPI
       di = createdebuginfo
       info += di
       begin
-        EltenLink::System.bug_report(elten_link, info)
+        # Klangten: error reports go to the official server, whichever Klango server is in use.
+        EltenLink::System.bug_report(EltenLink::Client.software(self), info)
         err = 0
       rescue EltenLink::Error => e
         Log.warning("Bug report failed: #{e.message}")

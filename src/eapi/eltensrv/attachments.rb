@@ -3,6 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the save location follows --overwrite-recordings-path.
 
 module EltenAPI
   module EltenSRV
@@ -57,7 +58,7 @@ module EltenAPI
     end
 
     def save_attachment(info)
-      loc=get_file(p_("EAPI_Common", "Where do you want to save this file?"), path: EltenPath.join(Dirs.user, "Documents"), save: true)
+      loc=get_file(p_("EAPI_Common", "Where do you want to save this file?"), path: Dirs.documents, save: true)
       if loc!=nil
         waiting {
           downloaded=download_file(info.url, EltenPath.join(loc, info.name))

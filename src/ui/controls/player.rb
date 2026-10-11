@@ -234,7 +234,7 @@ def savefile
           end
             dialog_open
         form=Form.new([
-        tr_path = FilesTree.new(p_("EAPI_Form", "Destination"), path: EltenPath.join(Dirs.user, "Music"), hide_files: true, quiet: true),
+        tr_path = FilesTree.new(p_("EAPI_Form", "Destination"), path: Dirs.music, hide_files: true, quiet: true),
         lst_format = ListBox.new(formats, header: p_("EAPI_Form", "File format")),
         edt_filename = EditBox.new(p_("EAPI_Form", "File name"),type: 0,text: nm,quiet: true),
         btn_save = Button.new(_("Save")),

@@ -398,9 +398,13 @@ module EltenSystemHelpers
       false
     end
 
+    # Klangten: the start options in effect (other data directory, recordings
+    # directory or server, Klangten::Startup) are part of the autostart entry.
     def autostart_command(path, hidden: false)
       command = "\"#{path.to_s.tr("/", "\\")}\""
       command += " /hidden" if hidden
+      extra = defined?(Klangten::Startup) ? Klangten::Startup.restart_arguments : []
+      command += " " + command_line_join(extra) if extra.size > 0
       command
     end
 
