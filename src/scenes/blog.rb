@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; guests only read; the "new ..." views return to What's new when opened from there.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; guests only read; the "new ..." views return to What's new when opened from there; sharing posts on Mastodon.
 
 class Scene_Blog
   def initialize(index=0)
@@ -539,6 +539,12 @@ else
   Clipboard.text=@post[@sel.index].url
   alert(p_("Blog", "Post URL copied to clipboard"))
   }
+  # Klangten: share the post on Mastodon.
+  if Session.logged? && @post[@sel.index].url.to_s!=""
+  menu.option(p_("Mastodon", "Share on Mastodon")) {
+  mastodon_share_link(@post[@sel.index].name, @post[@sel.index].url)
+  }
+  end
   end
 if @isowner and @id != "NEW" and @id != "FOLLOWED" and @id != "NEWFOLLOWED"
   menu.option(p_("Blog", "New post"), nil, "n") {
@@ -771,6 +777,12 @@ def context(menu)
     if @iseltenblog && Session.logged?
       menu.option(p_("Blog", "Mention post"), nil, "w") {
         mention
+      }
+    end
+    # Klangten: share the post on Mastodon.
+    if Session.logged? && @post.respond_to?(:url) && @post.url.to_s != ""
+      menu.option(p_("Mastodon", "Share on Mastodon")) {
+        mastodon_share_link(@post.name, @post.url)
       }
     end
     if Session.logged? && (@post.followed==true || (@iseltenblog && @post.followed==false))

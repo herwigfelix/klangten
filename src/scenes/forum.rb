@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; read-only guest access; voice threads play their recorded title, and in voice forums the title of a new thread is recorded.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; read-only guest access; voice threads play their recorded title, and in voice forums the title of a new thread is recorded; message to the members of a group, sharing threads on Mastodon.
  
 module ForumSceneClient
   def forum_fetch(default = nil, error_message = _("Error"))
@@ -907,6 +907,13 @@ if Session.logged? && (((@sgroups[@grpsel.index - @grpheadindex].role==1 || (@sg
       menu.option(p_("Forum", "Group members"), nil, "m") {
         groupmembers(@sgroups[@grpsel.index - @grpheadindex])
       }
+      # Klangten: a private message to all members of a Klango group.
+      grp = @sgroups[@grpsel.index - @grpheadindex]
+      if Session.logged? && [1, 2].include?(grp.role) && grp.id.to_i < 1_000_000_000
+        menu.option(p_("GroupMessage", "Send a message to the members")) {
+          GroupMessage.compose(EltenLink::CommunityGroup.new(id: grp.id.to_i, name: grp.name.to_s, moderator: grp.role == 2))
+        }
+      end
       s = ""
       s = p_("Forum", "Join") if @sgroups[@grpsel.index - @grpheadindex].role == 0 and @sgroups[@grpsel.index - @grpheadindex].open and @sgroups[@grpsel.index - @grpheadindex].public
       s = p_("Forum", "Accept invitation") if @sgroups[@grpsel.index - @grpheadindex].role == 5
@@ -2411,6 +2418,12 @@ threadopen(@thrsel.index)
         threadopen(@thrsel.index)
       }
       thread = @sthreads[@thrsel.index]
+      # Klangten: share the thread on Mastodon (address of the web interface).
+      if Session.logged?
+        menu.option(p_("Mastodon", "Share on Mastodon")) {
+          mastodon_share_forum_thread(thread.id)
+        }
+      end
       # Klangten: marking, following and the statistics need an account.
       if Session.logged?
       if thread.readposts < thread.posts
@@ -3809,6 +3822,9 @@ if post.edited && !post.locked
   end
     # Klangten: marking and following need an account.
     if Session.logged?
+      menu.option(p_("Mastodon", "Share on Mastodon")) {
+        mastodon_share_forum_thread(@thread)
+      }
         s = p_("Forum", "Mark this thread")
       s = p_("Forum", "Unmark this thread") if @threadclass.marked== true
             menu.option(s, nil, "h") {

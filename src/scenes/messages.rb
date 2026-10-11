@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; new messages return to What's new when opened from there.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; new messages return to What's new when opened from there; message to the members of a Klango group.
 
 class Scene_Messages
     def utf8(value)
@@ -316,6 +316,11 @@ menu.option(p_("Messages", "Create new conversation"), nil, "t") {
 }
 menu.option(p_("Messages", "Send a new message"), nil, "n") {
 $scene = Scene_Messages_New.new("","","",export)
+}
+# Klangten: Klango's message to all members of a group.
+menu.option(p_("GroupMessage", "Message to the members of a group")) {
+GroupMessage.compose
+@sel_users.focus
 }
 menu.option(p_("Messages", "Mark all messages as read"), nil, "W") {
 confirm(p_("messages", "Are you sure you want to mark all messages in all conversations as read?")) {
