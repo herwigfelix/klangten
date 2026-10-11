@@ -2832,14 +2832,14 @@ form.wait
     # recorded with the same control as the post (sent as name_audio).
     audio_title = (@forumtype == 1 && type == 1)
     if audio_title
-      fields = [OpusRecordButton.new(p_("Forum", "Recorded thread name"), EltenPath.join(Dirs.temp, "audiothreadname.opus"), max_bitrate: 96, bitrate: 48, time_limit: VOICE_THREAD_TITLE_TIME_LIMIT)]
+      fields = [OpusRecordButton.new(p_("Forum", "Recorded thread name"), EltenPath.join(Dirs.temp, "audiothreadname.opus"), max_bitrate: 96, bitrate: 64, time_limit: VOICE_THREAD_TITLE_TIME_LIMIT)]
     else
       fields = [EditBox.new(p_("Forum", "Thread name"), type: 0, text: "", quiet: true)]
     end
     if type == 0
       fields[1..6] = [EditBox.new(p_("Forum", "Post content"), type: EditBox::Flags::MultiLine, text: "", quiet: true), CheckBox.new(p_("Forum", "Use Markdown in this post")), nil, Button.new(p_("Forum", "Attach a poll")), nil, Button.new(p_("Forum", "Attach a file"))]
       else
-      fields[1..6] = [OpusRecordButton.new(p_("Forum", "Audio post"), EltenPath.join(Dirs.temp, "audiopost.opus"), max_bitrate: 96, bitrate: 48), nil, nil, nil, nil, nil]
+      fields[1..6] = [OpusRecordButton.new(p_("Forum", "Audio post"), EltenPath.join(Dirs.temp, "audiopost.opus"), max_bitrate: 96, bitrate: 64), nil, nil, nil, nil, nil]
     end
     fields += [CheckBox.new(p_("Forum", "Follow this thread")), ListBox.new(forums, header: p_("Forum", "Forum"), index: forumindex), nil, Button.new(_("Cancel"))]
     form = Form.new(fields)
@@ -3440,7 +3440,7 @@ loop do
     end
     @textfields = [EditBox.new(p_("Forum", "Your reply"), type: EditBox::Flags::MultiLine, text: pretext, quiet: true), nil, nil, nil, nil, nil, Button.new(p_("Forum", "Attach a file"))]
       @textfields[3] = CheckBox.new(p_("Forum", "Use Markdown in this post"))
-        @audiofields = [OpusRecordButton.new(p_("Forum", "Audio post"), EltenPath.join(Dirs.temp, "audiopost.opus"), max_bitrate: 96, bitrate: 48, time_limit: @threadclass.forum.group.audiolimit), nil, nil, nil, nil, nil, nil]
+        @audiofields = [OpusRecordButton.new(p_("Forum", "Audio post"), EltenPath.join(Dirs.temp, "audiopost.opus"), max_bitrate: 96, bitrate: 64, time_limit: @threadclass.forum.group.audiolimit), nil, nil, nil, nil, nil, nil]
     if @noteditable == false
       case @posttype
       when 0

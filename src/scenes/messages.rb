@@ -937,7 +937,7 @@ def audiolimit
            @fields[0]=nil if receiver[0..0]=="["
 @fields[1] = EditBox.new(p_("Messages", "Subject:"),type: 0,text: subject,quiet: true)
            @fields[2] = ((@text.is_a?(EditBox))?@text:EditBox.new(p_("Messages", "Message:"),type: EditBox::Flags::MultiLine,text: (@cursor_at_start ? "" : text),quiet: true))
-           @fields[3] = OpusRecordButton.new(p_("Messages", "Audio message"), EltenPath.join(Dirs.temp, "audiomessage.opus"), max_bitrate: bitratelimit, bitrate: 48, time_limit: audiolimit)
+           @fields[3] = OpusRecordButton.new(p_("Messages", "Audio message"), EltenPath.join(Dirs.temp, "audiomessage.opus"), max_bitrate: bitratelimit, bitrate: 64, time_limit: audiolimit)
            @fields[4]=nil
            @fields[5]=ListBox.new([],header: p_("Messages", "Attachments"))
            @fields[6]=ListBox.new([],header: p_("Messages", "Polls"))
