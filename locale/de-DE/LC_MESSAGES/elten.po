@@ -26006,3 +26006,229 @@ msgstr "Mit drei Fingern nach rechts oder links wischen Sie zwischen den Feldern
 msgctxt "WelcomeWizard"
 msgid "Voice messages, audio blog posts and other recordings all share the same player. Double tap to play or pause, swipe left or right to skip backwards or forwards, swipe up or down to change the volume, and swipe up or down with two fingers to change the pitch. Press and hold to open the player menu, which reads the position, the duration and the chapters. A tap with three fingers works like the space bar: in a list it plays the recorded title of an entry, and in the file manager it plays the selected file."
 msgstr "Sprachnachrichten, Audio-Blogbeiträge und andere Aufnahmen teilen sich denselben Player. Doppeltippen spielt ab oder pausiert, nach links oder rechts wischen springt zurück oder vor, nach oben oder unten wischen ändert die Lautstärke, und mit zwei Fingern nach oben oder unten wischen ändert die Tonhöhe. Lange drücken öffnet das Player-Menü, das Position, Dauer und Kapitel ansagt. Tippen mit drei Fingern wirkt wie die Leertaste: In einer Liste spielt es den aufgenommenen Titel eines Eintrags ab, im Dateimanager die ausgewählte Datei."
+
+# Klangten 0.4: media (background playback, recordings, bookmarks, Internet Archive, global player keys)
+
+msgctxt "Klangten"
+msgid "Nothing is playing in the background."
+msgstr "Im Hintergrund wird nichts abgespielt."
+
+msgctxt "Klangten"
+msgid "Opening: %{title}"
+msgstr "Wird geöffnet: %{title}"
+
+msgctxt "Klangten"
+msgid "Playing in the background: %{title}"
+msgstr "Im Hintergrund: %{title}"
+
+msgctxt "Klangten"
+msgid "recording"
+msgstr "Aufnahme läuft"
+
+msgctxt "Klangten"
+msgid "Finished: %{title}"
+msgstr "Zu Ende: %{title}"
+
+msgctxt "Klangten"
+msgid "%{title} cannot be played."
+msgstr "%{title} kann nicht abgespielt werden."
+
+msgctxt "Klangten"
+msgid "The saved position of %{title} could not be reached, it plays from the beginning."
+msgstr "Die gemerkte Stelle von %{title} war nicht erreichbar, es wird von vorn abgespielt."
+
+msgctxt "Klangten"
+msgid "Player: open"
+msgstr "Player: öffnen"
+
+msgctxt "Klangten"
+msgid "Player: play or pause"
+msgstr "Player: Wiedergabe oder Pause"
+
+msgctxt "Klangten"
+msgid "Player: stop"
+msgstr "Player: stoppen"
+
+msgctxt "Klangten"
+msgid "Player: volume down"
+msgstr "Player: leiser"
+
+msgctxt "Klangten"
+msgid "Player: volume up"
+msgstr "Player: lauter"
+
+msgctxt "Klangten"
+msgid "Player: what is playing"
+msgstr "Player: was läuft gerade"
+
+msgctxt "Klangten"
+msgid "Player: start or stop recording"
+msgstr "Player: Aufnahme starten oder beenden"
+
+msgctxt "Klangten"
+msgid "Record from the microphone"
+msgstr "Mit dem Mikrofon aufnehmen"
+
+msgctxt "Klangten"
+msgid "Stopped: %{title}"
+msgstr "Gestoppt: %{title}"
+
+msgctxt "Klangten"
+msgid "The playlist cannot be recorded. Open the entry in the player to record it."
+msgstr "Die Wiedergabeliste kann nicht aufgenommen werden. Öffnen Sie den Eintrag im Player, um ihn aufzunehmen."
+
+msgctxt "Klangten"
+msgid "Internet Archive: %{name}"
+msgstr "Internet Archive: %{name}"
+
+msgctxt "Klangten"
+msgid "Recording is not available on this system."
+msgstr "Aufnehmen ist auf diesem System nicht möglich."
+
+msgctxt "Klangten"
+msgid "Recording %{number}"
+msgstr "Aufnahme %{number}"
+
+msgctxt "Klangten"
+msgid "Recording %{number} saved"
+msgstr "Aufnahme %{number} gespeichert"
+
+msgctxt "Klangten"
+msgid "The recording could not be saved."
+msgstr "Die Aufnahme konnte nicht gespeichert werden."
+
+msgctxt "Klangten"
+msgid "Search the Internet Archive"
+msgstr "Im Internet Archive suchen"
+
+msgctxt "Klangten"
+msgid "Open an address or identifier"
+msgstr "Adresse oder Kennung öffnen"
+
+msgctxt "Klangten"
+msgid "Internet Archive"
+msgstr "Internet Archive"
+
+msgctxt "Klangten"
+msgid "Search results"
+msgstr "Suchergebnisse"
+
+msgctxt "Klangten"
+msgid "Address or identifier of the entry"
+msgstr "Adresse oder Kennung des Eintrags"
+
+msgctxt "Klangten"
+msgid "This is not an Internet Archive address."
+msgstr "Das ist keine Adresse des Internet Archive."
+
+msgctxt "Klangten"
+msgid "Description"
+msgstr "Beschreibung"
+
+msgctxt "Klangten"
+msgid "This entry has no files."
+msgstr "Dieser Eintrag enthält keine Dateien."
+
+msgctxt "Klangten"
+msgid "bookmark at %{position}"
+msgstr "Lesezeichen bei %{position}"
+
+msgctxt "Klangten"
+msgid "Continue from %{position}"
+msgstr "Fortsetzen ab %{position}"
+
+msgctxt "Klangten"
+msgid "Play in the background"
+msgstr "Im Hintergrund abspielen"
+
+msgctxt "Klangten"
+msgid "Playing in the background"
+msgstr "Wird im Hintergrund abgespielt"
+
+msgctxt "Klangten"
+msgid "Author"
+msgstr "Autor"
+
+msgctxt "Klangten"
+msgid "Date"
+msgstr "Datum"
+
+msgctxt "Klangten"
+msgid "Download to"
+msgstr "Herunterladen nach"
+
+msgctxt "Klangten"
+msgid "Downloaded to %{folder}"
+msgstr "Heruntergeladen nach %{folder}"
+
+msgctxt "Klangten"
+msgid "The Internet Archive did not answer or does not know this entry."
+msgstr "Das Internet Archive antwortet nicht oder kennt diesen Eintrag nicht."
+
+msgctxt "Klangten"
+msgid "Close the player, keep playing"
+msgstr "Player schließen, weiterspielen"
+
+msgctxt "Klangten"
+msgid "Loading up to the saved position..."
+msgstr "Wird bis zur gemerkten Stelle geladen..."
+
+msgctxt "Klangten"
+msgid "&Internet Archive"
+msgstr "&Internet Archive"
+
+msgctxt "Klangten"
+msgid "&Player"
+msgstr "&Player"
+
+msgctxt "Klangten"
+msgid "Open an address"
+msgstr "Adresse öffnen"
+
+msgctxt "Klangten"
+msgid "Open in the Internet Archive"
+msgstr "Im Internet Archive öffnen"
+
+msgctxt "Klangten"
+msgid "Play from the beginning"
+msgstr "Von vorn abspielen"
+
+msgctxt "Klangten"
+msgid "Media and recordings"
+msgstr "Medien und Aufnahmen"
+
+msgctxt "Klangten"
+msgid "Recordings folder: %{folder}"
+msgstr "Aufnahmeordner: %{folder}"
+
+msgctxt "Klangten"
+msgid "Use the default recordings folder"
+msgstr "Standard-Aufnahmeordner verwenden"
+
+msgctxt "Klangten"
+msgid "Global player keys, also in other programs (%{modifier}+F5, F6, Z, X, Space, F7, F8, F11)"
+msgstr "Globale Player-Tasten, auch in anderen Programmen (%{modifier}+F5, F6, Z, X, Leertaste, F7, F8, F11)"
+
+msgctxt "Klangten"
+msgid "Recordings folder"
+msgstr "Aufnahmeordner"
+
+msgctxt "Klangten"
+msgid "Stop recording"
+msgstr "Aufnahme beenden"
+
+msgctxt "Klangten"
+msgid "Start recording"
+msgstr "Aufnahme starten"
+
+msgctxt "Klangten"
+msgid "Continue in the background"
+msgstr "Im Hintergrund weiterspielen"
+
+msgctxt "Klangten"
+msgid "Press R to start or stop recording"
+msgstr "R startet oder beendet die Aufnahme"
+
+msgctxt "Klangten"
+msgid "Press B to continue playing in the background"
+msgstr "B spielt im Hintergrund weiter"
