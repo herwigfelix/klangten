@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: contact comments.
 
 class Scene_Contacts
   def initialize(type=0)
@@ -36,9 +36,20 @@ class Scene_Contacts
       if @contact.size < 1
         alert(p_("Contacts", "Empty list"))
               end
+      # Klangten: the comment on a contact (Klango) follows the name.
+      @comments = {}
+      if @type == 0 && @contact.size > 0
+        begin
+          @comments = EltenLink::Community.contact_comments(elten_link)
+        rescue EltenLink::Error => e
+          Log.warning("Contact comments failed: #{e.message}")
+        end
+      end
       selt = []
       for i in 0..@contact.size - 1
-        selt[i] = user_with_status(@contact[i])
+        comment = @comments[@contact[i].to_s.downcase]
+        label = comment == nil ? nil : "#{@contact[i]} (#{comment.comment})"
+        selt[i] = user_with_status(@contact[i], true, true, " ", label)
         end
       header=p_("Contacts", "Contacts")
       header="" if @type>0
@@ -86,6 +97,12 @@ loop_update
         def context(menu)
                   if @contact.size>0
           menu.useroption(@contact[@sel.index])
+          if @type==0
+            menu.option(p_("UsersKlango", "Comment on this contact")) {
+            UsersKlango.edit_comment(@contact[@sel.index])
+            $scene=Scene_Contacts.new
+            }
+          end
         end
         if @type==0
           menu.option(p_("Contacts", "New contact"), nil, "n") {
