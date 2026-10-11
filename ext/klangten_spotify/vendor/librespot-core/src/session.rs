@@ -115,15 +115,15 @@ struct SessionInternal {
 
     handle: tokio::runtime::Handle,
 
-    /// KLANGO: Wanduhrzeit (ms seit 1970) des zuletzt vom Access Point
-    /// empfangenen Pakets. Siehe `Session::millis_since_last_packet`.
+    /// KLANGTEN PATCH: wall-clock time (ms since 1970) of the last packet
+    /// received from the access point. See `Session::millis_since_last_packet`.
     last_rx_ms: std::sync::atomic::AtomicU64,
 }
 
-/// KLANGO: Wanduhr in ms. BEWUSST nicht `Instant`: der monotone Takt steht auf
-/// macOS waehrend des Ruhezustands still — genau dann, wenn die Verbindung
-/// stirbt, merkten die Keep-Alive-Timer (tokio, monoton) davon nichts.
-fn klango_now_ms() -> u64 {
+/// KLANGTEN PATCH: wall clock in ms. DELIBERATELY not `Instant`: the monotonic
+/// clock stands still on macOS while the computer sleeps — exactly when the
+/// connection dies, the keep-alive timers (tokio, monotonic) noticed nothing.
+fn patch_now_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
@@ -142,20 +142,20 @@ fn klango_now_ms() -> u64 {
 #[derive(Clone)]
 pub struct Session(Arc<SessionInternal>);
 
-/// KLANGO: gesetzt, sobald Spotify ein Konto OHNE Premium meldet. Global,
-/// weil `check_catalogue` eine zugehoerige Funktion ohne `self` ist — und
-/// weil in einem Prozess ohnehin nur eine Anmeldung zur Zeit laeuft.
+/// KLANGTEN PATCH: set as soon as Spotify reports an account WITHOUT Premium.
+/// Global, because `check_catalogue` is an associated function without
+/// `self` — and because only one login runs at a time in a process anyway.
 pub static NON_PREMIUM: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
-/// KLANGO: Hat Spotify fuer die laufende Anmeldung ein Konto ohne Premium
-/// gemeldet? Vor einem neuen Anmeldeversuch mit `reset_non_premium()`
-/// zuruecksetzen.
+/// KLANGTEN PATCH: has Spotify reported an account without Premium for the
+/// current login? Reset with `reset_non_premium()` before a new login
+/// attempt.
 pub fn non_premium_seen() -> bool {
     NON_PREMIUM.load(std::sync::atomic::Ordering::SeqCst)
 }
 
-/// KLANGO: das Merkmal vor einem neuen Anmeldeversuch zuruecksetzen.
+/// KLANGTEN PATCH: resets the flag before a new login attempt.
 pub fn reset_non_premium() {
     NON_PREMIUM.store(false, std::sync::atomic::Ordering::SeqCst);
 }
@@ -188,7 +188,7 @@ impl Session {
             token_provider: OnceLock::new(),
             login5: OnceLock::new(),
             handle: tokio::runtime::Handle::current(),
-            last_rx_ms: std::sync::atomic::AtomicU64::new(klango_now_ms()),
+            last_rx_ms: std::sync::atomic::AtomicU64::new(patch_now_ms()),
         }))
     }
 
@@ -393,23 +393,22 @@ impl Session {
         );
     }
 
-    /// KLANGO-AENDERUNG (die erste von zweien; die zweite ist der Zeitstempel
+    /// KLANGTEN PATCH (the first of two; the second is the timestamp
     /// `last_rx_ms` / `millis_since_last_packet`).
     ///
-    /// Im Original endet diese Funktion bei einem Konto ohne Premium mit
-    /// `exit(1)` — sie beendet also den PROZESS, der librespot eingebettet
-    /// hat. Fuer Klango war das toedlich: die Produktinformation trifft
-    /// asynchron nach dem Anmelden ein, Klango verschwand also mitten im
-    /// Betrieb ohne Meldung. Und weil die Zugangsdaten beim Anmelden schon
-    /// gespeichert waren und Klango sich beim Start still wieder anmeldet,
-    /// starb es danach bei JEDEM Start erneut — Klango liess sich nicht mehr
-    /// benutzen.
+    /// Upstream, this function ends with `exit(1)` for an account without
+    /// Premium — it terminates the PROCESS that embeds librespot. For an
+    /// embedding host that is fatal: the product information arrives
+    /// asynchronously after login, so the host vanished in the middle of
+    /// operation without any message. And because the credentials had
+    /// already been stored at login and the host logs in again silently on
+    /// startup, it then died again on EVERY start — it could no longer be
+    /// used.
     ///
-    /// Eine eingebettete Bibliothek darf den Prozess ihres Wirts nicht
-    /// beenden. Wir merken uns die Tatsache nur; `Session::is_premium()`
-    /// gibt sie heraus, und klango_rs/src/engine/spotify.rs bricht die
-    /// Anmeldung daraufhin geordnet ab (Meldung an den Nutzer, Zugangsdaten
-    /// NICHT speichern).
+    /// An embedded library must not terminate its host's process. We only
+    /// record the fact; `non_premium_seen()` exposes it, and the caller
+    /// (klangten_spotify, src/engine.rs) then aborts the login in an orderly
+    /// way (message to the user, credentials NOT stored).
     fn check_catalogue(attributes: &UserAttributes) {
         if let Some(account_type) = attributes.get("type") {
             if account_type != "premium" {
@@ -693,25 +692,26 @@ impl Session {
         self.0.data.read().expect(SESSION_DATA_POISON_MSG).invalid
     }
 
-    /// KLANGO: Wie lange (Wanduhr, ms) kam vom Access Point nichts mehr?
+    /// KLANGTEN PATCH: for how long (wall clock, ms) has nothing arrived from
+    /// the access point?
     ///
-    /// Der Server schickt spaetestens alle 60 s ein Ping bzw. PongAck. Steht
-    /// der Wert deutlich darueber, ist die Verbindung tot, auch wenn
-    /// `is_invalid()` das noch nicht weiss: librespots Keep-Alive-Timer laufen
-    /// auf dem monotonen Takt, der im Ruhezustand stehen bleibt — nach dem
-    /// Aufwachen galt eine laengst tote Sitzung so noch minutenlang als gesund.
+    /// The server sends a ping or PongAck at least every 60 s. If the value
+    /// is well above that, the connection is dead, even if `is_invalid()`
+    /// does not know it yet: librespot's keep-alive timers run on the
+    /// monotonic clock, which stands still during sleep — after waking up, a
+    /// long-dead session thus still counted as healthy for minutes.
     pub fn millis_since_last_packet(&self) -> u64 {
-        klango_now_ms().saturating_sub(
+        patch_now_ms().saturating_sub(
             self.0
                 .last_rx_ms
                 .load(std::sync::atomic::Ordering::Relaxed),
         )
     }
 
-    fn klango_mark_rx(&self) {
+    fn patch_mark_rx(&self) {
         self.0
             .last_rx_ms
-            .store(klango_now_ms(), std::sync::atomic::Ordering::Relaxed);
+            .store(patch_now_ms(), std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -954,7 +954,7 @@ where
         loop {
             match self.as_mut().project().stream.try_poll_next(cx) {
                 Poll::Ready(Some(Ok((cmd, data)))) => {
-                    session.klango_mark_rx(); // KLANGO: Lebenszeichen merken
+                    session.patch_mark_rx(); // KLANGTEN PATCH: record a sign of life
                     let result = self.as_mut().dispatch(&session, cmd, data);
                     if let Err(e) = result {
                         debug!("could not dispatch command: {e}");

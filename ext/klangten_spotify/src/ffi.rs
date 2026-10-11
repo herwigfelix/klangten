@@ -1,40 +1,42 @@
-// ffi.rs — die C-ABI für Klango 4 (an Stelle der k_Spotify*-Globals).
+// Part of Klangten. Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT).
+// Klangten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. See the repository's licence.
+
+// ffi.rs — the C ABI for Klangten.
 //
-// Klango 3 registrierte die Engine als Lua-Globals (spotify.rs: register).
-// Klango 4 ist Python und lädt diese Bibliothek per ctypes
-// (src/klango4/engine/spotify.py). Die Abbildung ist eins zu eins:
+// Klangten is written in Ruby and loads this library through Fiddle
+// (src/eapi/spotify.rb). The entry points:
 //
-//   k_SpotifyLogin()            ks_login()                -> Status (String)
-//   k_SpotifyHasLogin()         ks_has_login()            -> 0/1
-//   k_SpotifyStatus()           ks_status()               -> Status (String)
-//   k_SpotifyLogout()           ks_logout()
-//   k_SpotifySearch(q,limit)    ks_search(q,limit)        -> JSON [Titel]
-//   k_SpotifySearch2(q,limit)   ks_search_typed(q,limit)  -> JSON [Zeile]
-//   k_SpotifyLibrary(limit)     ks_library(limit)         -> JSON [Titel]
-//   k_SpotifyPlaylists(limit)   ks_playlists(limit)       -> JSON [{uri,name}]
-//   k_SpotifyPlaylistTracks     ks_playlist_tracks(u,l)   -> JSON [Titel]
-//   k_SpotifyTrackRadio         ks_track_radio(u,l)       -> JSON [Titel]
-//   k_SpotifyShow(uri,limit)    ks_show(u,l)              -> JSON {..} | null
-//   k_SpotifyArtist(uri,limit)  ks_artist(u,l)            -> JSON {..} | null
-//   k_SpotifyAlbum(uri,limit)   ks_album(u,l)             -> JSON {..} | null
-//   k_SpotifyOpen(uri,start)    ks_open(u,start_ms)       -> Handle (0 = nil)
-//   stream:Get(key)             ks_stream_get(h,key)      -> String
-//   stream:Close()              ks_stream_close(h)
-//   (Mixer zieht den Feed)      ks_read_pcm(h,buf,frames) -> Frames | -1
-//   k_SpotifyControl(a,arg)     ks_control(a,arg)
-//   k_SpotifyNowPlaying()       ks_now_playing()          -> JSON {..}
+//   ks_login()                -> status (string)
+//   ks_has_login()            -> 0/1
+//   ks_status()               -> status (string)
+//   ks_logout()
+//   ks_search(q,limit)        -> JSON [track]
+//   ks_search_typed(q,limit)  -> JSON [row]
+//   ks_library(limit)         -> JSON [track]
+//   ks_playlists(limit)       -> JSON [{uri,name}]
+//   ks_playlist_tracks(u,l)   -> JSON [track]
+//   ks_track_radio(u,l)       -> JSON [track]
+//   ks_show(u,l)              -> JSON {..} | null
+//   ks_artist(u,l)            -> JSON {..} | null
+//   ks_album(u,l)             -> JSON {..} | null
+//   ks_open(u,start_ms)       -> handle (0 = none)
+//   ks_stream_get(h,key)      -> string
+//   ks_stream_close(h)
+//   ks_read_pcm(h,buf,frames) -> frames | -1  (the host pulls the feed)
+//   ks_control(a,arg)
+//   ks_now_playing()          -> JSON {..}
 //
-// Speicherregel: Jede Funktion, die `*mut c_char` liefert, gibt einen frisch
-// angelegten UTF-8-String zurück, den der Aufrufer mit `ks_free_string`
-// freigibt (nie mit free() — Rusts Allocator). NULL kommt nur bei innerem
-// Fehler (NUL-Byte im Text); Python behandelt es wie "leer".
+// Memory rule: every function that returns `*mut c_char` returns a freshly
+// allocated UTF-8 string that the caller releases with `ks_free_string`
+// (never with free() — it belongs to Rust's allocator). NULL only comes back
+// on an internal error (NUL byte in the text); the Ruby side treats it as
+// "empty".
 //
-// Grenzen (limit <= 0 = Vorgabe) und Vorgaben wie in register() von Klango 3.
+// Limits: limit <= 0 means the default for that call.
 //
-// Blockieren: die Abfragen warten wie in Klango 3 bis QUERY_TIMEOUT auf den
-// Engine-Thread. Den Frame pumpt hier NIEMAND — die Python-Seite ruft sie in
-// einem Arbeits-Thread und pumpt derweil Klangos Schleife (ctypes gibt den
-// GIL für die Dauer des Aufrufs frei).
+// Blocking: the queries wait up to QUERY_TIMEOUT for the engine thread.
+// Nothing here pumps the host's event loop — the Ruby side must call them
+// from a worker thread so that the user interface stays responsive.
 
 use std::collections::HashMap;
 use std::ffi::{c_char, CStr, CString};
@@ -50,11 +52,11 @@ use crate::engine::{
 };
 use crate::feed::PcmFeed;
 
-/// Version der C-ABI. Python prüft sie beim Laden — eine ältere Bibliothek
-/// mit anderer Signatur würde sonst still Speicher zerschreiben.
+/// Version of the C ABI. The host checks it when loading — an older library
+/// with a different signature would otherwise silently corrupt memory.
 pub const ABI_VERSION: i32 = 1;
 
-// ---------------------------------------------------------------- Helfer
+// --------------------------------------------------------------- helpers
 
 fn s_in(p: *const c_char) -> String {
     if p.is_null() {
@@ -79,13 +81,13 @@ fn lim(limit: i64, default: i64, max: i64) -> usize {
     n.clamp(1, max) as usize
 }
 
-/// Panics dürfen nie über die C-Grenze laufen (undefiniertes Verhalten,
-/// in der Praxis: Klango verschwindet). Jeder Einstieg fängt sie ab.
+/// Panics must never cross the C boundary (undefined behaviour; in practice
+/// the host process disappears). Every entry point catches them.
 fn guard<T>(fallback: T, f: impl FnOnce() -> T) -> T {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
         Ok(v) => v,
         Err(_) => {
-            crate::klog!("[spotify] Panic an der C-Grenze abgefangen");
+            crate::klog!("[spotify] panic caught at the C boundary");
             fallback
         }
     }
@@ -166,11 +168,10 @@ fn artist_json(a: Option<ArtistDetails>) -> Value {
     }
 }
 
-// ------------------------------------------------------------ Strom-Handles
+// ---------------------------------------------------------- stream handles
 
-/// Offene Ströme (Klango 3: SpotifyStream-Userdata). Ein Handle steht für
-/// GENAU einen Feed — nach einem Titelwechsel liest ein altes Handle nur
-/// noch -1, wie eine abgebrochene Instanz in Klango 3.
+/// Open streams. A handle stands for EXACTLY one feed — after a track change
+/// an old handle only reads -1, like a cancelled stream.
 fn streams() -> &'static Mutex<HashMap<u64, Arc<PcmFeed>>> {
     static S: OnceLock<Mutex<HashMap<u64, Arc<PcmFeed>>>> = OnceLock::new();
     S.get_or_init(|| Mutex::new(HashMap::new()))
@@ -188,9 +189,9 @@ pub extern "C" fn ks_abi_version() -> i32 {
     ABI_VERSION
 }
 
-/// Zwischenspeicher (Anmeldedaten, Audio-Cache) und Logdatei festlegen.
-/// MUSS vor jedem anderen Aufruf kommen, der die Engine startet; spätere
-/// Aufrufe ändern nichts mehr (OnceLock) und liefern 0.
+/// Sets the cache directory (credentials, audio cache) and the log file.
+/// MUST come before any other call that starts the engine; later calls
+/// change nothing (OnceLock) and return 0.
 #[no_mangle]
 pub extern "C" fn ks_init(cache_dir: *const c_char, log_path: *const c_char) -> i32 {
     let dir = s_in(cache_dir);
@@ -210,7 +211,7 @@ pub extern "C" fn ks_init(cache_dir: *const c_char, log_path: *const c_char) -> 
     })
 }
 
-/// Der tatsächlich benutzte Zwischenspeicher (nach ks_init bzw. Vorgabe).
+/// The cache directory actually in use (from ks_init, or the default).
 #[no_mangle]
 pub extern "C" fn ks_cache_dir() -> *mut c_char {
     guard(std::ptr::null_mut(), || {
@@ -300,8 +301,8 @@ pub extern "C" fn ks_search_typed(query: *const c_char, limit: i64) -> *mut c_ch
     })
 }
 
-/// Ohne Angabe: die GANZE Mediathek (Klango 3: altes Standardlimit 100
-/// schnitt größere Sammlungen stumm ab).
+/// Without a limit: the WHOLE library (a former default limit of 100
+/// silently cut larger collections short).
 #[no_mangle]
 pub extern "C" fn ks_library(limit: i64) -> *mut c_char {
     guard(std::ptr::null_mut(), move || {
@@ -363,8 +364,8 @@ pub extern "C" fn ks_album(uri: *const c_char, limit: i64) -> *mut c_char {
     })
 }
 
-/// Titel öffnen (start_ms > 0: dort einsetzen — Hörbuch fortsetzen).
-/// Rückgabe: Handle > 0, oder 0 wie `nil` in Klango 3.
+/// Opens a track (start_ms > 0: start there — resuming an audiobook).
+/// Returns a handle > 0, or 0 on failure.
 #[no_mangle]
 pub extern "C" fn ks_open(uri: *const c_char, start_ms: i64) -> u64 {
     let u = s_in(uri);
@@ -374,8 +375,8 @@ pub extern "C" fn ks_open(uri: *const c_char, start_ms: i64) -> u64 {
             Some(feed) => {
                 let h = NEXT_HANDLE.fetch_add(1, Ordering::SeqCst);
                 let mut m = streams().lock().unwrap();
-                // Alte, abgelöste Ströme nicht ewig halten: ein Handle, dessen
-                // Feed abgebrochen und leergelesen ist, kann weg.
+                // Do not keep old, superseded streams forever: a handle whose
+                // feed is cancelled and read empty can go.
                 m.retain(|_, f| !(f.is_cancelled() && f.buffered() == 0));
                 m.insert(h, feed);
                 h
@@ -385,10 +386,11 @@ pub extern "C" fn ks_open(uri: *const c_char, start_ms: i64) -> u64 {
     })
 }
 
-/// Stereo-Frames (interleaved f32, 44100 Hz) aus dem Strom lesen.
-/// Rückgabe: Anzahl Frames (0 = gerade nichts da / Spul-Tor zu) oder -1 =
-/// Strom zu Ende (bzw. unbekanntes Handle) — der Mischer beendet dann die
-/// Instanz. Aus dem Audio-Callback gerufen: kein Blockieren, kein Netz.
+/// Reads stereo frames (interleaved f32, 44100 Hz) from the stream.
+/// Returns the number of frames (0 = nothing available right now / seek gate
+/// closed) or -1 = end of stream (or unknown handle) — the host then ends its
+/// BASS stream. Called from the host's feeder thread in a tight loop: never
+/// blocks, no network.
 #[no_mangle]
 pub extern "C" fn ks_read_pcm(handle: u64, buf: *mut f32, frames: i32) -> i32 {
     if buf.is_null() || frames <= 0 {
@@ -404,7 +406,7 @@ pub extern "C" fn ks_read_pcm(handle: u64, buf: *mut f32, frames: i32) -> i32 {
     })
 }
 
-/// Strom zu Ende (fertig dekodiert UND leergelesen)? 1 = ja.
+/// Has the stream ended (fully decoded AND read empty)? 1 = yes.
 #[no_mangle]
 pub extern "C" fn ks_stream_finished(handle: u64) -> i32 {
     guard(1, move || match stream(handle) {
@@ -413,7 +415,7 @@ pub extern "C" fn ks_stream_finished(handle: u64) -> i32 {
     })
 }
 
-/// Gegenstück zu SpotifyStream:Get(key) — state, title, artist, album, uri,
+/// One property of a stream by key — state, title, artist, album, uri,
 /// duration, position.
 #[no_mangle]
 pub extern "C" fn ks_stream_get(handle: u64, key: *const c_char) -> *mut c_char {
@@ -422,7 +424,8 @@ pub extern "C" fn ks_stream_get(handle: u64, key: *const c_char) -> *mut c_char 
         let now = engine::now_playing();
         let v = match k.as_str() {
             "state" => {
-                // Feed-Zustand hat Vorrang (finished/ok); sonst Now-State.
+                // The feed state takes precedence (finished/ok); otherwise
+                // the now-playing state.
                 let s = stream(handle).map(|f| f.state()).unwrap_or_default();
                 if s.is_empty() {
                     now.state
@@ -442,7 +445,7 @@ pub extern "C" fn ks_stream_get(handle: u64, key: *const c_char) -> *mut c_char 
     })
 }
 
-/// SpotifyStream:Close() — Feed abbrechen; das Handle liest danach -1.
+/// Closes a stream — cancels the feed; the handle reads -1 afterwards.
 #[no_mangle]
 pub extern "C" fn ks_stream_close(handle: u64) {
     guard((), move || {
@@ -464,9 +467,9 @@ pub extern "C" fn ks_now_playing() -> *mut c_char {
     guard(std::ptr::null_mut(), || json_out(now_json(&engine::now_playing())))
 }
 
-/// Nur für Tests: einen Strom ohne Spotify anlegen und mit `frames`
-/// Stereo-Frames füllen (Wert i/1000 je Sample), optional als fertig
-/// markiert. So lässt sich ks_read_pcm von Python aus prüfen, ohne Login.
+/// Tests only: creates a stream without Spotify and fills it with `frames`
+/// stereo frames (value i/1000 per sample), optionally marked as finished.
+/// This lets the Ruby tests check ks_read_pcm without a login.
 #[no_mangle]
 pub extern "C" fn ks_test_stream(frames: i32, done: i32) -> u64 {
     guard(0, move || {
@@ -486,7 +489,7 @@ pub extern "C" fn ks_test_stream(frames: i32, done: i32) -> u64 {
     })
 }
 
-/// Nur für Tests: Spul-Tor eines Stroms setzen (wie engine.rs beim Spulen).
+/// Tests only: sets a stream's seek gate (as engine.rs does when seeking).
 #[no_mangle]
 pub extern "C" fn ks_test_gate(handle: u64, on: i32) {
     guard((), move || {
@@ -496,9 +499,9 @@ pub extern "C" fn ks_test_gate(handle: u64, on: i32) {
     })
 }
 
-/// Nur für Tests: alle JSON-Formen der ABI mit Beispieldaten, erzeugt von
-/// DENSELBEN Serialisierern wie die echten Aufrufe — so prüft Python die
-/// Formen ohne Spotify-Anmeldung.
+/// Tests only: every JSON shape of the ABI with sample data, produced by the
+/// SAME serialisers as the real calls — so the Ruby tests can check the
+/// shapes without a Spotify login.
 #[no_mangle]
 pub extern "C" fn ks_test_shapes() -> *mut c_char {
     guard(std::ptr::null_mut(), || {

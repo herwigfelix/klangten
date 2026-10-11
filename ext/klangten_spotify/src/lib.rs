@@ -1,11 +1,14 @@
-// klango_spotify — Spotify für Klango 4 als native Bibliothek (cdylib).
+// Part of Klangten. Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT).
+// Klangten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. See the repository's licence.
+
+// klangten_spotify — Spotify playback for Klangten as a native library (cdylib).
 //
-//   engine.rs  die Engine, 1:1 aus Klango 3 (klango_rs/src/engine/spotify.rs)
-//   feed.rs    PCM-Ringpuffer (f32) zwischen librespot und Klangos Mischer
-//   ffi.rs     die C-ABI, die klango4/src/klango4/engine/spotify.py lädt
+//   engine.rs  the engine: login, Spotify Web/metadata queries, playback
+//   feed.rs    PCM ring buffer (f32) between librespot and the host's audio output
+//   ffi.rs     the C ABI that src/eapi/spotify.rb loads through Fiddle
 //
-// Bauen: native/spotify/build.sh (macOS) bzw. build_win.cmd (Windows);
-// beide legen das Ergebnis nach klango4/vendor/spotify_<os>/.
+// Build: tools/build-spotify.sh (macOS, Linux) or tools\build-spotify.bat
+// (Windows); both place the library in bin/<runtime>/.
 
 pub mod engine;
 pub mod feed;
@@ -21,8 +24,8 @@ fn log_slot() -> &'static Mutex<Option<PathBuf>> {
     LOG_PATH.get_or_init(|| Mutex::new(None))
 }
 
-/// Logdatei festlegen (Klango 4: ~/.klango4/klango4.log). Ohne Angabe geht
-/// das Protokoll nach stderr — nur, wenn KLANGO_DEBUG gesetzt ist.
+/// Sets the log file (passed in by the host through ks_init). Without one the
+/// log goes to stderr — but only if KLANGTEN_SPOTIFY_DEBUG is set.
 pub fn set_log_path(p: PathBuf) {
     *log_slot().lock().unwrap() = Some(p);
 }
@@ -37,17 +40,17 @@ pub fn log_line(s: &str) {
             }
         }
         None => {
-            if std::env::var_os("KLANGO_DEBUG").is_some() {
+            if std::env::var_os("KLANGTEN_SPOTIFY_DEBUG").is_some() {
                 eprintln!("{}", s);
             }
         }
     }
-    if std::env::var_os("KLANGO_DEBUG").is_some() && log_slot().lock().unwrap().is_some() {
+    if std::env::var_os("KLANGTEN_SPOTIFY_DEBUG").is_some() && log_slot().lock().unwrap().is_some() {
         eprintln!("{}", s);
     }
 }
 
-/// Gegenstück zu Klango 3s hlog!: eine Zeile ins Host-Protokoll.
+/// Writes one line to the log (see log_line).
 #[macro_export]
 macro_rules! klog {
     ($($arg:tt)*) => {

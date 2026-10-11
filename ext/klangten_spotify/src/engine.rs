@@ -1,41 +1,32 @@
-// engine.rs — Spotify-Wiedergabe über librespot (nativer Rust-Client) für
-// Klango 4. DESTILLAT aus klango_rs/src/engine/spotify.rs (Klango 3): die
-// Logik ist 1:1 übernommen — Session + Player auf einem eigenen tokio-Thread,
-// Browser-OAuth fire-and-forget mit Status-Polling, Credential-Cache,
-// Wiederaufnahme nach Netzfehlern (resume_point/retire/trouble), Suche,
-// Song-Radio, Hörbuch/Künstler/Album/Playlist/Mediathek, open(uri,start_ms),
-// control(action,arg), now_playing. Ersetzt ist nur, was an Klango 3 hing:
+// Part of Klangten. Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT).
+// Klangten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. See the repository's licence.
+
+// engine.rs — Spotify playback through librespot (native Rust client) for
+// Klangten: session + player on their own tokio thread, browser OAuth
+// fire-and-forget with status polling, credential cache, recovery after
+// network errors (resume_point/retire/trouble), search, song radio,
+// audiobook/artist/album/playlist/library, open(uri,start_ms),
+// control(action,arg), now_playing.
 //
-//   * statt der mlua-Globals k_Spotify* gibt es eine C-ABI (src/ffi.rs), die
-//     Klango 4 per ctypes lädt (klango4/src/klango4/engine/spotify.py);
-//   * statt Klango-3-IcyFeed (i16) schreibt der Sink in einen eigenen
-//     Ringpuffer (src/feed.rs, f32 — das Format des Klango-4-Mischers), aus
-//     dem Python mit ks_read_pcm zieht.
+//   * The host talks to the engine through a C ABI (src/ffi.rs), which
+//     Klangten loads through Fiddle (src/eapi/spotify.rb).
+//   * The sink writes into a ring buffer of its own (src/feed.rs, f32), from
+//     which a Ruby thread pulls with ks_read_pcm and feeds a BASS push stream.
 //
-// Ursprünglicher Kopf (Klango 3):
+// librespot handles login (OAuth), search, the user's library and playlists
+// with ONE login (spclient, no separate Web API token) and decodes
+// Ogg/Vorbis to PCM. A sink of our own pushes that PCM into the feed.
 //
-// > engine/spotify.rs — Spotify-Wiedergabe über librespot (nativer Rust-Client).
-// >
-// > Anders als ein installierbares Programm ist Spotify FEST in Klango eingebaut
-// > und unter „Dateien" erreichbar (llib_spotify.lua → app:modalDialog{type=
-// > "tree"}). librespot erledigt Login (OAuth), Suche, eigene Mediathek und
-// > Playlists über EIN Login (spclient, kein separates Web-API-Token) und
-// > dekodiert Ogg/Vorbis zu PCM. Ein eigener librespot-Sink schiebt dieses PCM
-// > in denselben Mixer-Feed (PcmFeed) wie das Internetradio — Spotify läuft
-// > damit durch Klangos komplette 3D-/Ducking-/Mitschnitt-Pipeline.
-// >
-// > Nebenläufigkeit: librespot ist async. EINE tokio-Runtime läuft auf einem
-// > eigenen OS-Thread und besitzt Session + Player. Die Lua-Globals (k_Spotify*)
-// > schicken Kommandos über einen Kanal; kurze Abfragen (Suche/Mediathek) warten
-// > synchron auf die Antwort — wie der KRPC-Client des Klango-Speichers, der
-// > seine Netz-Aufrufe ebenfalls blockierend macht. Der Login läuft dagegen
-// > fire-and-forget (Browser-OAuth kann lange dauern); Lua pollt k_SpotifyStatus.
-// > Der geteilte Zustand (Login/Now-Playing) liegt in Arc<Mutex> und wird direkt
-// > gelesen, ohne den Kanal zu bemühen.
-// >
-// > Premium: librespot streamt NUR mit Spotify Premium. Der Login gelingt auch
-// > mit Gratis-Konten, aber die Wiedergabe scheitert dann (PlayerEvent::
-// > Unavailable) → Zustand "unavailable", der Client sagt „Premium erforderlich".
+// Concurrency: librespot is async. ONE tokio runtime runs on its own OS
+// thread and owns session + player. The ABI calls send commands over a
+// channel; short queries (search/library) wait synchronously for the answer.
+// Login, on the other hand, is fire-and-forget (browser OAuth can take a long
+// time); the host polls ks_status. The shared state (login/now playing) lives
+// in Arc<Mutex> and is read directly, without going through the channel.
+//
+// Premium: librespot streams ONLY with Spotify Premium. Login also succeeds
+// with free accounts, but playback then fails (PlayerEvent::Unavailable) →
+// state "unavailable", and the host tells the user Premium is required.
 
 #![allow(dead_code)]
 
@@ -60,7 +51,7 @@ use librespot_playback::player::{Player, PlayerEvent, PlayerEventChannel};
 
 use crate::feed::PcmFeed;
 
-// Die librespot-Client-ID (dieselbe, die librespot intern nutzt).
+// The librespot client ID (the same one librespot uses internally).
 const SPOTIFY_CLIENT_ID: &str = "65b708073fc0480ea92a077233ca87bd";
 const OAUTH_REDIRECT: &str = "http://127.0.0.1:5588/login";
 const OAUTH_SCOPES: &[&str] = &[
@@ -71,36 +62,37 @@ const OAUTH_SCOPES: &[&str] = &[
     "user-library-read",
 ];
 
-/// Spotify liefert 44100 Hz Stereo; der Sink reicht f64 als interleaved f32
-/// weiter (Klango-4-Mischer rechnet in float32, ebenfalls 44100 Hz).
+/// Spotify delivers 44100 Hz stereo; the sink passes the f64 samples on as
+/// interleaved f32 (BASS plays float samples, also at 44100 Hz).
 const SR: u32 = 44100;
 const CH: u32 = 2;
 
-/// Cache-Verzeichnis (~/.klango/spotify_cache) — in main.rs gesetzt.
+/// Cache directory — set by the host through ks_init (ffi.rs).
 pub static CACHE_DIR: OnceLock<PathBuf> = OnceLock::new();
 
-// ---- Zeitgrenzen der Verbindung (s. "Verbindung: aufbauen, pruefen, neu
-// aufbauen" weiter unten) ----
+// ---- Connection time limits (see "Connection: establish, check,
+// re-establish" further down) ----
 
-/// Eine einzelne Netzanfrage (Kontext, Metadaten, Suche, Token) hoechstens so
-/// lange. librespots HTTP-Client kennt KEINE Zeitgrenze: eine Anfrage ueber
-/// eine halbtote Verbindung (Ruhezustand, verfallener NAT-Eintrag) hing bis
-/// zum TCP-Timeout des Systems, also Minuten. Weil der Engine-Thread die
-/// Kommandos der Reihe nach abarbeitet, hing damit JEDE weitere Spotify-
-/// Anfrage mit — das war "nach laengerem Leerlauf laeuft die Suche ins
-/// Timeout, und die Verbindung kommt nicht wieder".
+/// Upper limit for a single network request (context, metadata, search,
+/// token). librespot's HTTP client has NO time limit: a request over a
+/// half-dead connection (sleep, expired NAT entry) hung until the system's
+/// TCP timeout, i.e. minutes. Because the engine thread processes commands one
+/// after another, EVERY further Spotify request hung with it — that was
+/// "after a long idle period the search times out and the connection never
+/// comes back".
 const REQ_TIMEOUT: Duration = Duration::from_secs(8);
-/// Verbindungsaufbau (Access Point suchen, verbinden, anmelden).
+/// Establishing the connection (find an access point, connect, log in).
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
-/// Kam so lange (Wanduhr) kein Paket vom Access Point, gilt die Verbindung als
-/// tot: der Server schickt spaetestens alle 60 s ein Ping bzw. PongAck.
+/// If no packet arrived from the access point for this long (wall clock), the
+/// connection counts as dead: the server sends a ping or PongAck at least
+/// every 60 s.
 const STALE_AFTER_MS: u64 = 100_000;
-/// Browser-Anmeldung: danach gibt der Engine-Thread auf, statt fuer immer zu
-/// warten (solange er wartet, bleibt jedes andere Spotify-Kommando liegen).
+/// Browser login: after this the engine thread gives up instead of waiting
+/// forever (while it waits, every other Spotify command stays queued).
 const OAUTH_TIMEOUT: Duration = Duration::from_secs(300);
 
 // ---------------------------------------------------------------------------
-// Geteilter Zustand (Lua liest ihn direkt, ohne Kommando)
+// Shared state (the ABI reads it directly, without a command)
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug, PartialEq)]
@@ -108,9 +100,9 @@ pub enum LoginState {
     LoggedOut,
     LoggingIn,
     LoggedIn,
-    /// Anmeldung gelang, aber das Konto hat kein Premium. Ein EIGENER Zustand,
-    /// kein Failed: der Nutzer hat nichts falsch gemacht, und Klango muss ihm
-    /// etwas anderes sagen als "Anmeldung fehlgeschlagen".
+    /// Login succeeded, but the account has no Premium. A state of its OWN,
+    /// not Failed: the user did nothing wrong, and the host must tell them
+    /// something other than "login failed".
     NoPremium,
     Failed(String),
 }
@@ -141,21 +133,22 @@ pub struct NowPlaying {
 struct Shared {
     login: Mutex<LoginState>,
     now: Mutex<NowPlaying>,
-    /// Ziel-Feed des Sinks — beim Öffnen eines neuen Titels ausgetauscht.
+    /// Target feed of the sink — replaced when a new track is opened.
     current_feed: Mutex<Option<Arc<PcmFeed>>>,
-    /// Laufendes Spulen: Zielposition in ms. Solange gesetzt, ist ein Seek
-    /// „in Arbeit". librespot meldet danach noch kurz die ALTE Position
-    /// (Events laufen asynchron nach) — die würde die relative Spul-Basis
-    /// verfälschen (links spulte dann vor) und ein Seek-EndOfTrack den Titel
-    /// fälschlich weiterschalten. Solange seek_target gesetzt ist, ignorieren
-    /// wir verspätete Positions-/Ende-Events, bis ein Event die Zielposition
-    /// bestätigt (dann gilt der Seek als erledigt).
+    /// Seek in progress: target position in ms. While set, a seek is "in
+    /// progress". librespot still reports the OLD position for a short while
+    /// afterwards (events lag behind asynchronously) — that would corrupt the
+    /// base for relative seeking (seeking back would then jump forward) and a
+    /// seek EndOfTrack would wrongly advance the track. While seek_target is
+    /// set we ignore late position/end events until an event confirms the
+    /// target position (then the seek counts as done).
     seek_target: Mutex<Option<u32>>,
-    /// Basis der HÖRBAREN Position: Position beim Titelstart (0) bzw. beim
-    /// letzten bestätigten Seek. Hörbar = Basis + vom Mixer seither gespielte
-    /// Frames (feed.played_frames). librespots Event-Position ist dagegen die
-    /// DEKODIER-Position, die dem Hörbaren um den Puffer-Vorlauf vorauseilt —
-    /// als Spul-Basis wäre sie falsch (links spulte dann vor).
+    /// Base of the AUDIBLE position: position at track start (0) or at the
+    /// last confirmed seek. Audible = base + frames played by the consumer
+    /// since then (feed.played_frames). librespot's event position, by
+    /// contrast, is the DECODE position, which runs ahead of what is audible
+    /// by the buffer lead — as a seek base it would be wrong (seeking back
+    /// would then jump forward).
     audible_base_ms: Mutex<u32>,
 }
 
@@ -168,7 +161,7 @@ impl Shared {
     }
 }
 
-/// Ein Titel für Trefferlisten (Suche/Mediathek/Playlist).
+/// A track for result lists (search/library/playlist).
 #[derive(Clone, Debug)]
 pub struct TrackInfo {
     pub uri: String,
@@ -176,23 +169,22 @@ pub struct TrackInfo {
     pub artist: String,
     pub album: String,
     pub duration_ms: u32,
-    /// URIs zu Kuenstler und Album des Titels. librespot kann NUR nach Titeln
-    /// suchen (alle anderen Sucharten sind ueber den spclient nicht zu haben,
-    /// nachgeprueft 2026-08-28). Klango leitet "Kuenstler" und "Alben" deshalb
-    /// aus den Titeltreffern ab — dafuer braucht die Lua-Ebene diese beiden
-    /// Kennungen.
+    /// URIs of the track's artist and album. librespot can ONLY search for
+    /// tracks (all other search kinds are not available through spclient,
+    /// checked 2026-08-28). Artists and albums are therefore derived from the
+    /// track hits — which is why the host needs these two identifiers.
     pub artist_uri: String,
     pub album_uri: String,
 }
 
-/// Name + URI — fuer Alben, Kuenstler und aehnliche Kuenstler.
+/// Name + URI — for albums, artists and related artists.
 #[derive(Clone, Debug, Default)]
 pub struct NamedItem {
     pub uri: String,
     pub name: String,
 }
 
-/// Eine Kuenstlerseite: alles, was das Formular in Klango zeigt.
+/// An artist page: everything the host shows for an artist.
 #[derive(Clone, Debug, Default)]
 pub struct ArtistDetails {
     pub uri: String,
@@ -203,7 +195,7 @@ pub struct ArtistDetails {
     pub related: Vec<NamedItem>,
 }
 
-/// Ein Album mit seinen Titeln.
+/// An album with its tracks.
 #[derive(Clone, Debug, Default)]
 pub struct AlbumDetails {
     pub uri: String,
@@ -212,7 +204,7 @@ pub struct AlbumDetails {
     pub tracks: Vec<TrackInfo>,
 }
 
-/// Eine Playlist des Nutzers.
+/// One of the user's playlists.
 #[derive(Clone, Debug)]
 pub struct PlaylistInfo {
     pub uri: String,
@@ -220,11 +212,11 @@ pub struct PlaylistInfo {
 }
 
 // ---------------------------------------------------------------------------
-// Kommandos an den Engine-Thread
+// Commands to the engine thread
 // ---------------------------------------------------------------------------
 
 enum Cmd {
-    /// Anmelden (fire-and-forget; Lua pollt den Login-Zustand).
+    /// Log in (fire-and-forget; the host polls the login state).
     Login,
     Logout,
     Search {
@@ -245,40 +237,40 @@ enum Cmd {
         limit: usize,
         reply: std::sync::mpsc::Sender<Vec<TrackInfo>>,
     },
-    /// Empfehlungen zu einem Titel ("Song-Radio").
+    /// Recommendations for a track ("song radio").
     TrackRadio {
         uri: String,
         limit: usize,
         reply: std::sync::mpsc::Sender<Vec<TrackInfo>>,
     },
-    /// Typisierte Suche (Titel, Kuenstler, Alben, Playlists, Hoerbuecher,
-    /// Podcasts) ueber pathfinder.
+    /// Typed search (tracks, artists, albums, playlists, audiobooks,
+    /// podcasts) through pathfinder.
     SearchTyped {
         query: String,
         limit: usize,
         reply: std::sync::mpsc::Sender<Vec<SearchRow>>,
     },
-    /// Hoerbuch/Podcast mit Kapiteln bzw. Folgen.
+    /// Audiobook/podcast with its chapters or episodes.
     Show {
         uri: String,
         limit: usize,
         reply: std::sync::mpsc::Sender<Option<AlbumDetails>>,
     },
-    /// Kuenstlerseite (Top-Titel, Alben, aehnliche Kuenstler, Biografie).
+    /// Artist page (top tracks, albums, related artists, biography).
     Artist {
         uri: String,
         limit: usize,
         reply: std::sync::mpsc::Sender<Option<ArtistDetails>>,
     },
-    /// Album mit seinen Titeln.
+    /// Album with its tracks.
     Album {
         uri: String,
         limit: usize,
         reply: std::sync::mpsc::Sender<Option<AlbumDetails>>,
     },
-    /// Titel öffnen: neuen Feed erzeugen, laden, Feed zurückgeben.
-    /// `start_ms` > 0 setzt dort ein — so laeuft ein Hoerbuch an der Stelle
-    /// weiter, an der man es verlassen hat.
+    /// Open a track: create a new feed, load, return the feed.
+    /// `start_ms` > 0 starts there — so an audiobook continues where it was
+    /// left.
     Open {
         uri: String,
         start_ms: u32,
@@ -291,20 +283,20 @@ enum Cmd {
 }
 
 // ---------------------------------------------------------------------------
-// librespot-Sink → Mixer-Feed
+// librespot sink → PCM feed
 // ---------------------------------------------------------------------------
 
-/// Schiebt librespots dekodiertes PCM in den jeweils aktuellen Feed. Der Feed
-/// wird beim Öffnen eines neuen Titels ausgetauscht (Arc<Mutex<Option<…>>>),
-/// der Sink bleibt derselbe (Player wird nur einmal gebaut).
+/// Pushes librespot's decoded PCM into the current feed. The feed is
+/// replaced when a new track is opened (Arc<Mutex<Option<…>>>); the sink
+/// stays the same (the player is only built once).
 struct FeedSink {
     slot: Arc<Mutex<Option<Arc<PcmFeed>>>>,
 }
 
 impl Open for FeedSink {
     fn open(_device: Option<String>, _format: AudioFormat) -> Self {
-        // Wird nie aufgerufen — der Player baut den Sink über die Closure mit
-        // echtem Slot. Fallback: leerer Slot (write verwirft dann still).
+        // Never called — the player builds the sink through the closure with
+        // the real slot. Fallback: empty slot (write then silently discards).
         FeedSink {
             slot: Arc::new(Mutex::new(None)),
         }
@@ -321,13 +313,13 @@ impl Sink for FeedSink {
     fn write(&mut self, packet: AudioPacket, converter: &mut Converter) -> SinkResult<()> {
         match packet {
             AudioPacket::Samples(samples) => {
-                // Klango 3 wandelte hier nach i16 (converter.f64_to_s16) —
-                // Klango 4 mischt in float32, also ohne Umweg. Die
-                // Normalisierung hat der Player schon vorher angewandt.
+                // No conversion to i16: the host plays float samples, so
+                // the samples go through as f32. The player has already
+                // applied normalisation.
                 let _ = &converter;
                 let pcm: Vec<f32> = samples.iter().map(|&x| x as f32).collect();
-                // Nur in den AKTUELLEN Feed schieben; nach einem Umschalten
-                // ist der alte Feed abgebrochen und wird ignoriert.
+                // Only push into the CURRENT feed; after a switch the old
+                // feed is cancelled and ignored.
                 let feed = {
                     let g = self.slot.lock().unwrap();
                     g.clone()
@@ -340,14 +332,14 @@ impl Sink for FeedSink {
                 Ok(())
             }
             AudioPacket::Raw(_) => Err(SinkError::OnWrite(
-                "Raw-Passthrough wird nicht unterstützt".into(),
+                "raw passthrough is not supported".into(),
             )),
         }
     }
 }
 
 // ---------------------------------------------------------------------------
-// Engine (globales Singleton)
+// Engine (global singleton)
 // ---------------------------------------------------------------------------
 
 pub struct SpotifyEngine {
@@ -388,7 +380,7 @@ fn start_engine() -> SpotifyEngine {
             {
                 Ok(r) => r,
                 Err(e) => {
-                    crate::klog!("[spotify] tokio-Runtime fehlgeschlagen: {}", e);
+                    crate::klog!("[spotify] tokio runtime failed: {}", e);
                     shared_thread.set_login(LoginState::Failed("runtime".into()));
                     return;
                 }
@@ -399,9 +391,9 @@ fn start_engine() -> SpotifyEngine {
     SpotifyEngine { tx, shared }
 }
 
-/// Player-Events laufen in einem EIGENEN Task (nicht im select des Kommando-
-/// loops) — das entkoppelt sie sauber und vermeidet doppelte &mut-Ausleihen
-/// von `events`. Der Task endet, wenn der Player fällt (Kanal schließt).
+/// Player events run in a task of their OWN (not in the select of the command
+/// loop) — that cleanly decouples them and avoids double &mut borrows of
+/// `events`. The task ends when the player goes away (channel closes).
 fn spawn_event_task(mut ch: PlayerEventChannel, shared: Arc<Shared>) {
     tokio::spawn(async move {
         while let Some(ev) = ch.recv().await {
@@ -418,11 +410,11 @@ async fn engine_loop(mut rx: tokio::sync::mpsc::UnboundedReceiver<Cmd>, shared: 
     }
 }
 
-/// Gehört dieses Event zum GERADE geladenen Titel? Beim Umschalten feuert
-/// librespot für den ALTEN Titel noch Stopped/EndOfTrack — würde man das blind
-/// auf shared.current_feed (schon der NEUE Feed!) anwenden, gälte der neue
-/// Titel sofort als „fertig" und der Player sprang endlos weiter. Darum jedes
-/// Ende-/Fehler-Event an der Track-URI festmachen.
+/// Does this event belong to the track that is loaded RIGHT NOW? When
+/// switching, librespot still fires Stopped/EndOfTrack for the OLD track — if
+/// that were applied blindly to shared.current_feed (already the NEW feed!),
+/// the new track would immediately count as "finished" and the player would
+/// skip on endlessly. Hence every end/error event is tied to the track URI.
 fn is_current(track_id: &SpotifyUri, shared: &Arc<Shared>) -> bool {
     match track_id.to_uri() {
         Ok(u) => u == shared.now.lock().unwrap().uri,
@@ -430,12 +422,12 @@ fn is_current(track_id: &SpotifyUri, shared: &Arc<Shared>) -> bool {
     }
 }
 
-/// Seek abschließen: Ziel löschen, Spul-Tor öffnen (der Mixer spielt wieder
-/// den Feed statt Stille) und die echte Position übernehmen.
+/// Completes a seek: clear the target, open the seek gate (the consumer plays
+/// the feed again instead of silence) and adopt the real position.
 fn finish_seek(shared: &Arc<Shared>, position_ms: u32) {
     *shared.seek_target.lock().unwrap() = None;
-    // Neue Hörbar-Basis: ab hier zählt der Mixer wieder gespielte Frames.
-    // Zähler VOR dem Tor-Öffnen nullen, sonst zählten Alt-Frames mit.
+    // New audible base: from here on the consumer counts played frames again.
+    // Reset the counter BEFORE opening the gate, otherwise stale frames count.
     *shared.audible_base_ms.lock().unwrap() = position_ms;
     if let Some(feed) = shared.current_feed.lock().unwrap().as_ref() {
         feed.reset_played();
@@ -444,8 +436,8 @@ fn finish_seek(shared: &Arc<Shared>, position_ms: u32) {
     shared.now.lock().unwrap().position_ms = position_ms;
 }
 
-/// HÖRBARE Position: Basis (Titelstart/letzter Seek) + vom Mixer seither
-/// gespielte Frames. Fallback (kein Feed/Format): librespots Event-Position.
+/// AUDIBLE position: base (track start/last seek) + frames played by the
+/// consumer since then. Fallback (no feed/format): librespot's event position.
 fn audible_position_ms(shared: &Arc<Shared>) -> u32 {
     let base = *shared.audible_base_ms.lock().unwrap();
     let feed = shared.current_feed.lock().unwrap().clone();
@@ -459,10 +451,10 @@ fn audible_position_ms(shared: &Arc<Shared>) -> u32 {
     shared.now.lock().unwrap().position_ms
 }
 
-/// Position aus einem librespot-Event übernehmen — aber während eines
-/// laufenden Seeks die noch verspätet gemeldete ALTE Position ignorieren, bis
-/// ein Event die Zielposition (± Toleranz) bestätigt (Fallback, falls das
-/// Seeked-Event ausbleibt). Dann gilt der Seek als erledigt.
+/// Adopts the position from a librespot event — but while a seek is in
+/// progress, ignore the OLD position still reported late, until an event
+/// confirms the target position (± tolerance) (fallback in case the Seeked
+/// event never comes). Then the seek counts as done.
 fn apply_position(shared: &Arc<Shared>, position_ms: u32) {
     const SEEK_SETTLE_MS: u32 = 3000;
     enum A {
@@ -504,7 +496,7 @@ fn handle_event(ev: PlayerEvent, shared: &Arc<Shared>) {
             }
         }
         PlayerEvent::Seeked { position_ms, track_id, .. } => {
-            // Autoritatives Seek-Ende: Tor auf, echte Position übernehmen.
+            // Authoritative end of seek: open the gate, adopt the real position.
             if is_current(&track_id, shared) {
                 finish_seek(shared, position_ms);
             }
@@ -515,11 +507,12 @@ fn handle_event(ev: PlayerEvent, shared: &Arc<Shared>) {
             }
         }
         PlayerEvent::EndOfTrack { track_id, .. } => {
-            // NUR Ende des laufenden Titels — nicht das Stop-Echo eines
-            // vorherigen Titels (is_current). Lief noch ein Seek, hat das
-            // Titelende ihn überholt: der Player ist schon gestoppt, ein
-            // Seeked kommt nie mehr — den Seek abschließen, sonst bleibt das
-            // Spul-Tor für immer zu (Dauer-Stille statt Titelwechsel).
+            // ONLY the end of the current track — not the stop echo of a
+            // previous track (is_current). If a seek was still running, the
+            // end of track overtook it: the player has already stopped, and a
+            // Seeked will never come — complete the seek, otherwise the seek
+            // gate stays closed forever (endless silence instead of the next
+            // track).
             if is_current(&track_id, shared) {
                 if seeking(shared) {
                     let d = shared.now.lock().unwrap().duration_ms;
@@ -533,7 +526,7 @@ fn handle_event(ev: PlayerEvent, shared: &Arc<Shared>) {
             }
         }
         PlayerEvent::Unavailable { track_id, .. } => {
-            // Titel nicht abspielbar — häufigster Grund: kein Premium.
+            // Track not playable — most common reason: no Premium.
             if is_current(&track_id, shared) && !seeking(shared) {
                 if let Some(feed) = shared.current_feed.lock().unwrap().as_ref() {
                     feed.set_state_ext("unavailable");
@@ -543,9 +536,10 @@ fn handle_event(ev: PlayerEvent, shared: &Arc<Shared>) {
                 shared.set_state("unavailable");
             }
         }
-        // Stopped feuert beim Umschalten/Laden (für den ALTEN Titel) — der Feed
-        // wird beim expliziten Stop ohnehin in Lua/Control aufgeräumt. Hier
-        // bewusst ignorieren, sonst gilt der neue Titel sofort als gestoppt.
+        // Stopped fires on switching/loading (for the OLD track) — on an
+        // explicit stop the feed is cleaned up by control() anyway. Ignored
+        // deliberately here, otherwise the new track would count as stopped
+        // at once.
         _ => {}
     }
 }
@@ -558,14 +552,14 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
             }
             shared.set_login(LoginState::LoggingIn);
             reset_trouble();
-            // Ausdruecklicher Login: nur HIER darf ein Browser aufgehen.
+            // Explicit login: only HERE may a browser open.
             match reconnect(conn, shared, true, Resume::Keep).await {
                 Ok(()) => {}
                 Err(e) if e == NO_PREMIUM => {
-                    crate::klog!("[spotify] Konto ohne Premium — keine Wiedergabe.");
+                    crate::klog!("[spotify] account without Premium — no playback.");
                 }
                 Err(e) => {
-                    crate::klog!("[spotify] Login fehlgeschlagen: {}", e);
+                    crate::klog!("[spotify] login failed: {}", e);
                     shared.set_login(LoginState::Failed(e));
                 }
             }
@@ -575,12 +569,12 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
             *shared.current_feed.lock().unwrap() = None;
             *shared.now.lock().unwrap() = NowPlaying::default();
             shared.set_login(LoginState::LoggedOut);
-            // Zwischengespeicherte Credentials löschen, damit der nächste Login
-            // wirklich neu anmeldet.
+            // Clear the stored credentials so that the next login really
+            // signs in anew.
             forget_credentials();
         }
         Cmd::Search { query, limit, reply } => {
-            let out = run_query(conn, shared, "Suche", |s: Session| {
+            let out = run_query(conn, shared, "Search", |s: Session| {
                 let q = &query;
                 async move { search_tracks(&s, q, limit).await }
             })
@@ -588,7 +582,7 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
             let _ = reply.send(out.unwrap_or_default());
         }
         Cmd::Library { limit, reply } => {
-            let out = run_query(conn, shared, "Mediathek", |s: Session| async move {
+            let out = run_query(conn, shared, "Library", |s: Session| async move {
                 liked_tracks(&s, limit).await
             })
             .await;
@@ -602,7 +596,7 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
             let _ = reply.send(out.unwrap_or_default());
         }
         Cmd::PlaylistTracks { uri, limit, reply } => {
-            let out = run_query(conn, shared, "Playlist-Titel", |s: Session| {
+            let out = run_query(conn, shared, "Playlist tracks", |s: Session| {
                 let u = &uri;
                 async move { playlist_tracks(&s, u, limit).await }
             })
@@ -610,7 +604,7 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
             let _ = reply.send(out.unwrap_or_default());
         }
         Cmd::TrackRadio { uri, limit, reply } => {
-            let out = run_query(conn, shared, "Song-Radio", |s: Session| {
+            let out = run_query(conn, shared, "Song radio", |s: Session| {
                 let u = &uri;
                 async move { track_radio(&s, u, limit).await }
             })
@@ -618,13 +612,13 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
             let _ = reply.send(out.unwrap_or_default());
         }
         Cmd::SearchTyped { query, limit, reply } => {
-            let out = run_query(conn, shared, "Suche", |s: Session| {
+            let out = run_query(conn, shared, "Search", |s: Session| {
                 let q = &query;
                 async move {
                     match search_typed(&s, q, limit).await {
                         Some(rows) => Some(rows),
-                        // pathfinder nicht erreichbar (Abfrage-Hash veraltet?):
-                        // wenigstens die Titel ueber den Kontextweg liefern.
+                        // pathfinder not reachable (query hash outdated?):
+                        // at least deliver the tracks through the context route.
                         None => search_tracks(&s, q, limit).await.map(|v| {
                             v.into_iter()
                                 .map(|t| SearchRow {
@@ -645,7 +639,7 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
             let _ = reply.send(out.unwrap_or_default());
         }
         Cmd::Show { uri, limit, reply } => {
-            let out = run_query(conn, shared, "Hoerbuch/Podcast", |s: Session| {
+            let out = run_query(conn, shared, "Audiobook/podcast", |s: Session| {
                 let u = &uri;
                 async move { show_details(&s, u, limit).await }
             })
@@ -653,7 +647,7 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
             let _ = reply.send(out);
         }
         Cmd::Artist { uri, limit, reply } => {
-            let out = run_query(conn, shared, "Kuenstler", |s: Session| {
+            let out = run_query(conn, shared, "Artist", |s: Session| {
                 let u = &uri;
                 async move { artist_details(&s, u, limit).await }
             })
@@ -670,9 +664,9 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
         }
         Cmd::Open { uri, start_ms, reply } => {
             reset_trouble();
-            // Der alte Titel wird ohnehin ersetzt — nichts fortsetzen.
+            // The old track is replaced anyway — resume nothing.
             if let Err(e) = ensure_live(conn, shared, Resume::Drop).await {
-                crate::klog!("[spotify] Titel oeffnen: {}", e);
+                crate::klog!("[spotify] opening track: {}", e);
             }
             let feed = open_track(&conn.session, &conn.player, shared, &uri, start_ms).await;
             let _ = reply.send(feed);
@@ -689,17 +683,17 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
                 return;
             }
             if action == "seekrel" {
-                // Relatives Spulen (Pfeil links/rechts im Klango-Player):
-                // arg = Verschiebung in ms (±). Der Mixer-Feed selbst ist
-                // nicht spulbar (Live-Strom) — deshalb rechnet die Engine
-                // aus der aktuellen Position eine neue absolute Position und
-                // lässt librespot dorthin springen.
+                // Relative seeking (left/right arrow in the host's player):
+                // arg = offset in ms (±). The PCM feed itself cannot seek
+                // (it is a live stream) — so the engine computes a new
+                // absolute position from the current one and lets librespot
+                // jump there.
                 //
-                // Titel schon fertig dekodiert (librespot intern
-                // gestoppt)? Dann wäre p.seek ein No-Op — es käme nie
-                // ein Seeked, das Tor bliebe zu und der Titel hinge in
-                // Dauer-Stille. Spulen im Auslauf-Rest still ignorieren;
-                // das natürliche Ende (Titelwechsel) kommt gleich.
+                // Track already fully decoded (librespot stopped
+                // internally)? Then p.seek would be a no-op — no Seeked
+                // would ever come, the gate would stay closed and the track
+                // would hang in endless silence. Silently ignore seeking in
+                // the remaining tail; the natural end (next track) is near.
                 let feed_done = shared
                     .current_feed
                     .lock()
@@ -710,12 +704,12 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
                 if feed_done || conn.player.is_none() {
                     return;
                 }
-                // Basis ist das laufende Seek-Ziel (falls gerade gespult
-                // wird), sonst die HÖRBARE Position — librespots Event-
-                // Position ist die Dekodier-Position und eilt dem Ohr
-                // um den Puffer-Vorlauf voraus (links spulte dann vor).
-                // So addieren sich schnelle Tastendrücke verlässlich
-                // auf, ohne von verspäteten Events verfälscht zu werden.
+                // The base is the running seek target (if a seek is in
+                // progress), otherwise the AUDIBLE position — librespot's
+                // event position is the decode position and runs ahead of
+                // the ear by the buffer lead (seeking back would then jump
+                // forward). This way quick key presses add up reliably
+                // without being distorted by late events.
                 let dur = shared.now.lock().unwrap().duration_ms as i64;
                 let base = shared
                     .seek_target
@@ -727,9 +721,9 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
                 if np < 0 {
                     np = 0;
                 }
-                // Nie GANZ ans Ende springen: ein Seek auf die letzte
-                // Sekunde stoppt librespot sofort (EndOfTrack statt
-                // Seeked) — kurz davor landen und normal auslaufen.
+                // Never jump RIGHT to the end: a seek to the last second
+                // makes librespot stop at once (EndOfTrack instead of
+                // Seeked) — land shortly before it and let it run out.
                 if dur > 2000 && np > dur - 2000 {
                     np = dur - 2000;
                 } else if dur > 0 && np > dur {
@@ -737,22 +731,22 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
                 }
                 let np = np as u32;
 
-                // Verbindung tot? Dann braucht der Sprung Audiodaten, die
-                // ueber die alte Sitzung nie mehr kommen. Statt p.seek neu
-                // verbinden und den Titel gleich an der Zielstelle neu laden.
+                // Connection dead? Then the jump needs audio data that will
+                // never arrive over the old session. Instead of p.seek,
+                // reconnect and reload the track right at the target.
                 if !conn.alive() && has_cached_credentials() {
                     reset_trouble();
                     if let Ok(true) = ensure_live(conn, shared, Resume::At(np)).await {
                         return;
                     }
-                    // Neuaufbau gescheitert: mit dem alten Player versuchen.
+                    // Re-establishing failed: try with the old player.
                 }
 
                 *shared.seek_target.lock().unwrap() = Some(np);
-                shared.now.lock().unwrap().position_ms = np; // optimistisch anzeigen
-                // Tor ZU + Ring leeren VOR dem Seek: ab jetzt verwirft der
-                // Mixer den (noch alten) Feed-Nachschub, bis librespot den
-                // Sprung bestätigt — kein Vorwärts-Klang beim Rückspulen.
+                shared.now.lock().unwrap().position_ms = np; // show optimistically
+                // Gate CLOSED + ring drained BEFORE the seek: from now on the
+                // consumer discards the (still old) feed data until librespot
+                // confirms the jump — no forward sound when seeking back.
                 if let Some(feed) = shared.current_feed.lock().unwrap().as_ref() {
                     feed.set_gate(true);
                     feed.clear_pcm();
@@ -774,16 +768,16 @@ async fn handle_cmd(cmd: Cmd, conn: &mut Conn, shared: &Arc<Shared>) {
     }
 }
 
-/// Kennzeichen fuer "Konto ohne Premium" auf dem Fehlerweg von
-/// `connect_session`. Ein eigener Fehlertext waere uebersetzbar und damit
-/// unzuverlaessig zu vergleichen; diese Zeichenkette ist ein Schluessel.
+/// Marker for "account without Premium" on the error path of
+/// `connect_session`. An error text of its own could be translated and would
+/// be unreliable to compare; this string is a key.
 const NO_PREMIUM: &str = "nopremium";
-/// Keine gespeicherten Anmeldedaten (und kein Browser erlaubt).
+/// No stored credentials (and no browser allowed).
 const NOT_LOGGED_IN: &str = "notloggedin";
-/// Spotify hat die gespeicherten Anmeldedaten abgelehnt.
+/// Spotify rejected the stored credentials.
 const REJECTED: &str = "rejected";
 
-/// Die gespeicherten Anmeldedaten wegräumen.
+/// Clears the stored credentials.
 fn forget_credentials() {
     let had = CREDENTIALS.lock().unwrap().take().is_some();
     if had {
@@ -792,7 +786,7 @@ fn forget_credentials() {
 }
 
 // ---------------------------------------------------------------------------
-// Stored credentials (Klangten)
+// Stored credentials
 // ---------------------------------------------------------------------------
 //
 // librespot would write its reusable credentials as plain JSON into the cache
@@ -856,12 +850,12 @@ fn remember_credentials(sess: &Session) {
     }
 }
 
-/// Wartet kurz darauf, dass Spotify die Kontoart meldet.
+/// Waits briefly for Spotify to report the account type.
 ///
-/// Die Produktinformation kommt als eigenes Paket, kurz NACH dem Anmelden —
-/// direkt hinter `connect` steht sie noch nicht fest. Wir warten hoechstens
-/// ein paar Sekunden; bleibt die Auskunft aus, gilt das Konto als brauchbar
-/// (lieber einmal zu viel abspielen als eine gueltige Anmeldung abweisen).
+/// The product information arrives as a packet of its own, shortly AFTER
+/// login — right after `connect` it is not known yet. We wait a few seconds
+/// at most; if the information does not come, the account counts as usable
+/// (better to play once too often than to reject a valid login).
 async fn ist_premium(sess: &Session) -> bool {
     use std::time::{Duration, Instant};
     let bis = Instant::now() + Duration::from_secs(5);
@@ -877,35 +871,35 @@ async fn ist_premium(sess: &Session) -> bool {
     !librespot_core::session::non_premium_seen()
 }
 
-/// True, wenn librespot gespeicherte Anmeldedaten hat (stiller Login möglich).
+/// True if stored credentials exist (silent login possible).
 pub fn has_cached_credentials() -> bool {
     CREDENTIALS.lock().unwrap().is_some()
 }
 
 // ---------------------------------------------------------------------------
-// Verbindung: aufbauen, pruefen, neu aufbauen
+// Connection: establish, check, re-establish
 // ---------------------------------------------------------------------------
 //
-// Spotify trennt die Verbindung nach laengerem Leerlauf, bei Netzwechseln und
-// im Ruhezustand des Rechners. librespot verbindet NICHT von selbst neu; es
-// erklaert die Session hoechstens fuer ungueltig — und auch das erst, wenn
-// sein Keep-Alive-Timer ablaeuft. Der laeuft auf dem monotonen Takt, der auf
-// macOS im Ruhezustand stillsteht: nach dem Aufwachen galt eine tote Sitzung
-// noch minutenlang als gesund, und librespots HTTP-Anfragen (ohne jede
-// Zeitgrenze) hingen auf toten Verbindungen.
+// Spotify drops the connection after a long idle period, on network changes
+// and while the computer sleeps. librespot does NOT reconnect by itself; at
+// most it declares the session invalid — and even that only when its
+// keep-alive timer expires. That timer runs on the monotonic clock, which
+// stands still during sleep on macOS: after waking up, a dead session still
+// counted as healthy for minutes, and librespot's HTTP requests (without any
+// time limit) hung on dead connections.
 //
-// Darum gilt bei JEDEM Zugriff:
-//   1. ensure_live: Session ungueltig ODER seit STALE_AFTER_MS (Wanduhr) kein
-//      Paket vom Access Point → still neu verbinden (gespeicherte
-//      Anmeldedaten, nie ein Browser).
-//   2. Jede einzelne Anfrage hat eine Zeitgrenze (REQ_TIMEOUT, `net`).
-//   3. Scheitert ein Aufruf trotzdem an einem NETZfehler, wird einmal neu
-//      verbunden und wiederholt (`run_query`).
-// Ein Neuaufbau baut auch den Player neu (er haengt an seiner Session) und
-// setzt einen laufenden Titel an der hoerbaren Stelle im SELBEN Feed fort —
-// Klangos Mixer-Instanz merkt davon nur eine kurze Luecke.
+// Hence, on EVERY access:
+//   1. ensure_live: session invalid OR no packet from the access point for
+//      STALE_AFTER_MS (wall clock) → silently reconnect (stored
+//      credentials, never a browser).
+//   2. Every single request has a time limit (REQ_TIMEOUT, `net`).
+//   3. If a call still fails with a NETWORK error, reconnect once and retry
+//      (`run_query`).
+// Re-establishing also rebuilds the player (it is tied to its session) and
+// resumes a running track at the audible position in the SAME feed — the
+// host's audio stream only notices a short gap.
 
-/// Session + Player. Der Player haengt an genau dieser Session.
+/// Session + player. The player is tied to exactly this session.
 #[derive(Default)]
 struct Conn {
     session: Option<Session>,
@@ -922,14 +916,14 @@ fn session_alive(s: &Session) -> bool {
     !s.is_invalid() && s.millis_since_last_packet() < STALE_AFTER_MS
 }
 
-/// Hat der laufende Versuch eines Kommandos ein NETZproblem gesehen
-/// (Zeitueberschreitung, Verbindungsfehler, abgelaufenes Token)? Nur dann
-/// lohnt Neuverbinden + Wiederholen — ein schlicht nicht gefundenes Album soll
-/// die laufende Musik nicht unterbrechen. Global, weil die Metadaten in
-/// eigenen tokio-Tasks laufen; die Engine arbeitet ohnehin ein Kommando nach
-/// dem anderen ab. Zugleich die Notbremse: ist es gesetzt, gehen weitere
-/// Anfragen gar nicht erst raus (sonst wartete eine Liste von 100 Titeln
-/// 100 Mal REQ_TIMEOUT ab).
+/// Has the current attempt of a command seen a NETWORK problem (timeout,
+/// connection error, expired token)? Only then is reconnecting + retrying
+/// worthwhile — an album that simply was not found should not interrupt the
+/// music that is playing. Global, because the metadata requests run in tokio
+/// tasks of their own; the engine processes one command after the other
+/// anyway. At the same time the emergency brake: while it is set, further
+/// requests are not even sent (otherwise a list of 100 tracks would wait out
+/// REQ_TIMEOUT 100 times).
 static NET_TROUBLE: AtomicBool = AtomicBool::new(false);
 
 fn reset_trouble() {
@@ -942,12 +936,12 @@ fn trouble() -> bool {
 
 fn note_trouble(what: &str) {
     if !NET_TROUBLE.swap(true, Ordering::SeqCst) {
-        crate::klog!("[spotify] Netzproblem: {}", what);
+        crate::klog!("[spotify] network problem: {}", what);
     }
 }
 
-/// Fehlerarten, hinter denen eine kaputte Verbindung stecken kann (im
-/// Gegensatz zu "nicht gefunden", "nicht erlaubt", "unlesbar").
+/// Error kinds that may hide a broken connection (as opposed to "not
+/// found", "not allowed", "unreadable").
 fn is_net_error(e: &librespot_core::Error) -> bool {
     matches!(
         e.kind,
@@ -961,14 +955,14 @@ fn is_net_error(e: &librespot_core::Error) -> bool {
     )
 }
 
-/// Eine librespot-Anfrage mit Zeitgrenze. Netzfehler und Zeitueberschreitung
-/// merkt sich NET_TROUBLE; andere Fehler (nicht gefunden …) nicht.
+/// A librespot request with a time limit. NET_TROUBLE records network errors
+/// and timeouts; other errors (not found …) do not.
 async fn net<T>(
     what: &str,
     fut: impl std::future::Future<Output = Result<T, librespot_core::Error>>,
 ) -> Option<T> {
     if trouble() {
-        return None; // Verbindung schon als kaputt erkannt: nicht noch warten
+        return None; // connection already known to be broken: do not wait any longer
     }
     match tokio::time::timeout(REQ_TIMEOUT, fut).await {
         Ok(Ok(v)) => Some(v),
@@ -980,7 +974,7 @@ async fn net<T>(
         }
         Err(_) => {
             note_trouble(&format!(
-                "{}: keine Antwort nach {} s",
+                "{}: no answer after {} s",
                 what,
                 REQ_TIMEOUT.as_secs()
             ));
@@ -989,13 +983,13 @@ async fn net<T>(
     }
 }
 
-/// Was nach einem Neuaufbau mit dem laufenden Titel geschieht.
+/// What happens to the running track after re-establishing.
 enum Resume {
-    /// An der hoerbaren Stelle fortsetzen.
+    /// Resume at the audible position.
     Keep,
-    /// An dieser Stelle (ms) fortsetzen — Spulen ueber eine tote Verbindung.
+    /// Resume at this position (ms) — seeking over a dead connection.
     At(u32),
-    /// Nicht fortsetzen (gleich kommt ohnehin ein anderer Titel).
+    /// Do not resume (another track is about to come anyway).
     Drop,
 }
 
@@ -1006,7 +1000,7 @@ struct ResumePoint {
     feed: Arc<PcmFeed>,
 }
 
-/// Laeuft gerade ein Titel, der nach einem Neuaufbau weiterlaufen soll?
+/// Is a track playing that should continue after re-establishing?
 fn resume_point(shared: &Arc<Shared>, at: Option<u32>) -> Option<ResumePoint> {
     let feed = shared.current_feed.lock().unwrap().clone()?;
     if feed.is_done() || feed.is_cancelled() {
@@ -1036,10 +1030,10 @@ fn resume_point(shared: &Arc<Shared>, at: Option<u32>) -> Option<ResumePoint> {
     })
 }
 
-/// Den Titel auf dem NEUEN Player an `rp.pos` fortsetzen — in denselben Feed,
-/// den Klangos Mixer gerade spielt. Laeuft ueber die Spul-Mechanik: Tor zu,
-/// bis librespot die Zielposition meldet (finish_seek), so dass kein Rest des
-/// alten Players hoerbar wird.
+/// Resumes the track on the NEW player at `rp.pos` — into the same feed the
+/// host is playing right now. Uses the seek mechanism: gate closed until
+/// librespot reports the target position (finish_seek), so that nothing left
+/// over from the old player becomes audible.
 fn resume_track(conn: &Conn, shared: &Arc<Shared>, rp: ResumePoint) {
     let player = match conn.player.as_ref() {
         Some(p) => p,
@@ -1057,21 +1051,21 @@ fn resume_track(conn: &Conn, shared: &Arc<Shared>, rp: ResumePoint) {
     rp.feed.set_gate(true);
     rp.feed.clear_pcm();
     crate::klog!(
-        "[spotify] setze {} bei {} s fort",
+        "[spotify] resuming {} at {} s",
         rp.uri,
         rp.pos / 1000
     );
     player.load(uri, rp.play, rp.pos);
 }
 
-/// Alte Session + Player abraeumen, OHNE den Engine-Thread zu blockieren.
+/// Clears away the old session + player WITHOUT blocking the engine thread.
 ///
-/// `Player::drop` wartet (join) auf den Player-Thread. Der kann in
-/// FeedSink::write stecken — der Ring ist voll, weil Klangos Mixer den Titel
-/// angehalten hat — und kaeme dann nie frei. Im async-Kontext hielte das den
-/// ganzen Engine-Thread fest: keine Suche, kein Titel, nichts mehr. Darum
-/// fallen gelassen wird auf einem Wegwerf-Thread; der alte Sink bekommt
-/// vorher seinen Slot entzogen und verwirft alles Weitere.
+/// `Player::drop` waits (join) for the player thread. That thread can be
+/// stuck in FeedSink::write — the ring is full because the host paused the
+/// track — and would then never get free. In the async context this would
+/// hold the whole engine thread: no search, no track, nothing any more. So
+/// the drop happens on a throwaway thread; the old sink first has its slot
+/// taken away and discards everything that follows.
 fn retire(conn: &mut Conn) {
     if let Some(slot) = SINK_SLOT.lock().unwrap().take() {
         *slot.lock().unwrap() = None;
@@ -1089,34 +1083,34 @@ fn retire(conn: &mut Conn) {
     }
 }
 
-/// Stellt vor jeder Anfrage/Wiedergabe sicher, dass die Session LEBT; baut sie
-/// sonst still aus den gespeicherten Anmeldedaten neu auf (nie ein Browser:
-/// eine Hintergrundanfrage darf keinen oeffnen). Ok(true) = neu verbunden.
+/// Before every request/playback, makes sure the session is ALIVE; otherwise
+/// silently rebuilds it from the stored credentials (never a browser: a
+/// background request must not open one). Ok(true) = reconnected.
 async fn ensure_live(conn: &mut Conn, shared: &Arc<Shared>, resume: Resume) -> Result<bool, String> {
     if conn.alive() {
         return Ok(false);
     }
     match conn.session.as_ref() {
         Some(s) if s.is_invalid() => {
-            crate::klog!("[spotify] Session von librespot beendet — verbinde neu…");
+            crate::klog!("[spotify] session ended by librespot — reconnecting…");
         }
         Some(s) => {
             crate::klog!(
-                "[spotify] seit {} s kein Lebenszeichen vom Access Point — verbinde neu…",
+                "[spotify] no sign of life from the access point for {} s — reconnecting…",
                 s.millis_since_last_packet() / 1000
             );
         }
         None => {}
     }
     if !has_cached_credentials() {
-        return Err("nicht bei Spotify angemeldet".to_string());
+        return Err("not logged in to Spotify".to_string());
     }
     reconnect(conn, shared, false, resume).await.map(|_| true)
 }
 
-/// Neue Session aufbauen und ERST DANN die alte ersetzen ("make before
-/// break"): klappt der Neuaufbau nicht (Netz noch weg), bleibt alles, wie es
-/// war — ein Titel, der aus dem Puffer weiterspielt, wird nicht abgewuergt.
+/// Builds a new session and ONLY THEN replaces the old one ("make before
+/// break"): if re-establishing fails (network still gone), everything stays
+/// as it was — a track that keeps playing from the buffer is not cut off.
 async fn reconnect(
     conn: &mut Conn,
     shared: &Arc<Shared>,
@@ -1132,15 +1126,15 @@ async fn reconnect(
             } else if e == NOT_LOGGED_IN {
                 shared.set_login(LoginState::LoggedOut);
             } else if e == REJECTED {
-                // Anmeldedaten ungueltig: Klango soll beim naechsten Oeffnen
-                // wieder anmelden (dann mit Browser).
+                // Credentials invalid: the host should log in again on the
+                // next open (with the browser then).
                 shared.set_login(LoginState::Failed(e.clone()));
             }
-            // Netzfehler: Zustand bleibt; der naechste Zugriff versucht es neu.
+            // Network error: the state stays; the next access tries again.
             return Err(e);
         }
     };
-    // Stelle des laufenden Titels erst JETZT nehmen — der Aufbau hat gedauert.
+    // Take the position of the running track only NOW — establishing took time.
     let rp = match resume {
         Resume::Keep => resume_point(shared, None),
         Resume::At(ms) => resume_point(shared, Some(ms)),
@@ -1149,19 +1143,19 @@ async fn reconnect(
     retire(conn);
     install_player(conn, shared, sess);
     shared.set_login(LoginState::LoggedIn);
-    crate::klog!("[spotify] verbunden");
+    crate::klog!("[spotify] connected");
     if let Some(rp) = rp {
         resume_track(conn, shared, rp);
     }
     Ok(())
 }
 
-/// Eine Session verbinden: gespeicherte Anmeldedaten, sonst (nur wenn
-/// `interactive`) OAuth im Browser. Mit Zeitgrenze, damit ein totes Netz den
-/// Engine-Thread nicht festhaelt.
+/// Connects a session: stored credentials, otherwise (only when
+/// `interactive`) OAuth in the browser. With a time limit, so that a dead
+/// network does not hold the engine thread.
 async fn connect_session(interactive: bool) -> Result<Session, String> {
-    // Klangten: no credentials and no audio files on disk - the cache keeps
-    // only librespot's volume file. Credentials come from the host
+    // No credentials and no audio files on disk - the cache keeps only
+    // librespot's volume file. Credentials come from the host
     // (stored_credentials), and the audio is streamed, never stored.
     let dir = cache_dir();
     let _ = std::fs::create_dir_all(&dir);
@@ -1175,46 +1169,45 @@ async fn connect_session(interactive: bool) -> Result<Session, String> {
     };
 
     let sess = Session::new(SessionConfig::default(), Some(cache));
-    // Vor JEDEM Versuch zuruecksetzen: das Merkmal ist global und ueberlebt
-    // sonst einen Kontowechsel.
+    // Reset before EVERY attempt: the flag is global and would otherwise
+    // survive a change of account.
     librespot_core::session::reset_non_premium();
     match tokio::time::timeout(CONNECT_TIMEOUT, sess.connect(credentials, true)).await {
         Ok(Ok(())) => {}
-        // Zwischengespeicherte Credentials abgelehnt → einmal per OAuth neu —
-        // aber NUR beim ausdruecklichen Login. Ein Netzfehler ist KEIN Grund
-        // fuer den Browser (frueher oeffnete ihn jeder gescheiterte Neuaufbau,
-        // und der Engine-Thread wartete dann ewig auf die Anmeldung).
+        // Stored credentials rejected → once more via OAuth — but ONLY on an
+        // explicit login. A network error is NO reason for the browser (it
+        // used to be opened by every failed re-establishment, and the engine
+        // thread then waited forever for the login).
         Ok(Err(e)) if e.kind == ErrorKind::PermissionDenied => {
             if !interactive {
-                crate::klog!("[spotify] gespeicherte Anmeldung abgelehnt: {e}");
+                crate::klog!("[spotify] stored login rejected: {e}");
                 return Err(REJECTED.to_string());
             }
-            crate::klog!("[spotify] Verbindung mit Cache-Credentials scheiterte: {e}. OAuth…");
+            crate::klog!("[spotify] connecting with stored credentials failed: {e}. OAuth…");
             let fresh = oauth_login().await?;
             match tokio::time::timeout(CONNECT_TIMEOUT, sess.connect(fresh, true)).await {
                 Ok(Ok(())) => {}
-                Ok(Err(e)) => return Err(format!("Verbindung: {}", e)),
-                Err(_) => return Err("Verbindung: Zeitueberschreitung".to_string()),
+                Ok(Err(e)) => return Err(format!("Connection: {}", e)),
+                Err(_) => return Err("Connection: timed out".to_string()),
             }
         }
-        Ok(Err(e)) => return Err(format!("Verbindung: {}", e)),
+        Ok(Err(e)) => return Err(format!("Connection: {}", e)),
         Err(_) => {
             return Err(format!(
-                "Verbindung: keine Antwort nach {} s",
+                "Connection: no answer after {} s",
                 CONNECT_TIMEOUT.as_secs()
             ))
         }
     }
 
-    // Ohne Premium liefert Spotify keine Audiodaten — librespot kann damit
-    // nichts anfangen und beendete im Original an dieser Stelle den ganzen
-    // Prozess (siehe vendor/librespot-core). Wir hoeren stattdessen hier auf,
-    // und zwar BEVOR ein Player entsteht.
+    // Without Premium Spotify delivers no audio data — librespot cannot do
+    // anything with such an account and upstream ends the whole process at
+    // this point (see vendor/librespot-core/PATCHES.md). We stop here instead,
+    // BEFORE a player is created.
     //
-    // Die Anmeldedaten muessen dabei wieder weg: librespot legt sie beim
-    // Verbinden ab, und Klango meldet sich beim Start still damit an — ein
-    // Gratis-Konto im Zwischenspeicher hiesse also, bei jedem Start erneut
-    // gegen dieselbe Wand zu laufen.
+    // The credentials have to go as well: the host logs in silently with
+    // them on startup — a free account in the store would mean running into
+    // the same wall again on every start.
     if !ist_premium(&sess).await {
         forget_credentials();
         sess.shutdown();
@@ -1224,8 +1217,8 @@ async fn connect_session(interactive: bool) -> Result<Session, String> {
     Ok(sess)
 }
 
-/// Den Player fuer diese Session bauen; der Sink schreibt in einen frischen
-/// Slot (SINK_SLOT), den open_track bzw. resume_track fuellt.
+/// Builds the player for this session; the sink writes into a fresh slot
+/// (SINK_SLOT), which open_track or resume_track fills.
 fn install_player(conn: &mut Conn, shared: &Arc<Shared>, sess: Session) {
     let slot: Arc<Mutex<Option<Arc<PcmFeed>>>> = Arc::new(Mutex::new(None));
     *SINK_SLOT.lock().unwrap() = Some(slot.clone());
@@ -1233,12 +1226,12 @@ fn install_player(conn: &mut Conn, shared: &Arc<Shared>, sess: Session) {
     let player_config = PlayerConfig {
         bitrate: Bitrate::Bitrate320,
         gapless: true,
-        // Lautstärke-Normalisierung (wie Spotifys „Lautstärke anpassen", dort
-        // standardmäßig an): librespot bringt Titel per ReplayGain auf ein
-        // einheitliches, moderates Niveau — sonst gibt es Spotifys sehr laute
-        // Master mit vollem Pegel aus und übertönt Klangos Sprache/Sounds
-        // (es wirkte, als ignoriere Spotify die Klango-Lautstärke). Klangos
-        // Master-/Otoczenie-Regler (F5/F6) greift weiterhin obendrauf.
+        // Volume normalisation (like Spotify's "Normalize volume", on by
+        // default there): librespot brings tracks to a uniform, moderate
+        // level via ReplayGain — otherwise it outputs Spotify's very loud
+        // masters at full level and drowns out the host's speech and sounds
+        // (it seemed as if Spotify ignored the host's volume). The host's own
+        // volume control still applies on top.
         normalisation: true,
         position_update_interval: Some(Duration::from_secs(1)),
         ..Default::default()
@@ -1255,10 +1248,10 @@ fn install_player(conn: &mut Conn, shared: &Arc<Shared>, sess: Session) {
     conn.session = Some(sess);
 }
 
-/// Eine Abfrage mit lebender Session ausfuehren; scheitert sie an einem
-/// NETZfehler (s. NET_TROUBLE), einmal neu verbinden und wiederholen.
-/// Schlimmster Fall: REQ_TIMEOUT + CONNECT_TIMEOUT + REQ_TIMEOUT — deutlich
-/// unter QUERY_TIMEOUT, so dass die Antwort Lua noch erreicht.
+/// Runs a query with a live session; if it fails with a NETWORK error (see
+/// NET_TROUBLE), reconnects once and retries. Worst case: REQ_TIMEOUT +
+/// CONNECT_TIMEOUT + REQ_TIMEOUT — well below QUERY_TIMEOUT, so the answer
+/// still reaches the caller.
 async fn run_query<T, F, Fut>(
     conn: &mut Conn,
     shared: &Arc<Shared>,
@@ -1282,26 +1275,26 @@ where
         return out;
     }
     if fresh {
-        crate::klog!("[spotify] {}: scheitert auch mit frischer Verbindung", what);
+        crate::klog!("[spotify] {}: fails even with a fresh connection", what);
         return None;
     }
-    crate::klog!("[spotify] {}: Netzproblem — verbinde neu und versuche es noch einmal", what);
+    crate::klog!("[spotify] {}: network problem — reconnecting and trying once more", what);
     reset_trouble();
     if let Err(e) = reconnect(conn, shared, false, Resume::Keep).await {
-        crate::klog!("[spotify] {}: Neuaufbau gescheitert: {}", what, e);
+        crate::klog!("[spotify] {}: re-establishing failed: {}", what, e);
         return None;
     }
     op(conn.session.clone()?).await
 }
 
-/// Gemeinsamer Sink-Slot: der eine Ort, in den open_track den neuen Feed legt
-/// und aus dem der Sink des AKTUELLEN Players liest. Getrennt von shared, weil
-/// der Sink ihn schon zur Player-Bauzeit braucht. Jeder Player bekommt einen
-/// eigenen Slot; retire leert den alten, damit ein abgeloester Player nichts
-/// mehr in Klangos Feed schreibt.
+/// Shared sink slot: the one place where open_track puts the new feed and
+/// from which the sink of the CURRENT player reads. Separate from shared
+/// because the sink already needs it when the player is built. Every player
+/// gets a slot of its own; retire empties the old one so that a superseded
+/// player no longer writes into the host's feed.
 static SINK_SLOT: Mutex<Option<Arc<Mutex<Option<Arc<PcmFeed>>>>>> = Mutex::new(None);
 
-/// Page the browser shows after a successful login (Klangten sets a
+/// Page the browser shows after a successful login (the host sets a
 /// translated one through ks_set_login_page).
 static LOGIN_PAGE: Mutex<String> = Mutex::new(String::new());
 
@@ -1339,8 +1332,8 @@ pub fn cancel_login() {
     }
 }
 
-/// OAuth-PKCE-Login im Browser (blockierend → spawn_blocking), mit
-/// Zeitgrenze: bricht der Nutzer ab, soll der Engine-Thread nicht ewig warten.
+/// OAuth PKCE login in the browser (blocking → spawn_blocking), with a time
+/// limit: if the user gives up, the engine thread should not wait forever.
 async fn oauth_login() -> Result<Credentials, String> {
     OAUTH_WAITING.store(true, Ordering::SeqCst);
     let task = tokio::task::spawn_blocking(|| {
@@ -1349,25 +1342,25 @@ async fn oauth_login() -> Result<Credentials, String> {
             .open_in_browser()
             .with_custom_message(&login_page())
             .build()
-            .map_err(|e| format!("OAuth-Client: {}", e))?;
+            .map_err(|e| format!("OAuth client: {}", e))?;
         let token = client
             .get_access_token()
             .map_err(|e| format!("OAuth: {}", e))?;
         Ok(Credentials::with_access_token(&token.access_token))
     });
     let result = match tokio::time::timeout(OAUTH_TIMEOUT, task).await {
-        Ok(r) => r.map_err(|e| format!("OAuth-Task: {}", e)).and_then(|x| x),
+        Ok(r) => r.map_err(|e| format!("OAuth task: {}", e)).and_then(|x| x),
         Err(_) => {
             // Free the port: the listener thread is still waiting.
             cancel_login();
-            Err("OAuth: keine Anmeldung im Browser".to_string())
+            Err("OAuth: no login in the browser".to_string())
         }
     };
     OAUTH_WAITING.store(false, Ordering::SeqCst);
     result
 }
 
-// ---- Metadaten / Suche / Bibliothek / Playlists ----
+// ---- Metadata / search / library / playlists ----
 
 fn track_to_info(track: &Track, uri: &str) -> TrackInfo {
     TrackInfo {
@@ -1394,8 +1387,9 @@ fn track_to_info(track: &Track, uri: &str) -> TrackInfo {
 
 async fn fetch_track(session: &Session, uri_str: &str) -> Option<TrackInfo> {
     let uri = SpotifyUri::from_uri(uri_str).ok()?;
-    // Hoerbuch-Kapitel und Podcast-Folgen sind EPISODEN, keine Titel — ohne
-    // diesen Zweig blieben Name und Dauer leer (und damit das Spulen blind).
+    // Audiobook chapters and podcast episodes are EPISODES, not tracks —
+    // without this branch name and duration would stay empty (and seeking
+    // would be blind).
     if uri_str.starts_with("spotify:episode:") {
         let ep = net("Episode", librespot_metadata::Episode::get(session, &uri)).await?;
         return Some(TrackInfo {
@@ -1408,46 +1402,46 @@ async fn fetch_track(session: &Session, uri_str: &str) -> Option<TrackInfo> {
             album_uri: String::new(),
         });
     }
-    let track = net("Titel", Track::get(session, &uri)).await?;
+    let track = net("Track", Track::get(session, &uri)).await?;
     Some(track_to_info(&track, uri_str))
 }
 
-/// Eine Zeile der typisierten Suche.
+/// One row of the typed search.
 #[derive(Clone, Debug, Default)]
 pub struct SearchRow {
     /// track | artist | album | playlist | audiobook | podcast
     pub kind: String,
     pub uri: String,
     pub name: String,
-    /// Zweite Zeile: Interpret, Autor, Besitzer — je nach Art.
+    /// Second line: performer, author, owner — depending on the kind.
     pub sub: String,
     pub duration_ms: u32,
-    /// Kennungen fuer das Alt-Menue eines Titels ("zum Kuenstler", "zum
-    /// Album"). Bei einem Album ist nur `artist_uri` besetzt.
+    /// Identifiers for a track's context menu ("go to artist", "go to
+    /// album"). For an album only `artist_uri` is set.
     pub artist_uri: String,
     pub album_uri: String,
 }
 
-/// Der Hash der gespeicherten Abfrage "searchDesktop" des Web-Players.
-/// Spotify laesst ueber `pathfinder` NUR hinterlegte Abfragen zu; aendert der
-/// Web-Player seine Version, antwortet der Dienst mit "PersistedQueryNotFound".
-/// Dann faellt die Suche auf den Kontextweg zurueck (nur Titel) — sichtbar
-/// bleibt sie also in jedem Fall.
+/// The hash of the web player's persisted query "searchDesktop".
+/// Spotify allows ONLY registered queries through `pathfinder`; when the web
+/// player changes its version, the service answers "PersistedQueryNotFound".
+/// The search then falls back to the context route (tracks only) — so it
+/// stays usable in any case.
 const SEARCH_QUERY_HASH: &str =
     "d9f785900f0710b31c07818d617f4f7600c1e21217e80f5b043d1e78d74e6026";
 
-/// Typisierte Suche ueber `pathfinder` — dieselbe Abfrage, die der Web-Player
-/// benutzt. Sie ist der EINZIGE Weg zu Kuenstlern, Alben, Playlists,
-/// Hoerbuechern und Podcasts: der spclient kennt nur die Titelsuche, und die
-/// oeffentliche Web-API weist librespots Client-Kennung ab (429 auf jede
-/// Anfrage, auch /v1/me — nachgemessen 28.08.2026). Angemeldet wird mit dem
-/// login5-Token der laufenden Sitzung plus dem client-token des spclient.
+/// Typed search through `pathfinder` — the same query the web player uses.
+/// It is the ONLY route to artists, albums, playlists, audiobooks and
+/// podcasts: spclient only knows track search, and the public Web API
+/// rejects librespot's client ID (429 on every request, even /v1/me —
+/// measured 2026-08-28). Authentication uses the login5 token of the running
+/// session plus spclient's client token.
 async fn search_typed(
     session: &Session,
     query: &str,
     limit: usize,
 ) -> Option<Vec<SearchRow>> {
-    let token = net("login5-Token", session.login5().auth_token()).await?;
+    let token = net("login5 token", session.login5().auth_token()).await?;
     let ctoken = net("client-token", session.spclient().client_token()).await?;
     let vars = serde_json::json!({
         "searchTerm": query,
@@ -1485,9 +1479,9 @@ async fn search_typed(
         }
     };
     if !resp.status().is_success() {
-        crate::klog!("[spotify] Suche ueber pathfinder: HTTP {}", resp.status());
+        crate::klog!("[spotify] search via pathfinder: HTTP {}", resp.status());
         if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
-            note_trouble("pathfinder: Token abgelaufen");
+            note_trouble("pathfinder: token expired");
         }
         return None;
     }
@@ -1506,7 +1500,7 @@ async fn search_typed(
 
     let mut out: Vec<SearchRow> = Vec::new();
 
-    // --- Titel (tracksV2 verpackt jede Zeile noch einmal in "item")
+    // --- Tracks (tracksV2 wraps each row once more in "item")
     if let Some(items) = sv.pointer("/tracksV2/items").and_then(|x| x.as_array()) {
         for it in items.iter().take(limit) {
             let d = match it.pointer("/item/data") {
@@ -1550,7 +1544,7 @@ async fn search_typed(
         }
     }
 
-    // --- die uebrigen Sparten: alle nach demselben Muster items[].data
+    // --- the other categories: all follow the same pattern items[].data
     let sparten: [(&str, &str); 5] = [
         ("artists", "artist"),
         ("albumsV2", "album"),
@@ -1572,15 +1566,15 @@ async fn search_typed(
             if uri.is_empty() {
                 continue;
             }
-            // Name: Kuenstler tragen ihn unter profile.name, alle anderen direkt.
+            // Name: artists carry it under profile.name, all others directly.
             let name = d
                 .pointer("/profile/name")
                 .or_else(|| d.get("name"))
                 .and_then(|x| x.as_str())
                 .unwrap_or("")
                 .to_string();
-            // Zweite Zeile: Album -> Interpret, Hoerbuch -> Autor,
-            // Playlist -> Besitzer, Podcast -> Verlag.
+            // Second line: album -> performer, audiobook -> author,
+            // playlist -> owner, podcast -> publisher.
             let sub = d
                 .pointer("/artists/items/0/profile/name")
                 .or_else(|| d.pointer("/authorsV2/0/name"))
@@ -1595,8 +1589,8 @@ async fn search_typed(
                 name,
                 sub,
                 duration_ms: 0,
-                // Ein Album fuehrt zu seinem Kuenstler; alles Uebrige hat
-                // nichts, wohin es weiterfuehren koennte.
+                // An album leads to its artist; everything else has
+                // nowhere further to lead.
                 artist_uri: d
                     .pointer("/artists/items/0/uri")
                     .and_then(|x| x.as_str())
@@ -1609,9 +1603,9 @@ async fn search_typed(
     Some(out)
 }
 
-/// Ein Hoerbuch oder Podcast mit seinen Kapiteln/Folgen. Spotify fuehrt beide
-/// als "Show": die Suche liefert `spotify:show:…`, die Kapitel sind Episoden —
-/// und Episoden kann librespot abspielen.
+/// An audiobook or podcast with its chapters/episodes. Spotify lists both
+/// as a "show": the search returns `spotify:show:…`, the chapters are
+/// episodes — and librespot can play episodes.
 async fn show_details(session: &Session, uri_str: &str, limit: usize) -> Option<AlbumDetails> {
     let uri = SpotifyUri::from_uri(uri_str).ok()?;
     let sh = net("Show", librespot_metadata::Show::get(session, &uri)).await?;
@@ -1630,22 +1624,21 @@ async fn show_details(session: &Session, uri_str: &str, limit: usize) -> Option<
     })
 }
 
-/// Obergrenze fuer Titellisten (Mediathek, Playlist). Nicht als Sparmassnahme
-/// gedacht, sondern als Notbremse gegen entartete Listen — der Normalfall soll
-/// VOLLSTAENDIG geladen werden. Wird sie erreicht, steht es im Log.
+/// Upper limit for track lists (library, playlist). Not meant as a saving
+/// measure but as an emergency brake against degenerate lists — the normal
+/// case should be loaded COMPLETELY. If it is reached, the log says so.
 pub const MAX_TRACKS: usize = 10_000;
 
-/// Metadaten PARALLEL holen (max. 8 gleichzeitig): sequenziell dauerte die
-/// Mediathek (100 × Track::get, je ein Roundtrip) selbst mit Rechenzentrums-
-/// Anbindung ~3 s, auf einer Heim-Leitung 10-30 s — der blockierte Klango-
-/// Hauptthread galt auf Windows dann als „Keine Rückmeldung". Reihenfolge
-/// bleibt erhalten (Index-Join), Fehlschläge fallen einfach raus.
-/// None = die Verbindung hat unterwegs versagt (NET_TROUBLE) — dann lieber
-/// neu verbinden und wiederholen als eine löchrige Liste zeigen.
+/// Fetches metadata IN PARALLEL (at most 8 at a time): sequentially, the
+/// library (100 × Track::get, one round trip each) took ~3 s even with a data
+/// centre connection and 10-30 s on a home line. The order is preserved
+/// (index join), failures simply drop out.
+/// None = the connection failed along the way (NET_TROUBLE) — then better
+/// reconnect and retry than show a list with holes.
 async fn tracks_from_uris(session: &Session, uris: &[String], limit: usize) -> Option<Vec<TrackInfo>> {
     if uris.len() > limit {
         crate::klog!(
-            "[spotify] Liste gekuerzt: {} Titel vorhanden, {} geladen (Limit)",
+            "[spotify] list truncated: {} tracks available, {} loaded (limit)",
             uris.len(),
             limit
         );
@@ -1673,10 +1666,10 @@ async fn tracks_from_uris(session: &Session, uris: &[String], limit: usize) -> O
     Some(out)
 }
 
-/// Freitext-Suche über den internen spclient-Kontext (kein Web-API-Token).
+/// Free-text search through the internal spclient context (no Web API token).
 async fn search_tracks(session: &Session, query: &str, limit: usize) -> Option<Vec<TrackInfo>> {
     let ctx_uri = search_context_uri(query);
-    let ctx = net("Suchkontext", session.spclient().get_context(&ctx_uri)).await?;
+    let ctx = net("Search context", session.spclient().get_context(&ctx_uri)).await?;
     let mut uris = Vec::new();
     for page in ctx.pages.iter() {
         for t in page.tracks.iter() {
@@ -1688,14 +1681,14 @@ async fn search_tracks(session: &Session, query: &str, limit: usize) -> Option<V
     tracks_from_uris(session, &uris, limit).await
 }
 
-/// Empfehlungen zu EINEM Titel — das "Song-Radio" des Spotify-Clients.
-/// spclient antwortet auf `get_radio_for_track` mit der URI einer eigens
-/// erzeugten Playlist ("inspired by"); deren Titel SIND die Empfehlungen.
-/// (Die oeffentliche Web-API /v1/recommendations ist fuer librespots Client-ID
-/// gesperrt — nachgeprueft am 28.08.2026: 429 auf jede Anfrage.)
+/// Recommendations for ONE track — the "song radio" of the Spotify client.
+/// spclient answers `get_radio_for_track` with the URI of a playlist created
+/// for this purpose ("inspired by"); its tracks ARE the recommendations.
+/// (The public Web API /v1/recommendations is blocked for librespot's client
+/// ID — checked on 2026-08-28: 429 on every request.)
 async fn track_radio(session: &Session, track_uri: &str, limit: usize) -> Option<Vec<TrackInfo>> {
     let uri = SpotifyUri::from_uri(track_uri).ok()?;
-    let bytes = net("Song-Radio", session.spclient().get_radio_for_track(&uri)).await?;
+    let bytes = net("Song radio", session.spclient().get_radio_for_track(&uri)).await?;
     let v: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
     let items = v.get("mediaItems")?.as_array()?;
     let mut direkt = Vec::new();
@@ -1717,7 +1710,7 @@ async fn track_radio(session: &Session, track_uri: &str, limit: usize) -> Option
     tracks_from_uris(session, &direkt, limit).await
 }
 
-/// Namen zu Album-URIs holen (parallel, wie tracks_from_uris).
+/// Fetches the names for album URIs (in parallel, like tracks_from_uris).
 async fn named_albums(session: &Session, uris: &[String]) -> Vec<NamedItem> {
     let sem = Arc::new(tokio::sync::Semaphore::new(8));
     let mut handles = Vec::new();
@@ -1746,18 +1739,18 @@ async fn named_albums(session: &Session, uris: &[String]) -> Vec<NamedItem> {
     out
 }
 
-/// Kuenstlerseite: Name, Biografie, beliebteste Titel, Alben, aehnliche
-/// Kuenstler — alles aus den Metadaten, die librespot ohnehin liefert.
+/// Artist page: name, biography, most popular tracks, albums, related
+/// artists — all from the metadata librespot delivers anyway.
 async fn artist_details(
     session: &Session,
     artist_uri: &str,
     limit: usize,
 ) -> Option<ArtistDetails> {
     let uri = SpotifyUri::from_uri(artist_uri).ok()?;
-    let a = net("Kuenstler", librespot_metadata::Artist::get(session, &uri)).await?;
+    let a = net("Artist", librespot_metadata::Artist::get(session, &uri)).await?;
 
-    // Beliebteste Titel: die Liste des EIGENEN Landes; sonst die erste, die da
-    // ist (Spotify fuehrt sie je Markt).
+    // Most popular tracks: the list for the user's OWN country; otherwise the
+    // first one available (Spotify keeps them per market).
     let land = session.country();
     let mut top_uris: Vec<String> = Vec::new();
     let mut ersatz: Vec<String> = Vec::new();
@@ -1777,7 +1770,7 @@ async fn artist_details(
     top_uris.truncate(limit);
     let top = tracks_from_uris(session, &top_uris, limit).await?;
 
-    // Alben: je Gruppe nur die aktuelle Veroeffentlichung.
+    // Albums: only the current release of each group.
     let mut album_uris: Vec<String> = a
         .albums_current()
         .filter_map(|u| u.to_uri().ok())
@@ -1816,7 +1809,7 @@ async fn artist_details(
     })
 }
 
-/// Ein Album mit seinen Titeln (in Reihenfolge der CDs/Seiten).
+/// An album with its tracks (in the order of discs/sides).
 async fn album_details(session: &Session, album_uri: &str, limit: usize) -> Option<AlbumDetails> {
     let uri = SpotifyUri::from_uri(album_uri).ok()?;
     let al = net("Album", librespot_metadata::Album::get(session, &uri)).await?;
@@ -1837,7 +1830,7 @@ async fn album_details(session: &Session, album_uri: &str, limit: usize) -> Opti
 
 async fn liked_tracks(session: &Session, limit: usize) -> Option<Vec<TrackInfo>> {
     let ctx_uri = format!("spotify:user:{}:collection", session.username());
-    let ctx = net("Mediathek", session.spclient().get_context(&ctx_uri)).await?;
+    let ctx = net("Library", session.spclient().get_context(&ctx_uri)).await?;
     let mut uris = Vec::new();
     for page in ctx.pages.iter() {
         for t in page.tracks.iter() {
@@ -1859,19 +1852,19 @@ async fn playlist_tracks(session: &Session, uri_str: &str, limit: usize) -> Opti
     tracks_from_uris(session, &uris, limit).await
 }
 
-/// Eigene Playlists: rootlist (Protobuf) → Playlist-URIs → Namen nachladen.
+/// The user's own playlists: rootlist (protobuf) → playlist URIs → fetch names.
 async fn user_playlists(session: &Session, limit: usize) -> Option<Vec<PlaylistInfo>> {
     use librespot_protocol::playlist4_external::SelectedListContent;
     use protobuf::Message;
 
-    let bytes = net("Playlist-Liste", session.spclient().get_rootlist(0, Some(limit))).await?;
+    let bytes = net("Playlist list", session.spclient().get_rootlist(0, Some(limit))).await?;
     let slc = SelectedListContent::parse_from_bytes(&bytes).ok()?;
     let mut uris = Vec::new();
     if let Some(contents) = slc.contents.as_ref() {
         for item in contents.items.iter() {
             let uri_str = item.uri();
             if !uri_str.starts_with("spotify:playlist:") {
-                continue; // start-group/end-group (Ordnermarken) überspringen
+                continue; // skip start-group/end-group (folder markers)
             }
             if uris.len() >= limit {
                 break;
@@ -1879,8 +1872,8 @@ async fn user_playlists(session: &Session, limit: usize) -> Option<Vec<PlaylistI
             uris.push(uri_str.to_string());
         }
     }
-    // Namen parallel nachladen (wie tracks_from_uris) — sequenziell blockte
-    // das den Klango-Hauptthread pro Playlist einen Roundtrip lang.
+    // Fetch the names in parallel (like tracks_from_uris) — sequentially this
+    // cost one round trip per playlist.
     let sem = Arc::new(tokio::sync::Semaphore::new(8));
     let mut handles = Vec::new();
     for uri_str in uris {
@@ -1905,13 +1898,14 @@ async fn user_playlists(session: &Session, limit: usize) -> Option<Vec<PlaylistI
         }
     }
     if trouble() {
-        return None; // Namen fehlen wegen der Verbindung: neu verbinden, wiederholen
+        return None; // names missing because of the connection: reconnect, retry
     }
     Some(out)
 }
 
-/// Titel öffnen: neuen Feed erzeugen (Format sofort gesetzt, damit _Snd_Load
-/// nicht wartet), alten abbrechen, in den Sink-Slot + shared legen, laden.
+/// Opens a track: create a new feed (format set at once, so the host does not
+/// have to wait for it), cancel the old one, put it into the sink slot +
+/// shared, load.
 async fn open_track(
     session: &Option<Session>,
     player: &Option<Arc<Player>>,
@@ -1923,7 +1917,7 @@ async fn open_track(
     let player = player.as_ref()?;
     let uri = SpotifyUri::from_uri(uri_str).ok()?;
 
-    // Alten Feed stilllegen.
+    // Shut down the old feed.
     if let Some(old) = shared.current_feed.lock().unwrap().as_ref() {
         old.cancel();
         old.mark_done();
@@ -1931,27 +1925,26 @@ async fn open_track(
 
     let feed = PcmFeed::new_arc();
     feed.set_format(CH, SR);
-    // Kleiner Ring (~2 s statt 10 s Radio-Standard): hält librespots Dekodier-
-    // Vorlauf klein (Backpressure), damit EndOfTrack erst kurz vor dem hörbaren
-    // Ende feuert und die hörbare Position dicht an der echten bleibt.
+    // Small ring (~2 s instead of the 10 s default): keeps librespot's decode
+    // lead small (backpressure), so that EndOfTrack fires only shortly before
+    // the audible end and the audible position stays close to the real one.
     feed.set_ring_max((SR * CH * 2) as usize);
     feed.set_state_ext("ok");
 
-    // In BEIDE Buchführungen: Sink-Slot (woraus der Sink liest) + shared.
+    // Into BOTH records: sink slot (where the sink reads from) + shared.
     if let Some(slot) = SINK_SLOT.lock().unwrap().as_ref() {
         *slot.lock().unwrap() = Some(feed.clone());
     }
     *shared.current_feed.lock().unwrap() = Some(feed.clone());
 
-    // KANONISCHE URI merken: die Player-Events liefern die Track-URI über
-    // SpotifyUri::to_uri() — genau diese Form muss in now.uri stehen, sonst
-    // matcht is_current() nie (Positionsverfolgung + Ende-Erkennung tot, und
-    // das Spulen spränge immer von Position 0).
+    // Remember the CANONICAL URI: the player events deliver the track URI via
+    // SpotifyUri::to_uri() — exactly this form must be in now.uri, otherwise
+    // is_current() never matches (position tracking + end detection dead, and
+    // seeking would always jump from position 0).
     let canonical = uri.to_uri().unwrap_or_else(|_| uri_str.to_string());
-    // Now-Playing minimal setzen (Titel/Interpret/Dauer holt ein
-    // Hintergrund-Task nach) — so blockiert k_SpotifyOpen NICHT auf einem
-    // Metadaten-Abruf. Das ist wichtig, weil der Kanal-Player playaudio()
-    // (und damit open) bei JEDEM Titelwechsel im Frame-Takt aufruft.
+    // Set now playing minimally (a background task fills in title/artist/
+    // duration) — so ks_open does NOT block on a metadata request. This
+    // matters because the host opens a stream on EVERY track change.
     {
         let mut n = shared.now.lock().unwrap();
         n.uri = canonical.clone();
@@ -1962,13 +1955,13 @@ async fn open_track(
         n.position_ms = start_ms;
         n.state = "loading".into();
     }
-    // Neuer Titel: kein laufendes Spulen mehr. Die Hoerbar-Basis ist die
-    // Startstelle — bei einem fortgesetzten Hoerbuch also nicht 0.
+    // New track: no seek in progress any more. The audible base is the start
+    // position — for a resumed audiobook, therefore, not 0.
     *shared.seek_target.lock().unwrap() = None;
     *shared.audible_base_ms.lock().unwrap() = start_ms;
     player.load(uri, true, start_ms);
 
-    // Metadaten (v.a. Dauer fürs Spulen) asynchron nachtragen.
+    // Fill in the metadata (above all the duration, for seeking) asynchronously.
     {
         let sess2 = sess.clone();
         let shared2 = shared.clone();
@@ -1977,7 +1970,7 @@ async fn open_track(
             if let Some(info) = fetch_track(&sess2, &want).await {
                 let mut n = shared2.now.lock().unwrap();
                 if n.uri == want {
-                    // nur, wenn noch derselbe Titel läuft
+                    // only if the same track is still playing
                     n.title = info.title;
                     n.artist = info.artist;
                     n.album = info.album;
@@ -1990,7 +1983,7 @@ async fn open_track(
     Some(feed)
 }
 
-/// `spotify:search:`-Kontext-URI bauen (Wörter mit `+`, Rest prozentkodiert).
+/// Builds a `spotify:search:` context URI (words joined with `+`, the rest percent-encoded).
 fn search_context_uri(query: &str) -> String {
     use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
     const QUERY_SET: &AsciiSet = &NON_ALPHANUMERIC
@@ -2007,21 +2000,21 @@ fn search_context_uri(query: &str) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Öffentliche API für die Host-Globals (blockierend, mit Timeout)
+// Public API for the C ABI (blocking, with timeout)
 // ---------------------------------------------------------------------------
 
-/// Wie lange Lua auf eine Antwort wartet. Muss den schlimmsten Fall von
-/// run_query abdecken (REQ_TIMEOUT + CONNECT_TIMEOUT + REQ_TIMEOUT = 26 s plus
-/// die Zeit der eigentlichen Abfrage), sonst kaeme die Antwort eines
-/// gelungenen zweiten Versuchs nie an.
+/// How long a caller waits for an answer. Must cover the worst case of
+/// run_query (REQ_TIMEOUT + CONNECT_TIMEOUT + REQ_TIMEOUT = 26 s plus the time
+/// of the query itself), otherwise the answer of a successful second attempt
+/// would never arrive.
 const QUERY_TIMEOUT: Duration = Duration::from_secs(40);
 
-/// Auf eine Engine-Antwort warten und dabei die Fenster-Event-Loop bedienen
-/// (`pump`, wie speech.rs beim TTS-Rendern). OHNE das gilt das Fenster auf
-/// Windows nach ~5 s ohne Message-Pumping als „Keine Rückmeldung" — es wird
-/// geghostet und dem Nutzer wird „Programm beenden" angeboten. Genau das war
-/// „Klango schließt sich bei Spotify": Mediathek/Playlists blocken sequenziell
-/// metadatenholend viele Sekunden.
+/// Waits for an engine answer and calls `pump` in between (every ~40 ms).
+/// The C ABI passes a no-op: Klangten calls these functions from a worker
+/// thread. Pumping matters only for a caller that blocks its GUI thread: on
+/// Windows a window that pumps no messages for ~5 s counts as "Not
+/// responding" — it gets ghosted and the user is offered to end the program,
+/// and library/playlist queries can block for many seconds.
 fn recv_pumped<T>(
     rrx: &std::sync::mpsc::Receiver<T>,
     timeout: Duration,
@@ -2042,7 +2035,7 @@ fn recv_pumped<T>(
     }
 }
 
-/// Login anstoßen (fire-and-forget) und aktuellen Status zurückgeben.
+/// Starts a login (fire-and-forget) and returns the current status.
 pub fn login() -> String {
     let e = engine();
     let _ = e.tx.send(Cmd::Login);
@@ -2071,8 +2064,8 @@ pub fn search(query: &str, limit: usize, pump: &mut dyn FnMut()) -> Vec<TrackInf
     query_tracks(|reply| Cmd::Search { query: q, limit, reply }, pump)
 }
 
-/// Empfehlungen zu einem Titel ("Song-Radio") — die Liste, mit der Klango
-/// weiterspielt, wenn man einen EINZELNEN Suchtreffer startet.
+/// Recommendations for a track ("song radio") — the list the host keeps
+/// playing from when a SINGLE search hit is started.
 pub fn track_radio_pub(uri: &str, limit: usize, pump: &mut dyn FnMut()) -> Vec<TrackInfo> {
     let u = uri.to_string();
     query_tracks(|reply| Cmd::TrackRadio { uri: u, limit, reply }, pump)
@@ -2121,7 +2114,7 @@ pub fn playlists(limit: usize, pump: &mut dyn FnMut()) -> Vec<PlaylistInfo> {
     recv_pumped(&rrx, QUERY_TIMEOUT, pump).unwrap_or_default()
 }
 
-/// Titel öffnen; gibt den PCM-Feed zurück (für _Snd_Load über SpotifyStream).
+/// Opens a track; returns the PCM feed (ks_open wraps it in a stream handle).
 pub fn open(uri: &str, start_ms: u32, pump: &mut dyn FnMut()) -> Option<Arc<PcmFeed>> {
     let (rtx, rrx) = std::sync::mpsc::channel();
     let _ = engine().tx.send(Cmd::Open {
@@ -2142,9 +2135,9 @@ pub fn control(action: &str, arg: i64) {
 pub fn now_playing() -> NowPlaying {
     let shared = &engine().shared;
     let mut n = shared.now.lock().unwrap().clone();
-    // Nach außen zählt die HÖRBARE Position, nicht librespots Dekodier-
-    // Position. Während eines laufenden Seeks steht in now.position_ms schon
-    // das (optimistische) Ziel — das ist dann die bessere Auskunft.
+    // Towards the outside the AUDIBLE position counts, not librespot's decode
+    // position. While a seek is in progress, now.position_ms already holds
+    // the (optimistic) target — that is the better answer then.
     if !seeking(shared) {
         n.position_ms = audible_position_ms(shared);
     }
@@ -2156,9 +2149,9 @@ pub fn now_playing() -> NowPlaying {
 mod tests {
     use super::search_context_uri;
 
-    /// Engine-Erstkontakt ohne Anmeldung (wie Klango 3): Status lesen baut das
-    /// Singleton samt tokio-Runtime; Abfragen ohne Session kommen leer zurück
-    /// statt abzustürzen.
+    /// First contact with the engine without a login: reading the status
+    /// builds the singleton including the tokio runtime; queries without a
+    /// session come back empty instead of crashing.
     #[test]
     fn engine_bringup_ohne_login() {
         let _ = super::CACHE_DIR.set(std::env::temp_dir().join("klangten_spotify_test_cache"));
@@ -2171,14 +2164,19 @@ mod tests {
         assert_eq!(super::now_playing().state, "");
     }
 
-    /// ECHTER Ende-zu-Ende-Test (Netz + gespeicherte Anmeldung, darum
-    /// #[ignore]): KLANGO_SPOTIFY_TEST_CACHE = Verzeichnis mit credentials.json.
+    /// REAL end-to-end test (network + stored login, hence #[ignore]):
+    /// KLANGTEN_SPOTIFY_TEST_CACHE = directory with credentials.json.
     #[test]
     #[ignore]
     fn e2e_login_suche_wiedergabe() {
-        let dir = std::env::var("KLANGO_SPOTIFY_TEST_CACHE")
-            .expect("KLANGO_SPOTIFY_TEST_CACHE auf Cache-Dir mit credentials.json setzen");
-        let _ = super::CACHE_DIR.set(std::path::PathBuf::from(dir));
+        let dir = std::env::var("KLANGTEN_SPOTIFY_TEST_CACHE")
+            .expect("set KLANGTEN_SPOTIFY_TEST_CACHE to a cache dir with credentials.json");
+        let _ = super::CACHE_DIR.set(std::path::PathBuf::from(&dir));
+        // The library no longer reads credentials from disk; the test hands
+        // them in the way Klangten does.
+        let json = std::fs::read_to_string(std::path::Path::new(&dir).join("credentials.json"))
+            .expect("credentials.json in KLANGTEN_SPOTIFY_TEST_CACHE");
+        assert!(super::set_stored_credentials(&json), "credentials.json unreadable");
         super::login();
         let mut s = String::new();
         for _ in 0..600 {
@@ -2188,11 +2186,11 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
-        assert_eq!(s, "ok", "Login-Status: {}", s);
+        assert_eq!(s, "ok", "login status: {}", s);
         let tracks = super::search("kraftwerk", 5, &mut || {});
-        assert!(!tracks.is_empty(), "Suche lieferte nichts");
-        let feed = super::open(&tracks[0].uri, 0, &mut || {}).expect("open gab nichts");
-        // Wie der Mischer: regelmäßig lesen und Frames zählen.
+        assert!(!tracks.is_empty(), "search returned nothing");
+        let feed = super::open(&tracks[0].uri, 0, &mut || {}).expect("open returned nothing");
+        // Like the host: read regularly and count frames.
         let mut buf = vec![0f32; 8192];
         let mut total = 0i64;
         for _ in 0..300 {
@@ -2205,7 +2203,7 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
-        assert!(total >= 44100, "kein PCM angekommen (state={})", feed.state());
+        assert!(total >= 44100, "no PCM arrived (state={})", feed.state());
         super::control("seekrel", 30_000);
         let mut after = 0i64;
         for _ in 0..200 {
@@ -2218,7 +2216,7 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
-        assert!(after >= 44100, "nach dem Spulen kam kein PCM mehr (gate={})", feed.is_gated());
+        assert!(after >= 44100, "no more PCM after seeking (gate={})", feed.is_gated());
         super::control("stop", 0);
     }
 
