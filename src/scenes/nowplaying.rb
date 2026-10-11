@@ -87,10 +87,8 @@ class Scene_NowPlaying
     loop do
       loop_update
       break if $scene != self
-      if !KlangtenBackgroundPlayer.active?
-        alert(p_("Klangten", "Nothing is playing in the background."), false) if control != nil
-        break
-      end
+      # Ended (KlangtenMedia.tick says why) or stopped elsewhere.
+      break if !KlangtenBackgroundPlayer.active?
       # A new entry (or the first sound of one that was still opening) gets a
       # fresh player.
       if control == nil || generation != KlangtenBackgroundPlayer.generation || !control.sound.equal?(KlangtenBackgroundPlayer.sound)
