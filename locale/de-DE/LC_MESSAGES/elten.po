@@ -27669,3 +27669,7 @@ msgstr "Screenreader (%{name})"
 msgctxt "Speech"
 msgid "Screen reader (JAWS, NVDA, Narrator and others)"
 msgstr "Screenreader (JAWS, NVDA, Sprachausgabe und andere)"
+
+msgctxt "Klangten"
+msgid "&Spotify"
+msgstr "&Spotify"
