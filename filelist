@@ -61,6 +61,9 @@ src/eltenlink/profiles.rb
 src/eltenlink/soundthemes.rb
 # Klangten: Klango media catalog and audio avatars
 src/eltenlink/media.rb
+# Klangten 0.4: Klango community extras (groups, status history, contact comments, roles) and data kept on this device
+src/eltenlink/community.rb
+src/eapi/local_store.rb
 src/eltenlink/avatars.rb
 src/eltenlink/authentication.rb
 src/eltenlink/accounts.rb
@@ -124,6 +127,8 @@ src/scenes/users_recentlyregistered.rb
 src/scenes/users_recentlyactived.rb
 src/scenes/usersearch.rb
 src/scenes/notes.rb
+# Klangten 0.4: notes on this device and notes of Klango groups
+src/scenes/notes_klango.rb
 src/scenes/forgotpassword.rb
 src/scenes/honors.rb
 src/scenes/console.rb
@@ -138,6 +143,9 @@ src/scenes/usersaddedmetocontacts.rb
 src/scenes/blog.rb
 src/scenes/ban.rb
 src/scenes/users.rb
+# Klangten 0.4: status history, contacts of a user, special users, recent avatars
+src/scenes/users_klango.rb
+src/scenes/groupmessage.rb
 src/scenes/soundthemes.rb
 src/scenes/changes.rb
 src/scenes/player.rb
