@@ -283,6 +283,11 @@ module KlangtenTest
           return o if waiting?(o)
           if !o.alive?
             return nil if @boot_thread == nil || !@boot_thread.alive?
+            # The owner ended (an inserted scene closed): the scene
+            # controller hands the interaction back on its next round, and
+            # that round only comes when time goes on - nobody else sleeps
+            # now, so let one frame pass.
+            @clock.advance(KlangtenTest::App::FRAME) if @clock != nil
             run_tickers
           end
           if real_now > deadline
