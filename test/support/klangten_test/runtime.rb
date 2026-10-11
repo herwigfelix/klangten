@@ -64,7 +64,6 @@ module KlangtenTest
 
     class << self
       attr_reader :clock, :lock, :cond
-      attr_accessor :frozen_reason
 
       def setup
         @clock = Clock.new
