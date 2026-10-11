@@ -1278,6 +1278,10 @@ module TeamConference
       end
       log_event(type, data)
       notify(type, data, info)
+      # The interface (EltenAPI::Conference) listens only for the synthetic
+      # call event: without it an incoming call never rang, and an outgoing
+      # one neither played "calling" nor announced the answer.
+      notify("klangten_call", { "call" => info[:call] }, {}) if info[:call] != nil
     end
 
     public
