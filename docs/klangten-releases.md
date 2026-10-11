@@ -75,6 +75,8 @@ What a running 0.3 does is fixed in its code and cannot be changed any more (`gi
 
 Never rename the package files: every installed version looks for exactly these names.
 
+Testing the Windows transition without touching a real installation: compile a copy of `inst_elten.iss` with another AppId, `DefaultDirName`/`DefaultGroupName` in a test folder and the `[INI]` path inside `{app}`, add a portable `klangten.ini` (`[Klangten]` `Portable=1`) to the payload, install it once, rename the programs to `elten*.exe`, set up shortcuts and the autostart value as 0.3 left them, then run the test Setup with exactly `/tasks="" /silent`. Without a previous registration under the same AppId, `/silent` stops at the invisible "install for all users or only for me" question (`PrivilegesRequiredOverridesAllowed=dialog`); a real update always has one, so this only matters for the test.
+
 ## Build id and version
 
 **Build id.** Every release build must embed an explicit id with `--build-id`. Use one id for all platforms of a release, e.g. the date plus a counter: `2026091401`. Allowed characters are `A-Z a-z 0-9 . _ + -`, at most 64 characters, and not `0`. Without `--build-id`, CMake embeds the git commit hash (or `UNKNOWN_<random>`), which is fine for development. Be aware that such a launcher build is offered the published release, because its id differs. The id used for a build is written to `build-id` in the CMake build directory and shown on the Version screen ("Build ID").
