@@ -27,9 +27,56 @@ module EltenAPI
       unbranded do
         p_("Klangten", "Klangten connects to the Klango server at %{server}. The terms of use and the privacy policy of this server are published by its operator at %{url}. The terms and conditions and the privacy policy of EltenLink do not apply to Klangten.") % {
           server: Klangten::Config.api_base_url,
-          url: Klangten::Config::SERVER_TERMS_URL
+          url: Klangten::Config.server_terms_url
         }
       end
+    end
+
+    # Klangten talks to a Klango server other than the official one only after
+    # the user agreed (start option --srv-host-base-url, Klangten::Config). Asked
+    # once per server before anything goes over the network; "No" is focused.
+    # The answer is kept in the standard data directory of this computer
+    # account, not in a data directory chosen at startup (Klangten::ServerTrust
+    # explains why). Returns false when the user declined.
+    def klangten_confirm_server
+      return true unless Klangten::Config.server_confirmation_required?
+      url = Klangten::Config.server_url
+      path = Klangten::ServerTrust.default_path(Dirs.appdata)
+      return true if Klangten::ServerTrust.trusted?(url, path)
+      Log.info("Asking whether to use the Klango server #{url}") if defined?(Log)
+      text = p_("Klangten", "Warning: Klangten is about to connect to %{server}. This is not the official Klango server. Your login, your messages and everything else you do in Klangten will then go to this server and its operator. Only continue if you know and trust this server. Do you really want to connect to it?") % { server: url }
+      unless confirm(text)
+        Log.info("The Klango server #{url} was declined") if defined?(Log)
+        return false
+      end
+      if Klangten::ServerTrust.remember(url, path)
+        Log.info("The Klango server #{url} was confirmed") if defined?(Log)
+      else
+        Log.warning("Cannot remember the confirmed Klango server in #{path}") if defined?(Log)
+      end
+      true
+    end
+
+    # Text of the licence lock of the server in use (Klangten::ServerLock) in
+    # the interface language, introduced with the server's address; nil when
+    # the server is not locked.
+    def klangten_server_lock_message
+      text = Klangten::ServerLock.message
+      return nil if text == nil
+      language = defined?(Configuration) ? Configuration.language.to_s : ""
+      p_("Klangten", "The server %{server} cannot be used: %{message}") % {
+        server: Klangten::Config.api_base_url,
+        message: Klangten::ServerLock.localized(text, language)
+      }
+    end
+
+    # Reads the licence lock out once, as soon as it is noticed (main loop).
+    def klangten_announce_server_lock
+      return if Klangten::ServerLock.take_announcement == nil
+      message = klangten_server_lock_message
+      return if message == nil
+      play_sound("cancel") rescue nil
+      speak(message)
     end
 
     # Returns the canonical spelling of a user name, or the name unchanged.
@@ -46,15 +93,16 @@ module EltenAPI
     TOO_MANY_ATTEMPTS_CODES = %w[session.too_many_attempts accounts.too_many_attempts].freeze
 
     # Address of the Klango terms of service: the given address, else the one the
-    # server reports (GET /api/v1/session/tos), else Klangten::Config::SERVER_TERMS_URL.
+    # server reports (GET /api/v1/session/tos), else Klangten::Config.server_terms_url
+    # (klango.online, or the web address of another Klango server in use).
     def klangten_server_terms_url(preferred = nil)
       return preferred.to_s if preferred.to_s.match?(/\Ahttps?:\/\//i)
       language = defined?(Configuration) ? Configuration.language.to_s : ""
       url = EltenLink::Authentication.tos_url(elten_link, language: language)
-      url.match?(/\Ahttps?:\/\//i) ? url : Klangten::Config::SERVER_TERMS_URL
+      url.match?(/\Ahttps?:\/\//i) ? url : Klangten::Config.server_terms_url
     rescue StandardError => e
       Log.warning("Klango terms address unavailable: #{e.class}: #{e.message}") if defined?(Log)
-      Klangten::Config::SERVER_TERMS_URL
+      Klangten::Config.server_terms_url
     end
 
     # Shows the address of the Klango terms (with an option to open them in the
@@ -111,6 +159,21 @@ module EltenAPI
     # Who can switch two-factor authentication off when phone and backup codes are lost.
     TWO_FACTOR_ADMIN_CONTACT = "admin@klango.online".freeze
 
+    # The bot and the administrator above belong to klango.online. Another
+    # Klango server (--srv-host-base-url) runs its own bot, named in the link it
+    # sends (https://t.me/<bot>?start=...), and has its own operator.
+    def klangten_two_factor_telegram_bot(link = nil)
+      if link.to_s =~ %r{\Ahttps?://(?:www\.)?(?:t|telegram)\.me/([A-Za-z0-9_]{3,})}i
+        $klangten_telegram_bot = "@#{$1}"
+      end
+      return $klangten_telegram_bot if $klangten_telegram_bot.to_s != ""
+      Klangten::Config.official_server? ? TWO_FACTOR_TELEGRAM_BOT : "Telegram"
+    end
+
+    def klangten_two_factor_admin_contact
+      Klangten::Config.official_server? ? TWO_FACTOR_ADMIN_CONTACT : Klangten::Config.server_web_url
+    end
+
     # Message for the error codes of /api/v1/authentication and of the
     # two-factor part of the login; nil for codes without a special text.
     def klangten_two_factor_error_message(error)
@@ -134,7 +197,7 @@ module EltenAPI
       when "authentication.too_many_attempts"
         p_("Authentication", "Too many incorrect codes have been entered. Please request a new code.")
       when "authentication.telegram_not_linked"
-        p_("Authentication", "The Telegram bot %{bot} has not received your start message yet. Open the link or send the start message to the bot, wait for its reply with the code and try again.") % { bot: TWO_FACTOR_TELEGRAM_BOT }
+        p_("Authentication", "The Telegram bot %{bot} has not received your start message yet. Open the link or send the start message to the bot, wait for its reply with the code and try again.") % { bot: klangten_two_factor_telegram_bot }
       when "auth.invalid_password", "session.invalid_credentials"
         p_("Authentication", "Invalid password")
       end

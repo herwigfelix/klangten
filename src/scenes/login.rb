@@ -276,6 +276,14 @@ else
 EltenAPI::NotificationService.synchronize_runtime_state
 else
   case login_error&.code.to_s
+  when EltenLink::Error::SERVER_LOCKED
+    # Klangten: the Klango server has no valid licence; its own text says so.
+    Klangten::ServerLock.mark_announced
+    alert(klangten_server_lock_message || login_error.message)
+    Session.token = nil
+    speech_wait
+    $scene = Scene_Loading.new(true)
+    return
   when "network_error", "timeout", "cancelled"
     alert(p_("Login", "Connection failure."))
     Session.token = nil
@@ -344,7 +352,7 @@ end
         end
       end
       def klangten_two_factor_code_label(kind)
-        hint=p_("Login", "If you cannot receive a code, use one of your backup codes instead. Resetting the password does not disable two-factor authentication. If you have no backup codes left, contact the administrator at %{contact}.")%{:contact=>EltenAPI::Common::TWO_FACTOR_ADMIN_CONTACT}
+        hint=p_("Login", "If you cannot receive a code, use one of your backup codes instead. Resetting the password does not disable two-factor authentication. If you have no backup codes left, contact the administrator at %{contact}.")%{:contact=>klangten_two_factor_admin_contact}
         case kind
         when "telegram" then p_("Login", "Enter the code the Klango bot sent you in Telegram to allow this device to log in.")+" "+hint
         when "sms" then p_("Login", "Enter the code sent to you by text message to allow this device to log in.")+" "+hint

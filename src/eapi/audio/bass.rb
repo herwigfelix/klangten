@@ -264,7 +264,10 @@ module Bass
 
   def self.prewarm_url(url = nil)
     base = url
-    return EltenLink::Client.absolute_api_url("/api/v1/system/build-id") if base == nil || base.to_s == ""
+    # Klangten: the warm-up runs right after Bass.init, before a Klango server
+    # chosen with --srv-host-base-url has been confirmed, so it asks the
+    # official server (Klangten::Config.software_api_base_url).
+    return "#{Klangten::Config.software_api_base_url}/api/v1/system/build-id" if base == nil || base.to_s == ""
 
     base = base.to_s
     return base if base.match?(/\Ahttps?:\/\//i)

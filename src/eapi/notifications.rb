@@ -890,7 +890,11 @@ module EltenAPI
           "name" => name,
           "apps" => NotificationGroups.installed_program_update_payload
         }
-        elten_link.e_json_request("POST", "/api/v1/system/updates", params, { "session_key" => key }) do |answer, data|
+        # Klangten: update information comes from the official server, also
+        # while another Klango server is in use - then without the user name.
+        updates_client = EltenLink::Client.software
+        params.delete("name") if updates_client.foreign_base?
+        updates_client.e_json_request("POST", "/api/v1/system/updates", params, { "session_key" => key }) do |answer, data|
           @background_responses << ["virtual_updates", answer, data]
         rescue Exception
           Log.error("Notification virtual update callback error: #{$!.class}: #{$!.message}")
