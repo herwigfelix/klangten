@@ -434,6 +434,7 @@ class Scene_YouTube
   def video_menu_entries(item)
     entries = {}
     entries[:play] = p_("Klangten", "Play")
+    entries[:background] = p_("Klangten", "Play in the background")
     entries[:quality] = p_("Klangten", "Play in quality")
     entries[:channel] = p_("Klangten", "Show channel")
     entries[:download] = p_("Klangten", "Download")
@@ -456,6 +457,7 @@ class Scene_YouTube
   def run_video_action(item, action)
     case action
     when :play then play_video(item)
+    when :background then play_in_background(item)
     when :quality then play_in_quality(item)
     when :channel then show_channel(item)
     when :download then download(item)
@@ -533,10 +535,33 @@ class Scene_YouTube
     player_screen(video, stream)
   end
 
+  # Klangten 0.4: the video plays on while you work elsewhere (Media, Player).
+  def play_in_background(item)
+    video = resolve(item, fresh: true)
+    return if video == nil
+    stream = KlangtenYouTube.best_audio(video)
+    if stream == nil
+      alert(p_("Klangten", "This video has no audio stream that can be played."))
+      return
+    end
+    KlangtenYouTube.add_to_history(KlangtenYouTube.item_from_video(video))
+    KlangtenBackgroundPlayer.play(background_item(video, stream))
+    alert(p_("Klangten", "Playing in the background"))
+  end
+
+  def background_item(video, stream)
+    KlangtenBackgroundPlayer::Item.new(title: video.title.to_s, location: stream.url, kind: :youtube, bookmark: false, details: KlangtenYouTube.video_url(video.id))
+  end
+
+  # The playlist and the background player pause while the video plays.
+  def player_screen(video, stream)
+    KlangtenMedia.suspend { video_player_screen(video, stream) }
+  end
+
   # Space pauses, Left/Right seek, Control+Up/Down change the tempo (all from
   # the core player), Escape closes. The end of the video starts it again
-  # while repeat is on.
-  def player_screen(video, stream)
+  # while repeat is on. B continues in the background, R records.
+  def video_player_screen(video, stream)
     item = KlangtenYouTube.item_from_video(video)
     KlangtenYouTube.add_to_history(item)
     repeat = true
@@ -545,6 +570,8 @@ class Scene_YouTube
     # No dialog background sound under the video, as in the core player().
     dialog_mute
     player = StreamPlayer.new(stream.url, label: video.title.to_s, autoplay: true, quiet: false)
+    handoff = false
+    player.background_handoff = proc { handoff = true }
     player.extra_context = proc do |menu|
       if player.paused?
         menu.option(p_("Klangten", "Start")) { player.play }
@@ -576,11 +603,22 @@ class Scene_YouTube
         sound.position = 0
         player.play
       end
-      break if close || key_pressed?(:key_escape) || left? || sound == nil
+      break if handoff || close || key_pressed?(:key_escape) || left? || sound == nil
     end
   ensure
-    player.close if player != nil
+    continued = false
+    if handoff && player != nil && player.sound != nil && !player.sound.closed?
+      begin
+        paused = player.paused?
+        KlangtenBackgroundPlayer.adopt(player.detach, background_item(video, stream), paused: paused)
+        continued = true
+      rescue StandardError => e
+        Log.error("YouTube: continuing in the background failed: #{e.class}: #{e.message}")
+      end
+    end
+    player.close if player != nil && !continued
     dialog_close
+    alert(p_("Klangten", "Playing in the background"), false) if continued
   end
 
   # --------------------------------------------------------------- downloads

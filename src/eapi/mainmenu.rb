@@ -104,7 +104,11 @@ module GlobalMenu
     # Community, Media, Files, Programs, Tools.
     klangten_group(p_("Klangten", "&Media"), [
       [p_("Klangten", "Media &catalog"), Scene_MediaCatalog],
-      klangten_scene_item(:Scene_YouTube, p_("Klangten", "&YouTube"))
+      klangten_scene_item(:Scene_YouTube, p_("Klangten", "&YouTube")),
+      # Klangten 0.4: the Internet Archive, and the player of what plays in
+      # the background (only while something does).
+      klangten_scene_item(:Scene_InternetArchive, p_("Klangten", "&Internet Archive")),
+      klangten_scene_item(:Scene_NowPlaying, p_("Klangten", "&Player"))
     ])
     klangten_group(p_("Klangten", "&Files"), [
       klangten_scene_item(:Scene_FileManager, p_("Klangten", "File &manager")),

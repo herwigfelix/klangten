@@ -524,6 +524,29 @@ def make_window
     make_setting(p_("Settings", "Use noise reduction"), [p_("Settings", "Never"), p_("Settings", "In audio conferences only"), p_("Settings", "In audio conferences and when recording")], "Advanced", "UseDenoising", ["never", "conferences", "conferences_and_recording"])
     make_setting(p_("Settings", "Enable echo cancellation"), :bool, "Advanced", "UseEchoCancellation")
       end
+  # Klangten 0.4: where recordings go, and the global player keys.
+  def load_media
+    return if !defined?(KlangtenRecordings)
+    setting_category(p_("Klangten", "Media and recordings"))
+    make_setting(p_("Klangten", "Recordings folder: %{folder}") % { folder: KlangtenRecordings.folder }, :custom, Proc.new { choose_recordings_folder })
+    if KlangtenRecordings.custom_folder?
+      make_setting(p_("Klangten", "Use the default recordings folder"), :custom, Proc.new {
+        KlangtenRecordings.folder = ""
+        alert(p_("Klangten", "Recordings folder: %{folder}") % { folder: KlangtenRecordings.folder })
+      })
+    end
+    if defined?(KlangtenGlobalKeys) && KlangtenGlobalKeys.supported?
+      modifier = platform_os == "osx" ? "Option" : "Windows"
+      make_setting(p_("Klangten", "Global player keys, also in other programs (%{modifier}+F5, F6, Z, X, Space, F7, F8, F11)") % { modifier: modifier }, :bool, KlangtenGlobalKeys::CONFIG_GROUP, KlangtenGlobalKeys::CONFIG_KEY)
+    end
+  end
+  def choose_recordings_folder
+    FileUtils.mkdir_p(KlangtenRecordings.folder) rescue nil
+    folder = get_folder(p_("Klangten", "Recordings folder"), path: KlangtenRecordings.folder)
+    return if folder == nil
+    KlangtenRecordings.folder = folder
+    alert(p_("Klangten", "Recordings folder: %{folder}") % { folder: folder })
+  end
   def load_ii
     return if !defined?(EltenAPI::InvisibleInterface) || (EltenAPI::InvisibleInterface.respond_to?(:available?) && !EltenAPI::InvisibleInterface.available?)
     setting_category(p_("Settings", "Invisible interface"))
@@ -556,6 +579,7 @@ def make_window
         load_voice
         load_clock
         load_soundcards
+        load_media
         load_ii
         load_auto_updater
         load_advanced

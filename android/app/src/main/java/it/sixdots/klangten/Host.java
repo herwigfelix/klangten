@@ -347,6 +347,59 @@ final class Host {
         if (latch != null) latch.countDown();
     }
 
+    // --- audio focus (background player) --------------------------------------------------
+
+    // The background player asks for the audio focus before it plays and
+    // follows what Android reports: a call or a navigation announcement takes
+    // it for a moment (0), another player for good (-1). Ruby polls the state.
+    private static volatile int audioFocus = 1;
+    private static Object focusRequest;
+    private static final android.media.AudioManager.OnAudioFocusChangeListener focusListener = change -> {
+        if (change == android.media.AudioManager.AUDIOFOCUS_GAIN) audioFocus = 1;
+        else if (change == android.media.AudioManager.AUDIOFOCUS_LOSS) audioFocus = -1;
+        else audioFocus = 0;
+    };
+
+    static int audioFocusRequest() {
+        if (app == null) return 1;
+        android.media.AudioManager manager = (android.media.AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
+        if (manager == null) return 1;
+        int result;
+        if (Build.VERSION.SDK_INT >= 26) {
+            android.media.AudioFocusRequest request = new android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(new android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build())
+                    .setOnAudioFocusChangeListener(focusListener, main)
+                    .build();
+            focusRequest = request;
+            result = manager.requestAudioFocus(request);
+        } else {
+            result = manager.requestAudioFocus(focusListener, android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.AUDIOFOCUS_GAIN);
+        }
+        boolean granted = result == android.media.AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+        audioFocus = granted ? 1 : -1;
+        return granted ? 1 : 0;
+    }
+
+    static void audioFocusAbandon() {
+        if (app == null) return;
+        android.media.AudioManager manager = (android.media.AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
+        if (manager == null) return;
+        if (Build.VERSION.SDK_INT >= 26 && focusRequest != null) {
+            manager.abandonAudioFocusRequest((android.media.AudioFocusRequest) focusRequest);
+            focusRequest = null;
+        } else {
+            manager.abandonAudioFocus(focusListener);
+        }
+        audioFocus = 1;
+    }
+
+    static int audioFocusState() {
+        return audioFocus;
+    }
+
     // --- storage (file manager, file dialogs) ---------------------------------------------
 
     // What the file manager can browse: the shared storage ("Internal storage"

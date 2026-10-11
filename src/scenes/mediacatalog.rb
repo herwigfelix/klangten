@@ -11,6 +11,9 @@
 # also the play history kept on this device, favourites of friends, public
 # and group favourites, sharing the own favourites, entering an address and
 # notes to the catalog's editors (editors and administrators maintain entries).
+# Entries and podcast episodes also play in the background
+# (KlangtenBackgroundPlayer), episodes keep a bookmark where you stopped and
+# offer to continue there, and Internet Archive entries open their files.
 
 class Scene_MediaCatalog
   def initialize
@@ -63,6 +66,27 @@ class Scene_MediaCatalog
     entries << [p_("MediaCatalog", "Add my own stream or podcast"), proc { create_bookmark }] if Session.logged?
     entries << [p_("MediaCatalog", "Share my favourites"), proc { manage_sharing }] if Session.logged?
     entries
+  end
+
+  # Klangten: any address - an Internet Archive entry, a YouTube video, a
+  # stream or a media file - goes where it belongs.
+  # An address typed in "Enter an address" that is no catalog entry: Internet
+  # Archive and YouTube open their own screens, anything else plays (and can
+  # be sent to the background).
+  def open_address_url(url)
+    url = url.strip
+    url = "https://#{url}" if !url.match?(/\A[a-z][a-z0-9+.\-]*:\/\//i)
+    if defined?(KlangtenArchive) && KlangtenArchive.url?(url)
+      Scene_InternetArchive.open_url(url)
+    elsif youtube_available? && defined?(KlangtenYouTube) && KlangtenYouTube.parse_url(url) != nil
+      Scene_YouTube.open_url(url)
+    elsif url.match?(/\A(https?|ftp|rtmp|rtsp|mms):\/\/\S+\z/i)
+      title = File.basename(url.split(/[?#]/, 2)[0].to_s)
+      title = url if title == ""
+      player(url, label: title, background: { title: title, kind: :stream })
+    else
+      alert(p_("Klangten", "This is not a valid address."))
+    end
   end
 
   # ------------------------------------------------------------------ helpers
@@ -242,7 +266,9 @@ class Scene_MediaCatalog
   def item_actions(item)
     actions = {}
     actions[:play] = p_("MediaCatalog", "Play") if item.stream?
+    actions[:background] = p_("Klangten", "Play in the background") if item.stream?
     actions[:episodes] = p_("MediaCatalog", "Episodes") if item.feed?
+    actions[:archive] = p_("Klangten", "Open in the Internet Archive") if archive_identifier(item) != nil
     actions[:youtube] = p_("MediaCatalog", "Open in YouTube") if item.type == "youtube" && item.url.to_s != "" && youtube_available?
     actions[:open] = p_("MediaCatalog", "Open in the web browser") if item.type == "webpage" && item.url.to_s != ""
     # Entries without a catalog number (history of typed addresses) have no
@@ -287,7 +313,9 @@ class Scene_MediaCatalog
     Klangten::MediaHistory.add(item) if [:play, :episodes, :youtube, :open].include?(action)
     case action
     when :play then play_item(item)
+    when :background then play_item_in_background(item)
     when :episodes then show_episodes(item)
+    when :archive then Scene_InternetArchive.open_identifier(archive_identifier(item))
     when :youtube then open_youtube(item)
     when :open then platform_open_url(item.url)
     when :favorite then toggle_favorite(item)
@@ -328,14 +356,38 @@ class Scene_MediaCatalog
   def play_item(item)
     url = item.stream_url.to_s
     return alert(_("Error")) if url == ""
-    if Session.logged?
-      begin
-        EltenLink::Media.register_play(elten_link, item.id)
-      rescue EltenLink::Error => e
-        Log.warning("Media catalog play counter failed: #{e.message}")
-      end
+    register_play(item)
+    player(url, label: item.title, background: { title: item.title, kind: item_kind(item), details: item.description.to_s })
+  end
+
+  # Klangten: the entry plays on while you work elsewhere (Media, Player).
+  def play_item_in_background(item)
+    url = item.stream_url.to_s
+    return alert(_("Error")) if url == ""
+    register_play(item)
+    KlangtenBackgroundPlayer.play(KlangtenBackgroundPlayer::Item.new(title: item.title, location: url, kind: item_kind(item), bookmark: false, details: item.description.to_s))
+    alert(p_("Klangten", "Playing in the background"))
+  end
+
+  def register_play(item)
+    return if !Session.logged?
+    EltenLink::Media.register_play(elten_link, item.id)
+  rescue EltenLink::Error => e
+    Log.warning("Media catalog play counter failed: #{e.message}")
+  end
+
+  # A radio station reconnects when its stream breaks; anything else ends.
+  def item_kind(item)
+    item.type == "radio" ? :radio : :stream
+  end
+
+  def archive_identifier(item)
+    return nil if !defined?(KlangtenArchive)
+    [item.url, item.stream_url, item.homepage].each do |address|
+      identifier = KlangtenArchive.identifier(address)
+      return identifier if identifier != nil
     end
-    player(url, label: item.title)
+    nil
   end
 
   # Klangten: YouTube does not run everywhere (Scene_YouTube.available? is false
@@ -436,21 +488,20 @@ class Scene_MediaCatalog
       alert(p_("MediaCatalog", "No episodes found."))
       return
     end
-    labels = episodes.map do |episode|
-      parts = [episode.title.to_s]
-      parts << format_date(episode.published, false, false) if episode.published != nil
-      parts << episode.duration if episode.duration.to_s != ""
-      parts.join(", ")
+    labels = proc { episodes.map { |episode| episode_label(episode) } }
+    list = ListBox.new(labels.call, header: item.title, index: 0, flags: 0, quiet: false)
+    refresh = proc do
+      index = list.index
+      list.options = labels.call
+      list.index = [index, list.options.size - 1].min
     end
-    list = ListBox.new(labels, header: item.title, index: 0, flags: 0, quiet: false)
     list.bind_context do |menu|
       episode = episodes[list.index]
-      menu.option(p_("MediaCatalog", "Play")) { play_episode(item, episode) }
-      menu.option(p_("MediaCatalog", "Download")) { download_episode(episode) }
-      menu.option(p_("MediaCatalog", "Details")) { show_episode_details(episode) }
-      menu.option(p_("MediaCatalog", "Copy address to the clipboard")) do
-        Clipboard.set_data(episode.url)
-        alert(p_("MediaCatalog", "Copied to clipboard."))
+      episode_actions(episode).each do |key, label|
+        menu.option(label) do
+          run_episode_action(item, episode, key)
+          refresh.call
+        end
       end
     end
     list.focus
@@ -460,28 +511,68 @@ class Scene_MediaCatalog
       break if key_pressed?(:key_escape) || $scene != self
       next if !key_pressed?(:key_enter)
       episode = episodes[list.index]
-      action = select_action(
-        { play: p_("MediaCatalog", "Play"), download: p_("MediaCatalog", "Download"), details: p_("MediaCatalog", "Details"), cancel: _("Cancel") },
-        header: episode.title, cancel: :cancel, flags: 1
-      )
-      case action
-      when :play then play_episode(item, episode)
-      when :download then download_episode(episode)
-      when :details then show_episode_details(episode)
-      end
+      actions = episode_actions(episode)
+      actions[:cancel] = _("Cancel")
+      action = select_action(actions, header: episode.title, cancel: :cancel, flags: 1)
+      run_episode_action(item, episode, action)
+      refresh.call
       list.focus
     end
   end
 
-  def play_episode(item, episode)
-    if Session.logged?
-      begin
-        EltenLink::Media.register_play(elten_link, item.id)
-      rescue EltenLink::Error => e
-        Log.warning("Media catalog play counter failed: #{e.message}")
-      end
+  # Klangten: an episode with a bookmark says where it was left.
+  def episode_label(episode)
+    parts = [episode.title.to_s]
+    parts << format_date(episode.published, false, false) if episode.published != nil
+    parts << episode.duration if episode.duration.to_s != ""
+    position = KlangtenBookmarks.position(episode.url)
+    parts << p_("Klangten", "bookmark at %{position}") % { position: KlangtenPlaylist.format_duration(position) } if position != nil
+    parts.join(", ")
+  end
+
+  def episode_actions(episode)
+    actions = {}
+    position = KlangtenBookmarks.position(episode.url)
+    actions[:resume] = p_("Klangten", "Continue from %{position}") % { position: KlangtenPlaylist.format_duration(position) } if position != nil
+    actions[:play] = position == nil ? p_("MediaCatalog", "Play") : p_("Klangten", "Play from the beginning")
+    actions[:background] = p_("Klangten", "Play in the background")
+    actions[:download] = p_("MediaCatalog", "Download")
+    actions[:details] = p_("MediaCatalog", "Details")
+    actions[:copy] = p_("MediaCatalog", "Copy address to the clipboard")
+    actions
+  end
+
+  def run_episode_action(item, episode, action)
+    case action
+    when :resume then play_episode(item, episode, KlangtenBookmarks.position(episode.url))
+    when :play
+      KlangtenBookmarks.forget(episode.url)
+      play_episode(item, episode, nil)
+    when :background then play_episode_in_background(item, episode)
+    when :download then download_episode(episode)
+    when :details then show_episode_details(episode)
+    when :copy
+      Clipboard.set_data(episode.url)
+      alert(p_("MediaCatalog", "Copied to clipboard."))
     end
-    player(episode.url, label: episode.title)
+  end
+
+  def episode_title(item, episode)
+    "#{item.title}: #{episode.title}"
+  end
+
+  def play_episode(item, episode, position = nil)
+    register_play(item)
+    player(episode.url, label: episode.title, bookmark: episode.url, position: position,
+      background: { title: episode_title(item, episode), kind: :podcast, details: episode.description.to_s })
+  end
+
+  # Continues at the bookmark when there is one.
+  def play_episode_in_background(item, episode)
+    register_play(item)
+    background_item = KlangtenBackgroundPlayer::Item.new(title: episode_title(item, episode), location: episode.url, kind: :podcast, bookmark: true, details: episode.description.to_s)
+    KlangtenBackgroundPlayer.play(background_item, position: KlangtenBookmarks.position(episode.url))
+    alert(p_("Klangten", "Playing in the background"))
   end
 
   def download_episode(episode)
@@ -754,10 +845,9 @@ class Scene_MediaCatalog
       alert(p_("MediaCatalog", "There is no entry with this number in the catalog."))
       return
     end
-    address = "http://" + address if address !~ %r{\A[a-z][a-z0-9+.-]*://}i
-    item = EltenLink::Media.stub_item(title: address, url: address)
-    Klangten::MediaHistory.add(item)
-    player(address, label: address)
+    address = "https://" + address if address !~ %r{\A[a-z][a-z0-9+.-]*://}i
+    Klangten::MediaHistory.add(EltenLink::Media.stub_item(title: address, url: address))
+    open_address_url(address)
   end
 
   # ---------------------------------------------- sharing my favourites

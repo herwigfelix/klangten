@@ -108,6 +108,28 @@ module IOSHostBridge
       end
     end
 
+    # --- audio focus (Klangten 0.4, background player) -------------------
+    # Android: AudioManager focus; iOS: interruptions of the audio session.
+    # A host without these entry points has no notion of focus.
+
+    def audio_focus_supported?
+      resolve!
+      symbol?("elten_host_audio_focus_state")
+    end
+
+    def audio_focus_request
+      call_int(:audio_focus_request) != 0
+    end
+
+    def audio_focus_abandon
+      call_void(:audio_focus_abandon)
+    end
+
+    # 1 focused, 0 lost for a moment (a call), -1 lost (another player).
+    def audio_focus_state
+      call_int(:audio_focus_state)
+    end
+
     def request_microphone_access(timeout = 15.0)
       fn = func(:microphone_request, [Fiddle::TYPE_DOUBLE], Fiddle::TYPE_INT)
       return true if fn == nil

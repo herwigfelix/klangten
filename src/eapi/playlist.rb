@@ -484,6 +484,7 @@ module KlangtenPlaylist
         rebuild_queue
         start(entry)
       end
+      started
       true
     end
 
@@ -534,6 +535,7 @@ module KlangtenPlaylist
           start(@current)
         end
       end
+      started
     end
 
     # Pauses background playback while the block runs (another player is
@@ -557,6 +559,7 @@ module KlangtenPlaylist
         @current = entry
         @current_index = @list.index_of(entry)
         start(entry)
+        started if !auto
         entry
       end
     end
@@ -569,6 +572,7 @@ module KlangtenPlaylist
         @current = entry
         @current_index = @list.index_of(entry)
         start(entry)
+        started
         entry
       end
     end
@@ -674,6 +678,14 @@ module KlangtenPlaylist
     end
 
     private
+
+    # Klangten 0.4: the playlist and the background player take turns; the
+    # one that starts pauses the other (KlangtenMedia).
+    def started
+      KlangtenMedia.playlist_started if defined?(KlangtenMedia)
+    rescue StandardError => e
+      log(:warning, "Playlist start notification failed: #{e.class}: #{e.message}")
+    end
 
     def settings
       @lock.synchronize do
@@ -836,6 +848,7 @@ module KlangtenPlaylist
     def ensure_thread
       return if @thread != nil && @thread.alive?
       @thread = Thread.new { engine_loop }
+      @thread.name = "klangten-playlist"
       @thread.report_on_exception = false if @thread.respond_to?(:report_on_exception=)
     end
 

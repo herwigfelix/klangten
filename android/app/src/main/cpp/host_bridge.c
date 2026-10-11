@@ -288,6 +288,13 @@ EXPORT int elten_host_microphone_request(double timeout) {
     return result;
 }
 
+// --- audio focus (background player) ------------------------------------------------
+// request: 1 = granted; state: 1 = focused, 0 = lost for a moment, -1 = lost.
+
+EXPORT int elten_host_audio_focus_request(void) { return call_int("audioFocusRequest"); }
+EXPORT void elten_host_audio_focus_abandon(void) { call_void("audioFocusAbandon"); }
+EXPORT int elten_host_audio_focus_state(void) { return call_int("audioFocusState"); }
+
 // --- storage (file manager, file dialogs; Android only) --------------------------------
 // {"shared": <shared storage root>, "app": <Klangten's own folder>, "access": true|false}
 
