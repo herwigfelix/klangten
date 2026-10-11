@@ -87,7 +87,11 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
 - Native libraries stay **inside the APK** (`extractNativeLibs=false`). Open them
   **by name** (`Fiddle.dlopen("libbass.so")`), never by path: there is no file at
   `nativeLibraryDir`. BASS is loaded once from Java first (`System.loadLibrary`),
-  so its `JNI_OnLoad` sees the Java VM.
+  so its `JNI_OnLoad` sees the Java VM. BASS add-ons are loaded the same way:
+  `Bass.init` hands `BASS_PluginLoad` the bare name (`libbassopus.so`), which
+  BASS resolves in the app's library directory; the path it used to build
+  (`files/ruby/app/eltencore/bassopus`) failed with `BASS_ERROR_FILEOPEN`, so
+  before October 2026 no add-on (Opus, FLAC, WebM, HLS, MIDI, ALAC) was active.
 - **HTTPS in BASS needs `libbass_ssl.so`.** Every recording Klangten plays comes
   as an `https://` URL that BASS streams itself (`BASS_StreamCreateURL`): voice
   posts, recorded thread titles, voice messages, radio. On Linux/Android BASS

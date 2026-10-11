@@ -684,6 +684,15 @@ module Bass
               return [v].pack("I").unpack("CCCC").map{|s|s.to_s}.reverse.join(".")
               end
     
+  # Klangten: Android keeps the add-ons inside the APK, so there is no file to
+  # point at; BASS finds them by name in the app's library directory.
+  def self.bass_plugin_file(name)
+    if defined?(EltenSystemHelpers) && EltenSystemHelpers.respond_to?(:android?) && EltenSystemHelpers.android?
+      return "lib#{name}.so"
+    end
+    EltenRuntimePaths.absolute_library_file(name)
+  end
+
   def self.init(hWnd, samplerate = 48000)
 return if @init==true
     @init=true
@@ -700,7 +709,7 @@ return if @init==true
     plugins = ["bassopus", "bassflac", "bassmidi", "basswebm", "basswma", "bass_aac", "bass_ac3", "bass_spx", "basshls", "bassalac"]
         plugins.each do |pl|
               Log.debug("Loading Bass plugin #{pl}")
-          plugin_path = EltenRuntimePaths.absolute_library_file(pl)
+          plugin_path = bass_plugin_file(pl)
           if BASS_PluginLoad.call(plugin_path, 0) == 0
             error=BASS_ErrorGetCode.call
             Log.warning("Failed to load Bass plugin #{pl}: #{error_name(error)} (#{plugin_path})") if error!=14
