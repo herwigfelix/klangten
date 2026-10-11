@@ -24,7 +24,8 @@ All Klangten-specific settings live in [`src/eltenlink/klangten_config.rb`](src/
 
 | Setting | Default | Override |
 | --- | --- | --- |
-| API base URL | `https://ten.klango.online` | `KLANGTEN_API_URL`, e.g. `KLANGTEN_API_URL=http://127.0.0.1:5100` for a local development server (plain HTTP uses HTTP/1.1) |
+| Klango server | `https://klango.online` (API `https://ten.klango.online`) | start option `--srv-host-base-url URL` or `KLANGO_SRV_HOST_BASE_URL`, see [Start options](#start-options-another-server-another-data-directory) |
+| API base URL (developer switch) | derived from the Klango server | `KLANGTEN_API_URL`, e.g. `KLANGTEN_API_URL=http://127.0.0.1:5100` for a local development server (plain HTTP uses HTTP/1.1); wins over everything else and is also used for updates |
 | HTTP/2 for HTTPS | enabled when the server negotiates it | `KLANGTEN_HTTP2=0` |
 | Conferences (TeamConference) | host and ports come from `GET /api/v1/conference/token`; library from `bin/` | `KLANGTEN_TCLIB` (path of the TeamConference core library) |
 | Program relay host and port (no relay on Klango) | API host, port 8244 | `KLANGTEN_RELAY_HOST`, `KLANGTEN_RELAY_PORT` |
@@ -32,9 +33,25 @@ All Klangten-specific settings live in [`src/eltenlink/klangten_config.rb`](src/
 | Two-factor authentication (codes via Telegram or text message, backup codes) | enabled | `TWO_FACTOR_ENABLED` in the configuration module |
 | Program repository, launcher stamp | disabled | constants in the configuration module |
 
+## Start options: another server, another data directory
+
+Like Klango 4, Klangten can run against another Klango server and from another place. Each option is written as `--name value`, `--name=value` or `name=value`; relative paths are relative to the program (the folder of `elten.exe` or `elten`, on macOS the folder holding `Klangten.app`, in a source run the source tree).
+
+| Option | Environment | Effect |
+| --- | --- | --- |
+| `--overwrite-config-path DIR` | `KLANGTEN_CONFIG_DIR` | replaces the data directory (`klangten.ini`, log, caches, sound themes, programs) - Klangten can run entirely from a USB stick or another drive |
+| `--overwrite-recordings-path DIR` | `KLANGTEN_RECORDINGS_DIR` | where recordings, downloads and documents go (the Documents, Music and Downloads locations of Klangten's file dialogs, playlists, YouTube downloads) |
+| `--srv-host-base-url URL` | `KLANGO_SRV_HOST_BASE_URL` | another Klango server, e.g. `https://example.org`; Klangten talks to its API at `https://ten.example.org` |
+
+The first time Klangten is started with a server other than klango.online it warns before anything goes over the network ("No" is preselected; "No" quits Klangten). A confirmed server is remembered for this computer account in `trusted_servers.txt` in the standard data directory - never in a data directory chosen with `--overwrite-config-path`, so a prepared folder cannot bring its own consent. Updates, installers and error reports always come from the official server. A Klango server without a valid licence answers with a short message, which Klangten reads out. Details: [Klangten start options](docs/klangten-start-options.md).
+
+```sh
+./run.sh -- --srv-host-base-url http://127.0.0.1:5100 --overwrite-config-path /Volumes/Stick/klangten
+```
+
 ## Releases and updates
 
-Klangten updates itself from the Klango server it is connected to: it compares its build id with the release published for its platform and branch, downloads the installer, checks size and SHA-256 and installs it after exiting: `KlangtenSetup.exe` on Windows, `klangten-linux.run` on Linux, and on macOS `Klangten.dmg`, from which the app replaces itself in place.
+Klangten updates itself from the official Klango server (also while another Klango server is in use): it compares its build id with the release published for its platform and branch, downloads the installer, checks size and SHA-256 and installs it after exiting: `KlangtenSetup.exe` on Windows, `klangten-linux.run` on Linux, and on macOS `Klangten.dmg`, from which the app replaces itself in place.
 
 Settings > Auto updater switches the automatic check off and chooses where updates come from. Besides the server branches (stable, RC, beta) there is **Rolling release (GitHub)**, which follows the newest release of this repository — the builds produced by `.github/workflows`. Both channels verify size and SHA-256 before anything is installed. How to build releases with a build id and publish them is described in [Klangten releases and updates](docs/klangten-releases.md).
 
@@ -46,7 +63,7 @@ Settings > Auto updater switches the automatic check off and chooses where updat
 | macOS | `~/Library/Application Support/sixdotsIT/klangten` |
 | Linux | `$XDG_DATA_HOME/sixdotsIT/klangten` (usually `~/.local/share/sixdotsIT/klangten`) |
 
-The configuration file is `klangten.ini` and the log `klangten.log`. A portable installation uses a `klangtendata` directory next to the program, enabled by `klangten.ini` in the program directory with `[Klangten]` `Portable=1`. Temporary files go to `<temp>/klangten`.
+The configuration file is `klangten.ini` and the log `klangten.log`. `--overwrite-config-path` replaces the whole directory (see [Start options](#start-options-another-server-another-data-directory)). A portable installation uses a `klangtendata` directory next to the program, enabled by `klangten.ini` in the program directory with `[Klangten]` `Portable=1`. Temporary files go to `<temp>/klangten`.
 
 Packages use their own identities: Windows installer `KlangtenSetup.exe` (own AppId, `Program Files\Klangten`), macOS `Klangten.app` (`it.sixdots.klangten`), Linux `/opt/klangten` with `klangten.desktop`, and the NVDA add-on `KLANGTEN`.
 
