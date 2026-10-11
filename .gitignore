@@ -19,3 +19,9 @@
 .AppleDesktop
 .apdisk
 /test/Gemfile.lock
+
+# Klangten: the Spotify library is built from ext/klangten_spotify
+# (tools/build-spotify.sh / .bat, the release workflows), never checked in.
+/ext/klangten_spotify/target/
+/bin/*/libklangten_spotify.*
+/bin/*/klangten_spotify.dll

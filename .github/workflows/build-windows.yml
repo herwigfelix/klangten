@@ -62,6 +62,35 @@ jobs:
         shell: pwsh
         run: choco install innosetup --no-progress -y
 
+      # Spotify: ext/klangten_spotify wird hier aus dem Quelltext gebaut und
+      # landet in bin\windows-x64 und bin\windows-x86 (nicht eingecheckt, siehe
+      # .gitignore); der Paketbau kopiert bin\<arch> ins Programm.
+      - name: Rust fuer die Spotify-Bibliothek
+        shell: pwsh
+        run: |
+          if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+            Invoke-WebRequest https://win.rustup.rs/x86_64 -OutFile "$env:RUNNER_TEMP\rustup-init.exe"
+            & "$env:RUNNER_TEMP\rustup-init.exe" -y --profile minimal --default-toolchain stable
+            "$env:USERPROFILE\.cargo\bin" >> $env:GITHUB_PATH
+            $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
+          }
+          rustup target add x86_64-pc-windows-msvc i686-pc-windows-msvc
+          rustc --version
+
+      - name: Spotify-Bau aus dem Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ext/klangten_spotify/target
+          key: spotify-win-${{ hashFiles('ext/klangten_spotify/Cargo.lock') }}
+          restore-keys: spotify-win-
+
+      - name: Spotify-Bibliothek bauen
+        shell: cmd
+        run: call tools\build-spotify.bat all
+
       - name: Launcher und Installer bauen
         shell: cmd
         run: |

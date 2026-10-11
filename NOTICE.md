@@ -67,6 +67,11 @@ Earlier Klangten versions shipped three further programs from the Elten program 
 
 The UUIDs of the removed programs stay blocked (`Programs::BuiltIns::REPLACED_UUIDS`), so an old installed copy is never loaded next to the new features.
 
+## Spotify and screen readers through PRISM (Klangten 0.4)
+
+- Spotify: `src/eapi/spotify.rb`, `src/eapi/spotify_host.rb`, `src/scenes/spotify.rb` and the native library `ext/klangten_spotify/` (Rust, built on librespot, MIT; `vendor/librespot-core` carries two documented changes). The library's code was written by the Klangten author for his own projects and is published here under the GPL-3.0; it contains no Elten code.
+- Screen readers other than NVDA: `src/platforms/windows/eapi/prism.rb` loads PRISM (MPL-2.0, unmodified release binary in `bin/windows-x64/`).
+
 ## Trademarks and names
 
 "Elten" and "EltenLink" are names of Dawid Pieper's project and of the network operated by the Prowadnica Foundation. In Klangten they are used **only descriptively**, to state where the software comes from ("based on Elten", "modified version of Elten"). No Elten or EltenLink logos are used as a mark of Klangten. "Klango" names the server Klangten connects to. All other names belong to their respective owners.

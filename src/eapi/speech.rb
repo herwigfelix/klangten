@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: long texts are spoken in parts; silent display text.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: long texts are spoken in parts; silent display text; screen readers through PRISM.
 
 module EltenAPI
   module Speech
@@ -40,12 +40,23 @@ module EltenAPI
         Configuration.voice = ""
         output = SpeechOutput.current_output
       end
+      # Klangten: a screen reader reached through PRISM may not run (yet); the
+      # default voice speaks meanwhile, and the choice stays for when it does.
+      if output != nil && output.respond_to?(:screen_reader?) && output.screen_reader? && !output.usable?
+        output.start if output.respond_to?(:start)
+        fallback = SpeechOutput.outputs.find { |o| o != output && o != nvda && o.default? && o.voices.size > 0 }
+        output = fallback if fallback != nil
+      end
       output || sapi_output || SpeechOutput
     end
 
+    # Klangten: true for every screen reader output, not only NVDA - they keep
+    # their own speech queue (PRISM, src/platforms/windows/eapi/prism.rb).
     def speech_output_nvda?
       nvda = nvda_output
-      nvda != nil && speech_output == nvda
+      output = speech_output
+      return true if nvda != nil && output == nvda
+      output.respond_to?(:screen_reader?) && output.screen_reader?
     end
 
     def speech_output_sapi?
