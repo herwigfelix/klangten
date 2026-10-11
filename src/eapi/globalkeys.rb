@@ -44,7 +44,7 @@ module KlangtenGlobalKeys
   VK_F11 = 0x7A
   CONFIG_GROUP = "Media".freeze
   CONFIG_KEY = "GlobalPlayerKeys".freeze
-  REFRESH_SECONDS = 2.0
+  REFRESH_SECONDS = 5.0
 
   # [id, modifiers, virtual key, action]
   BINDINGS = [
