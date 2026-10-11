@@ -98,6 +98,7 @@ module EltenWindow
         @char_queue.concat(text.to_s.chars)
       end
       @close_requested = true if input[:close]
+      @quit_shortcut_requested = true if input[:quit]
     end
 
     def reset_test_state
@@ -201,7 +202,9 @@ module EltenWindow
     end
 
     def consume_quit_shortcut_request
-      false
+      requested = @quit_shortcut_requested == true
+      @quit_shortcut_requested = false
+      requested
     end
 
     def consume_minimize_request

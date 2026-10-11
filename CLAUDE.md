@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Klangten**, a GPLv3 fork of Elten 3 (Dawid Pieper). Development happens on `main`; `upstream-main` keeps the untouched upstream state this fork started from. Klangten keeps Elten's self-voicing, keyboard-driven UI but talks to a **Klango** server (`https://ten.klango.online`) instead of EltenLink, and installs side by side with a normal Elten. `readme.md` documents the fork and keeps the upstream README below "Original Elten README"; `NOTICE.md` and `THIRD-PARTY-NOTICES.md` carry the GPL §5a statements.
 
-Upstream docs stay valid for the shared parts: `docs/architecture.md` (runtime model, `$scene`, interaction ownership), `docs/building.md`, `docs/contributing.md`, `docs/eltenapps.md`. Klangten-specific: `docs/klangten-releases.md`.
+Upstream docs stay valid for the shared parts: `docs/architecture.md` (runtime model, `$scene`, interaction ownership), `docs/building.md`, `docs/contributing.md`, `docs/eltenapps.md`. Klangten-specific: `docs/klangten-releases.md`, `docs/testing.md` (the test harness).
 
 **The server side lives in a separate, private repository** (the Klango server; package `klango/klangten/`, contract in its `KLANGTEN.md`). Its checkout path is recorded in that repository's own `CLAUDE.md`/`AGENTS.md`, not here. Rule for that side: implement Elten's HTTP/JSON *interface* (paths, field names, semantics) but never copy Elten code, comments, docs or translations into the server. Conversely, nothing from the private repository — original Klango code, sounds, themes or secrets — may be added to this public repository.
 
@@ -17,8 +17,16 @@ bundle install
 ./run.sh                                       # run from source (--dev = local server, run.bat on Windows)
 bundle exec ruby elten.rb                      # the same without the wrapper
 KLANGTEN_API_URL=http://127.0.0.1:5100 bundle exec ruby elten.rb   # against a local Klangten dev server
-ruby -c path/to/file.rb                        # syntax check (there is no test suite in this repo)
+ruby -c path/to/file.rb                        # syntax check
+ruby test/run.rb                               # test suite: headless flow tests (rake test does the same)
+ruby test/run.rb test/flows/test_forum.rb -n /reply/   # one file / matching tests
+KLANGTEN_SERVER_DIR=<klango-server-repo>/klango_server ruby test/run.rb   # include the online tests
 ```
+
+**Testing (`docs/testing.md`).** `test/support/klangten_test` runs the real core headless: same filelist, scenes, forms and input path, with test doubles only for window, speech and clipboard (swapped in by a hook in `elten.rb`), virtual time, a closed network and an empty data directory per test; each test is its own process. A test presses keys and checks what was heard (`k.press("down")`, `k.type("hans")`, `k.menu("Community", "Forum")`, `k.expect("…")`, `k.expect_sound("…")`); online tests start the real Klango server from `KLANGTEN_SERVER_DIR` and are skipped without it (public CI, `.github/workflows/tests.yml`).
+
+- **Every new or changed feature gets a flow test** in `test/flows/test_<area>.rb`: the way in by keyboard, what the user hears, what arrives on the server. Bug fixes get a test that fails without the fix.
+- A thread that runs for the whole session (a service started from the interface) must be registered in `test/support/klangten_test/hooks.rb`, otherwise `settle` waits for it forever; a new platform file that opens a window, speaks or uses the clipboard needs a test double in `KlangtenTestBoot::REPLACE`. Details and limits in `docs/testing.md`.
 
 Server-side tests (private Klango server repository, they cover the API this client speaks):
 

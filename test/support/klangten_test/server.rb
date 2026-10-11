@@ -82,6 +82,10 @@ module KlangtenTest
         "KLANGO_BASE_URL" => url,
         "KLANGTEN_REALTIME_POLL_MS" => "50",
         "KLANGTEN_REALTIME_MAX_WAIT_MS" => "0",
+        # No conference token: the test would otherwise connect to a real
+        # conference server named in the developer's environment.
+        "KLANGO_CONF_SECRET" => "",
+        "KLANGO_CONF_HOST" => "",
         "PYTHONDONTWRITEBYTECODE" => "1",
         "PYTHONUNBUFFERED" => "1"
       }

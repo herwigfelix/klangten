@@ -1,0 +1,46 @@
+# Klangten: test suite (docs/testing.md).
+#
+# Runs the flow tests headless on Linux and macOS: the real Klangten core
+# without a window, without sound and without network. The online tests need
+# the Klango server, which is not public; here they are skipped.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      # Application gems plus minitest; the top-level Gemfile stays as the
+      # release build uses it.
+      BUNDLE_GEMFILE: ${{ github.workspace }}/test/Gemfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build tools for native gems (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libyaml-dev zlib1g-dev
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+
+      - name: Run the tests
+        run: ruby test/run.rb --verbose

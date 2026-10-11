@@ -49,6 +49,37 @@ class HarnessTest < KlangtenTest::FlowTest
     assert_equal 1, k.result
   end
 
+  def test_call_runs_code_on_the_scene_thread
+    k = klangten
+    k.boot
+    k.call { alert("Von aussen") }
+    k.expect("Von aussen")
+    k.press("down")
+    k.expect("Register")
+  end
+
+  def test_holding_a_key_repeats_it
+    k = klangten
+    k.start { selector((1..20).map { |i| "Punkt #{i}" }, header: "Liste") }
+    k.hold("down")
+    k.run_for(1)
+    k.release("down")
+    # 0.45 s until the first repeat, then about 30 per second
+    assert_operator k.last_spoken[/\d+/].to_i, :>, 5
+  end
+
+  def test_quit_shortcut_asks_and_exits
+    k = klangten
+    k.boot
+    k.close_window
+    k.expect("Exit... Cancel")
+    k.press("down")
+    k.expect("Exit")
+    k.press("enter")
+    k.expect_sound("logout")
+    assert k.finished?
+  end
+
   def test_typing_into_an_edit_box_and_the_clipboard
     k = klangten
     k.start { input_text("Name") }

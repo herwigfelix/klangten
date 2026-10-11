@@ -127,9 +127,12 @@ module KlangtenTest
       self
     end
 
-    # Close button / Alt+F4 of the window.
-    def close_window
-      step_input(close: true)
+    # Closes the window. quit: true is the quit shortcut (Alt+F4, Cmd+Q),
+    # false the close button alone - what Klangten does with each is its
+    # own business (src/main.rb, rescue SystemExit).
+    def close_window(quit: true)
+      @mark = @events.size
+      step_input(close: true, quit: quit)
       settle
       self
     end
