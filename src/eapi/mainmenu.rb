@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes; Import data from Klango in Tools; special users, recent avatars and status history; Spotify.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: own main menu order; What's new; Media and Files menus with Klangten's own scenes; Import data from Klango in Tools; special users, recent avatars and status history; Spotify; web browser.
 
 module GlobalMenu
   def self.developer_mode?
@@ -109,6 +109,7 @@ module GlobalMenu
       # Klangten 0.4: the Internet Archive, and the player of what plays in
       # the background (only while something does).
       klangten_scene_item(:Scene_InternetArchive, p_("Klangten", "&Internet Archive")),
+      klangten_scene_item(:Scene_WebBrowser, p_("WebBrowser", "&Web browser")),
       klangten_scene_item(:Scene_NowPlaying, p_("Klangten", "&Player"))
     ])
     klangten_group(p_("Klangten", "&Files"), [

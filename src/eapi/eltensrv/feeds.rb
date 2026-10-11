@@ -7,6 +7,7 @@
 # Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the EltenLink feed helpers
 # were replaced by user interface helpers for a Mastodon account (the Klango server has no feed); a sign-in imported from Klango is never revoked.
 # Klangten 0.4: sharing forum threads and blog posts on Mastodon.
+# Links of posts open through the Klangten browser setting.
 
 module EltenAPI
   module EltenSRV
@@ -548,9 +549,10 @@ module EltenAPI
         mastodon_open_timeline(:hashtag, link[:text].sub(/\A#/, ""))
       when :mention
         account = mastodon_request { |client| client.lookup_account(link[:text].sub(/\A@/, "")) rescue client.search_accounts(link[:url], limit: 1).first }
-        account != nil ? mastodon_show_account(account) : platform_open_url(link[:url])
+        account != nil ? mastodon_show_account(account) : process_url(link[:url])
       else
-        platform_open_url(link[:url])
+        # Klangten browser or system browser, as set in the browser settings.
+        process_url(link[:url])
       end
     end
 

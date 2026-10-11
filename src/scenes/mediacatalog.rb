@@ -317,7 +317,7 @@ class Scene_MediaCatalog
     when :episodes then show_episodes(item)
     when :archive then Scene_InternetArchive.open_identifier(archive_identifier(item))
     when :youtube then open_youtube(item)
-    when :open then platform_open_url(item.url)
+    when :open then process_url(item.url)
     when :favorite then toggle_favorite(item)
     when :group_favorite then add_group_favorite(item)
     when :report then report_item(item)
@@ -326,7 +326,7 @@ class Scene_MediaCatalog
     when :rate then rate_item(item)
     when :ratings then show_ratings(item)
     when :details then show_details(item)
-    when :homepage then platform_open_url(item.homepage)
+    when :homepage then process_url(item.homepage)
     when :copy
       Clipboard.set_data(item.url)
       alert(p_("MediaCatalog", "Copied to clipboard."))
