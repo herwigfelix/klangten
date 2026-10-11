@@ -181,6 +181,8 @@ end
        end
        EltenAPI::Conference.tick
        EltenAPI::InvisibleInterface.tick
+       # Klangten 0.4: background player messages, global player keys.
+       KlangtenMedia.tick if defined?(KlangtenMedia)
        if $scene != nil && loop_update_due?(:activity_reports, PERIODIC_SLOW_SECONDS, loop_now)
          $loop_update_activity_last ||= loop_now
          activity_delta = loop_now.to_f - $loop_update_activity_last.to_f

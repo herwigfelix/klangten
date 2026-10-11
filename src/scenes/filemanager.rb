@@ -392,8 +392,10 @@ class Scene_FileManager
     refocus if $scene == self
   end
 
+  # player() pauses the playlist and the background player itself; B hands
+  # the file over to the background player.
   def play_file(file)
-    KlangtenPlaylist.suspend { player(file, label: File.basename(file)) }
+    player(file, label: File.basename(file), background: { title: File.basename(file), kind: :file })
   end
 
   def system_open(file)
@@ -651,7 +653,7 @@ class Scene_FileManager
     end
     output = self.class.unique_path(File.join(File.dirname(file), File.basename(file, File.extname(file)) + encoder.const_get(:Extension)))
     keywords = encoder.method(:encode_file).parameters.map { |_type, name| name }
-    result = KlangtenPlaylist.suspend do
+    result = KlangtenMedia.suspend do
       EltenAPI::Tasks.run(title: p_("Klangten", "Converting...")) do |progress, token|
         options = {}
         options[:cancellation_token] = token if keywords.include?(:cancellation_token)
@@ -807,7 +809,7 @@ class Scene_FileManager
       stop_recording.call
       form.resume if !recorded || confirm(p_("Klangten", "Do you want to discard the recording?"))
     end
-    KlangtenPlaylist.suspend { form.wait }
+    KlangtenMedia.suspend { form.wait }
     saved
   ensure
     recorder.stop if recorder != nil rescue nil

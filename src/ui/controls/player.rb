@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: touch gestures; recording what plays (R) and continuing in the background (B).
 
 module EltenAPI
   module Controls
@@ -12,6 +12,11 @@ module EltenAPI
            attr_reader :sound
            attr_reader :pause
            attr_accessor :label
+           # Klangten: called by "Continue in the background" (B); the owner of
+           # the player hands the sound over (see player() in common/media.rb).
+           attr_accessor :background_handoff
+           # Klangten: false hides "Start recording" (R).
+           attr_accessor :recordable
                         # @param owns_sound [Boolean] close a supplied Sound with this Player
                         def initialize(file, label: "", autoplay: true, quiet: true, stream: nil, lazy: false, owns_sound: true)
                           Programs.emit_event(:player_init)
@@ -84,6 +89,11 @@ super
     @pause==true ? play : pause
   end
     boundary_action=keyboard_action_pressed?(:player_start, :player_end)
+    # Klangten: a recording takes what is heard; jumping would cut holes into it.
+    if recording? && (boundary_action!=nil || ((key_pressed?(:key_left) || key_pressed?(:key_right)) && raw_key_held?(:key_shift)==false && !modifier_held?(:main_modifier)) || key_pressed?(0x21) || key_pressed?(0x22))
+      play_sound("border")
+      return
+    end
     if boundary_action==:player_start && get_sound!=nil
       get_sound.position=0
     elsif boundary_action==:player_end && get_sound!=nil
@@ -345,6 +355,8 @@ def close
   return if @closed
   @closed=true
   @pause=true
+  # Klangten: closing the player ends its recording.
+  KlangtenRecordings.announce_stopped(KlangtenRecordings.stop_stream(@sound)) if @sound!=nil && defined?(KlangtenRecordings) && KlangtenRecordings.recording?(@sound)
   Programs.emit_event(:player_close)
   if @sound!=nil && !@sound.closed?
     if @owns_sound
@@ -356,9 +368,36 @@ def close
   end
 end
 
+# Klangten: gives the sound away (to the background player) without stopping
+# it or its recording; the player is closed afterwards.
+def detach
+  sound=@sound
+  @sound=nil
+  @closed=true
+  @pause=true
+  sound
+end
+
+def recording?
+  @sound!=nil && defined?(KlangtenRecordings) && KlangtenRecordings.recording?(@sound)
+end
+
+def recording_title
+  return @label if @label.to_s!=""
+  return File.basename(@file.to_s.split("?")[0].to_s) if @file.is_a?(String)
+  p_("Klangten", "Recording")
+end
+
+def toggle_recording
+  sound=get_sound
+  return if sound==nil || sound.closed?
+  KlangtenRecordings.toggle_stream(sound, recording_title)
+end
+
 def jump_to_position
   sound=get_sound
   return if sound==nil || sound.closed?
+  return play_sound("border") if recording?
   was_playing=!paused?
   pause if was_playing
   position=getposition(sound.position, sound.length)
@@ -465,6 +504,13 @@ h=d/3600
           savefile
     }
   end
+    # Klangten: record what plays (R) and let it play on in the background (B).
+    if @recordable!=false && defined?(KlangtenRecordings) && KlangtenRecordings.available?
+      menu.option(recording? ? p_("Klangten", "Stop recording") : p_("Klangten", "Start recording"), nil, :r) { toggle_recording }
+    end
+    if @background_handoff!=nil
+      menu.option(p_("Klangten", "Continue in the background"), nil, :b) { @background_handoff.call }
+    end
 
     end
   end
@@ -492,6 +538,8 @@ h=d/3600
     tips.push(p_("EAPI_Form", "Press Backspace to restore the default settings"))
     tips.push(p_("EAPI_Form", "Press Home or End to move to the beginning or end of the track"))
     tips.push(p_("EAPI_Form", "Press Page Up or Page Down to move to the previous or next chapter"))
+    tips.push(p_("Klangten", "Press R to start or stop recording")) if @recordable!=false && defined?(KlangtenRecordings) && KlangtenRecordings.available?
+    tips.push(p_("Klangten", "Press B to continue playing in the background")) if @background_handoff!=nil
     return tips
     end
 end
