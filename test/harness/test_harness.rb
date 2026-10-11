@@ -49,6 +49,12 @@ class HarnessTest < KlangtenTest::FlowTest
     assert_equal 1, k.result
   end
 
+  def test_german_interface
+    k = klangten(language: "de-DE")
+    k.boot
+    k.expect("Anmelden", since: 0)
+  end
+
   def test_call_runs_code_on_the_scene_thread
     k = klangten
     k.boot
