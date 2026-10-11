@@ -79,14 +79,6 @@ class Scene_WebBrowser
       navigate(url) if url.to_s != ""
     end
 
-    def subindex
-      1
-    end
-
-    def maxsubindex
-      2
-    end
-
     def hascontext
       true
     end
@@ -119,8 +111,12 @@ class Scene_WebBrowser
         close(:left)
         return
       end
+      frame = $input_frame_serial
       poll_events
       return if @closed
+      # A dialog opened by an event (download, page message) ran its own
+      # frames; the key that closed it must not act on the page as well.
+      return if frame != $input_frame_serial
       if raw_key_held?(:key_alt) && key_pressed?(:key_space) && !modifier_held?(:main_modifier)
         cancel_pending_alt_menu
         set_mode(@mode == :focus ? :browse : :focus)
@@ -884,6 +880,8 @@ class Scene_WebBrowser
     # ---------------------------------------------------------- browse mode
 
     def browse_update
+      # A key ends reading aloud: the cursor stays where the voice was.
+      @say_all_generation = @say_all_generation.to_i + 1 if key_any_pressed?
       main = modifier_held?(:main_modifier)
       shift = raw_key_held?(:key_shift)
       alt = raw_key_held?(:key_alt)

@@ -243,15 +243,6 @@ class Scene_WebBrowser
       @on_history = on_history
     end
 
-    # Tab stays in the field (it moves between links).
-    def subindex
-      1
-    end
-
-    def maxsubindex
-      2
-    end
-
     def update
       if key_pressed?(:key_enter) && !modifier_held?(:main_modifier) && (url = link_at_cursor) != nil
         $activecontrols.push(self) if $activecontrols.is_a?(Array)
@@ -268,7 +259,7 @@ class Scene_WebBrowser
         if element == nil
           play_sound("border")
         else
-          @index = element.from
+          @index = @check = @vindex = element.from
           speak(text_range(element.from, element.to))
         end
         $activecontrols.push(self) if $activecontrols.is_a?(Array)
@@ -451,14 +442,16 @@ class Scene_WebBrowser
       Log.error("Browser: Chrome did not start: #{e.class}: #{e.message}")
       return [:engine_failed, e.message, url]
     end
-    result = :closed
-    form = nil
-    view = PageView.new(tab, url) do |outcome|
-      result = outcome
-      form.resume if form != nil
+    result = nil
+    view = PageView.new(tab, url) { |outcome| result = outcome }
+    # The page owns Tab and Escape (a Form would take Tab for itself), so it
+    # gets a frame loop of its own.
+    view.focus
+    loop do
+      loop_update
+      view.update
+      break if result != nil
     end
-    form = Form.new([view], quiet: true)
-    form.wait
     result = [:engine_failed, result[1], url] if result.is_a?(Array) && result[0] == :engine_failed
     result
   ensure
@@ -470,16 +463,20 @@ class Scene_WebBrowser
   def text_browser(url)
     @pages = []
     @page_index = -1
-    @text_result = :closed
+    @text_result = nil
     return :closed unless text_open(url)
-    @text_form = Form.new([text_view], quiet: true)
-    close = Button.new(_("Close"))
-    @text_form.cancel_button = close
-    close.on(:press) { @text_form.resume }
-    @text_form.wait
+    # Like the full browser: Tab moves between links, so no Form here.
+    @text_view = text_view
+    @text_view.focus
+    loop do
+      loop_update
+      @text_view.update
+      @text_result ||= :closed if key_pressed?(:key_escape) || left?
+      break if @text_result != nil
+    end
     @text_result
   ensure
-    @text_form = nil
+    @text_view = nil
   end
 
   def current_page
@@ -500,12 +497,11 @@ class Scene_WebBrowser
   # Shows the current page; read: false keeps the place and speaks only the
   # title and the line (going back), read: true reads the new page.
   def text_show(read: true)
-    view = text_view
-    @text_form.fields[0] = view
+    view = @text_view = text_view
     if read
       view.focus
     else
-      speak("#{view.header}. #{view.text_range(view.line_beginning, view.line_ending)}")
+      speak("#{view.header}. #{view.text_range(view.line_beginning(view.index), view.line_ending(view.index))}")
     end
   end
 
@@ -559,7 +555,7 @@ class Scene_WebBrowser
 
   def text_follow(link)
     absolute = (URI.join(current_page.url, link.to_s).to_s rescue link.to_s)
-    @pages[@page_index][:position] = @text_form.fields[0].index
+    @pages[@page_index][:position] = @text_view.index
     unless KlangtenWeb.web_url?(absolute)
       platform_open_url(absolute)
       return
@@ -574,7 +570,7 @@ class Scene_WebBrowser
   def text_step(step)
     target = @page_index + step
     return play_sound("border") unless target.between?(0, @pages.size - 1)
-    @pages[@page_index][:position] = @text_form.fields[0].index
+    @pages[@page_index][:position] = @text_view.index
     @page_index = target
     text_show(read: false)
   end
@@ -616,11 +612,10 @@ class Scene_WebBrowser
       if KlangtenWeb.engine_supported?
         menu.option(p_("WebBrowser", "Open in the full browser")) do
           @text_result = [:full, current_page.url]
-          @text_form.resume
         end
       end
       menu.option(p_("WebBrowser", "Keyboard shortcuts")) { Scene_WebBrowser.show_keys }
-      menu.option(p_("WebBrowser", "Close the browser")) { @text_form.resume }
+      menu.option(p_("WebBrowser", "Close the browser")) { @text_result = :closed }
     end
   end
 end

@@ -253,6 +253,10 @@ module KlangtenWeb
 
     @install_mutex = Mutex.new
 
+    # Chrome keeps new cookies in memory for up to half a minute: close it
+    # properly when Klangten ends.
+    at_exit { KlangtenWeb::Chrome.shutdown }
+
     class << self
       # Chrome for Testing's name of this system, or nil.
       def platform
@@ -774,11 +778,15 @@ module KlangtenWeb
         ]
         # Klangten's own sound comes first on weak machines.
         arguments = ["nice", "-n", "10"] + arguments if KlangtenWeb.platform_os == "linux" && File.executable?("/usr/bin/nice")
-        @pid = Process.spawn(*arguments, in: File::NULL, out: File::NULL, err: File::NULL)
+        options = { in: File::NULL, out: File::NULL, err: File::NULL }
+        # No inherited descriptors: Chrome outlives a crashed Klangten and
+        # would hold its pipes open.
+        options[:close_others] = true unless KlangtenWeb.windows?
+        @pid = Process.spawn(*arguments, **options)
         @waiter = Process.detach(@pid)
         File.write(File.join(base, "chrome.pid"), "#{@pid} #{Process.pid}") rescue nil
         port, path = wait_for_port(port_file)
-        socket = KlangtenWeb::WebSocket.new("127.0.0.1", port, path)
+        socket = KlangtenWeb::WebSocket.new("127.0.0.1", port, path, timeout: 15)
         @connection = Connection.new(socket)
         @connection.download_dir = @download_dir
         product = @connection.call("Browser.getVersion")["product"].to_s

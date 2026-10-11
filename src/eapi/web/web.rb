@@ -88,7 +88,11 @@ module KlangtenWeb
       @settings = nil
     end
 
+    # For tests: save downloads into another folder.
+    attr_writer :downloads_dir
+
     def downloads_dir
+      return @downloads_dir if @downloads_dir != nil
       dir = nil
       if desktop?
         candidate = File.join(Dirs.user, "Downloads")
