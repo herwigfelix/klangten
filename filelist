@@ -269,11 +269,14 @@ src/eapi/document_text.rb
 src/scenes/youtube.rb
 src/scenes/filemanager.rb
 src/scenes/playlist.rb
-# Klangten 0.4: background playback, recordings, podcast bookmarks, Internet Archive
+# Klangten 0.4: background playback, recordings, podcast bookmarks, Internet Archive, global player keys
 src/eapi/mediarecordings.rb
 src/eapi/mediabookmarks.rb
 src/eapi/backgroundplayer.rb
 src/eapi/internetarchive.rb
+src/eapi/globalkeys.rb
+src/platforms/windows/eapi/globalkeys.rb :windows
+src/platforms/osx/eapi/globalkeys.rb :osx
 src/scenes/nowplaying.rb
 src/scenes/internetarchive.rb
 src/platforms/ios/ui/touchinput.rb :ios
