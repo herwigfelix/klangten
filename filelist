@@ -269,11 +269,11 @@ src/eapi/document_text.rb
 src/scenes/youtube.rb
 src/scenes/filemanager.rb
 src/scenes/playlist.rb
-src/platforms/ios/ui/touchinput.rb :ios
-src/main.rb
 # Klangten: the Klangten browser (full browser over Chrome for Testing, text browser)
 src/eapi/web/web.rb
 src/eapi/web/websocket.rb
 src/eapi/web/ax.rb
 src/eapi/web/chrome.rb
 src/eapi/web/textpage.rb
+src/platforms/ios/ui/touchinput.rb :ios
+src/main.rb
