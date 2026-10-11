@@ -12,6 +12,10 @@
 #
 # Podcast episodes are not served by the API: the server delivers the feed URL
 # and the client reads the RSS/Atom feed itself (episodes method).
+#
+# Since Klangten 0.4 also: favourites of friends and public favourites, group
+# favourites, messages to the editors, editing entries and looking up an
+# address (the same functions Klango 4 offers in its catalog).
 
 module EltenLink
   class MediaType
@@ -25,7 +29,7 @@ module EltenLink
   class MediaItem
     attr_accessor :id, :title, :type, :type_id, :url, :urls, :stream_url, :feed_url, :description, :keywords,
       :language, :homepage, :bitrate, :rating_average, :rating_count, :rating_mine, :plays, :last_played,
-      :added, :added_by, :hidden, :favorite, :extrainfo, :tags
+      :added, :added_by, :hidden, :favorite, :extrainfo, :tags, :tag_ids
 
     def stream?
       stream_url.to_s != ""
@@ -49,9 +53,14 @@ module EltenLink
     attr_accessor :title, :url, :published, :duration, :description, :size, :mime
   end
 
+  # Klangten 0.4: a user whose favourites are shared with me or published, and
+  # a Klango group with its favourites.
+  MediaOwner = Struct.new(:user, :favorites, keyword_init: true)
+  MediaGroup = Struct.new(:id, :name, :items, :can_edit, keyword_init: true)
+
   module Media
     TYPES = %w[podcast radio audiobook youtube rssfeed webpage mediafile].freeze
-    LISTS = %w[popular top_rated newest recently_played random].freeze
+    LISTS = %w[popular top_rated newest recently_played recently_rated random].freeze
     SORTS = %w[title popular rating newest].freeze
     PAGE_SIZE = 100
 
@@ -159,6 +168,103 @@ module EltenLink
         build_item(client.api_data("POST", "/api/v1/media/favorites/items", params)["item"] || {})
       end
 
+      # ------------------------------------------------- Klangten 0.4 additions
+
+      # Favourites of friends: users who shared their favourites with me.
+      def shared_owners(client)
+        build_owners(client.api_data("GET", "/api/v1/media/shared"))
+      end
+
+      # Removes someone else's shared favourites from my list.
+      def leave_shared(client, user)
+        client.api_data("DELETE", "/api/v1/media/shared/#{user.to_s.urlenc}")
+        true
+      end
+
+      # Public favourites: users who published their favourites for everyone.
+      def public_owners(client)
+        build_owners(client.api_data("GET", "/api/v1/media/public"))
+      end
+
+      # [[MediaCategory], [MediaItem]] of a user who shares them with me.
+      def user_favorites(client, user)
+        data = client.api_data("GET", "/api/v1/media/users/#{user.to_s.urlenc}/favorites")
+        [Array(data["categories"]).map { |row| build_category(row) }, Array(data["items"]).map { |row| build_item(row) }]
+      end
+
+      # [users I share my favourites with, published for everyone?]
+      def favorite_shares(client)
+        data = client.api_data("GET", "/api/v1/media/favorites/shares")
+        [Array(data["users"]).map(&:to_s), data["public"] == true]
+      end
+
+      def share_favorites(client, user)
+        client.api_data("PUT", "/api/v1/media/favorites/shares/#{user.to_s.urlenc}")["added"] == true
+      end
+
+      def unshare_favorites(client, user)
+        client.api_data("DELETE", "/api/v1/media/favorites/shares/#{user.to_s.urlenc}")
+        true
+      end
+
+      def publish_favorites(client, published)
+        client.api_data(published ? "PUT" : "DELETE", "/api/v1/media/favorites/public")
+        true
+      end
+
+      def groups(client)
+        Array(client.api_data("GET", "/api/v1/media/groups")["groups"]).map do |row|
+          MediaGroup.new(id: row["id"].to_i, name: row["name"].to_s, items: row["items"].to_i, can_edit: row["can_edit"] == true)
+        end
+      end
+
+      # [MediaGroup, [MediaItem]]
+      def group_favorites(client, group_id)
+        data = client.api_data("GET", "/api/v1/media/groups/#{group_id.to_i}/favorites")
+        row = data["group"].is_a?(Hash) ? data["group"] : {}
+        group = MediaGroup.new(id: row["id"].to_i, name: row["name"].to_s, items: 0, can_edit: row["can_edit"] == true)
+        items = Array(data["items"]).map { |item| build_item(item) }
+        group.items = items.size
+        [group, items]
+      end
+
+      def add_group_favorite(client, group_id, item_id)
+        client.api_data("PUT", "/api/v1/media/groups/#{group_id.to_i}/favorites/items/#{item_id.to_i}")["added"] == true
+      end
+
+      def remove_group_favorite(client, group_id, item_id)
+        client.api_data("DELETE", "/api/v1/media/groups/#{group_id.to_i}/favorites/items/#{item_id.to_i}")
+        true
+      end
+
+      # {"editor" => bool, "admin" => bool} for the catalog's editorial team.
+      def permissions(client)
+        data = client.api_data("GET", "/api/v1/media/permissions")
+        { "editor" => data["editor"] == true, "admin" => data["admin"] == true }
+      end
+
+      # Message to the editors; hide: :hide or :unhide (catalog administrators).
+      # Returns whether the item is hidden afterwards.
+      def report(client, id, text, hide: nil)
+        params = { "text" => text.to_s }
+        params["hide"] = hide.to_s if hide != nil
+        client.api_data("POST", "/api/v1/media/items/#{id.to_i}/report", params)["hidden"] == true
+      end
+
+      # Catalog editors: title, description, keywords, homepage, language and
+      # categories (array of ids, replaces all of them).
+      def update_item(client, id, fields)
+        params = {}
+        fields.each { |key, value| params[key.to_s] = value }
+        build_item(client.api_data("PATCH", "/api/v1/media/items/#{id.to_i}", params)["item"] || {})
+      end
+
+      # A catalog number or address -> MediaItem, or nil when unknown.
+      def lookup(client, address)
+        data = client.api_data("GET", "/api/v1/media/lookup", { "url" => address.to_s })
+        data["item"].is_a?(Hash) ? build_item(data["item"]) : nil
+      end
+
       # Reads the episodes of a podcast feed (RSS 2.0 or Atom), newest first.
       def episodes(feed_url, cancellation_token: nil)
         require "nokogiri"
@@ -196,7 +302,22 @@ module EltenLink
         end.reject { |episode| episode.url.to_s == "" }
       end
 
+      # A MediaItem built locally (play history, an address typed by the user):
+      # the address becomes the stream, feed or page address depending on type.
+      def stub_item(id: 0, title: "", type: "", url: "")
+        row = { "id" => id.to_i, "title" => title.to_s, "type" => type.to_s, "url" => url.to_s, "urls" => [url.to_s] }
+        item = build_item(row)
+        kind = type.to_s
+        item.stream_url = url.to_s if !%w[podcast rssfeed youtube webpage].include?(kind)
+        item.feed_url = url.to_s if %w[podcast rssfeed].include?(kind)
+        item
+      end
+
       private
+
+      def build_owners(data)
+        Array(data["users"]).map { |row| MediaOwner.new(user: row["user"].to_s, favorites: row["favorites"].to_i) }
+      end
 
       def compact(params)
         params.reject { |_key, value| value == nil || value.to_s == "" }
@@ -255,6 +376,7 @@ module EltenLink
         item.favorite = row["favorite"] == true
         item.extrainfo = row["extrainfo"].to_s
         item.tags = Array(row["tags"]).map { |tag| tag["name"].to_s }
+        item.tag_ids = Array(row["tags"]).map { |tag| tag["id"].to_i }
         item
       end
 
