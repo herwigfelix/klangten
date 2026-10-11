@@ -27340,3 +27340,332 @@ msgstr "R startet oder beendet die Aufnahme"
 msgctxt "Klangten"
 msgid "Press B to continue playing in the background"
 msgstr "B spielt im Hintergrund weiter"
+
+# Klangten 0.4: Spotify and screen readers through PRISM
+msgctxt "Spotify"
+msgid "Klangten is connected to Spotify."
+msgstr "Klangten ist mit Spotify verbunden."
+
+msgctxt "Spotify"
+msgid "You can close this window and return to Klangten."
+msgstr "Sie können dieses Fenster schließen und zu Klangten zurückkehren."
+
+msgctxt "Spotify"
+msgid "Player"
+msgstr "Player"
+
+msgctxt "Spotify"
+msgid "Space: play or pause"
+msgstr "Leertaste: abspielen oder anhalten"
+
+msgctxt "Spotify"
+msgid "Left and right arrows: seek 5 seconds"
+msgstr "Pfeil links und rechts: 5 Sekunden spulen"
+
+msgctxt "Spotify"
+msgid "Up and down arrows: volume"
+msgstr "Pfeil hoch und runter: Lautstärke"
+
+msgctxt "Spotify"
+msgid "Page up and page down: previous and next track"
+msgstr "Bild auf und Bild ab: vorheriger und nächster Titel"
+
+msgctxt "Spotify"
+msgid "Home: start the track again"
+msgstr "Pos1: Titel von vorn"
+
+msgctxt "Spotify"
+msgid "Enter: what is playing"
+msgstr "Eingabe: was gerade läuft"
+
+msgctxt "Spotify"
+msgid "Spotify is not available on this system."
+msgstr "Spotify ist auf diesem System nicht verfügbar."
+
+msgctxt "Spotify"
+msgid "Spotify does not play this track. Playback needs Spotify Premium, and some tracks are not available in your country."
+msgstr "Spotify spielt diesen Titel nicht ab. Die Wiedergabe braucht Spotify Premium, und manche Titel sind in Ihrem Land nicht verfügbar."
+
+msgctxt "Spotify"
+msgid "This track could not be opened. Check your internet connection."
+msgstr "Dieser Titel konnte nicht geöffnet werden. Prüfen Sie Ihre Internetverbindung."
+
+msgctxt "Spotify"
+msgid "End of the list."
+msgstr "Ende der Liste."
+
+msgctxt "Spotify"
+msgid "Nothing is playing"
+msgstr "Es läuft nichts"
+
+msgctxt "Spotify"
+msgid "paused"
+msgstr "angehalten"
+
+msgctxt "Spotify"
+msgid "loading"
+msgstr "wird geladen"
+
+msgctxt "Spotify"
+msgid "playing"
+msgstr "läuft"
+
+msgctxt "Spotify"
+msgid "%{position} of %{duration}"
+msgstr "%{position} von %{duration}"
+
+msgctxt "Spotify"
+msgid "Paused"
+msgstr "Angehalten"
+
+msgctxt "Spotify"
+msgid "Playing"
+msgstr "Wiedergabe"
+
+msgctxt "Spotify"
+msgid "Play"
+msgstr "Abspielen"
+
+msgctxt "Spotify"
+msgid "Pause"
+msgstr "Anhalten"
+
+msgctxt "Spotify"
+msgid "Next track"
+msgstr "Nächster Titel"
+
+msgctxt "Spotify"
+msgid "Previous track"
+msgstr "Vorheriger Titel"
+
+msgctxt "Spotify"
+msgid "Stop"
+msgstr "Stopp"
+
+msgctxt "Spotify"
+msgid "Nothing was found."
+msgstr "Es wurde nichts gefunden."
+
+msgctxt "Spotify"
+msgid "Track list"
+msgstr "Titelliste"
+
+msgctxt "Spotify"
+msgid "Back"
+msgstr "Zurück"
+
+msgctxt "Spotify"
+msgid "To listen to Spotify in Klangten, sign in with your Spotify account. The sign-in page opens in your web browser; after signing in, return to Klangten. Playback needs Spotify Premium. Do you want to sign in now?"
+msgstr "Um Spotify in Klangten zu hören, melden Sie sich mit Ihrem Spotify-Konto an. Die Anmeldeseite öffnet sich in Ihrem Webbrowser; kehren Sie nach der Anmeldung zu Klangten zurück. Die Wiedergabe braucht Spotify Premium. Möchten Sie sich jetzt anmelden?"
+
+msgctxt "Spotify"
+msgid "Waiting for the sign-in in the web browser. Press Escape to cancel."
+msgstr "Warte auf die Anmeldung im Webbrowser. Escape bricht ab."
+
+msgctxt "Spotify"
+msgid "Connecting to Spotify..."
+msgstr "Verbindung zu Spotify wird hergestellt..."
+
+msgctxt "Spotify"
+msgid "Connected to Spotify."
+msgstr "Mit Spotify verbunden."
+
+msgctxt "Spotify"
+msgid "Your Spotify account has no Premium subscription. Spotify allows playback in other programs only with Premium."
+msgstr "Ihr Spotify-Konto hat kein Premium-Abo. Spotify erlaubt die Wiedergabe in anderen Programmen nur mit Premium."
+
+msgctxt "Spotify"
+msgid "Signing in to Spotify failed. Check your internet connection and try again."
+msgstr "Die Anmeldung bei Spotify ist fehlgeschlagen. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+
+msgctxt "Spotify"
+msgid "Do you want to sign out of Spotify? Klangten then forgets your Spotify login."
+msgstr "Möchten Sie sich von Spotify abmelden? Klangten vergisst dann Ihre Spotify-Anmeldung."
+
+msgctxt "Spotify"
+msgid "Signing out..."
+msgstr "Abmelden..."
+
+msgctxt "Spotify"
+msgid "You have signed out of Spotify."
+msgstr "Sie haben sich von Spotify abgemeldet."
+
+msgctxt "Spotify"
+msgid "Search"
+msgstr "Suchen"
+
+msgctxt "Spotify"
+msgid "Liked songs"
+msgstr "Lieblingssongs"
+
+msgctxt "Spotify"
+msgid "My playlists"
+msgstr "Meine Playlists"
+
+msgctxt "Spotify"
+msgid "Now playing"
+msgstr "Läuft gerade"
+
+msgctxt "Spotify"
+msgid "Sign out of Spotify"
+msgstr "Von Spotify abmelden"
+
+msgctxt "Spotify"
+msgid "Spotify did not answer as expected. Try again later."
+msgstr "Spotify hat nicht wie erwartet geantwortet. Versuchen Sie es später noch einmal."
+
+msgctxt "Spotify"
+msgid "Search Spotify"
+msgstr "Spotify durchsuchen"
+
+msgctxt "Spotify"
+msgid "Everything"
+msgstr "Alles"
+
+msgctxt "Spotify"
+msgid "Tracks"
+msgstr "Titel"
+
+msgctxt "Spotify"
+msgid "Artists"
+msgstr "Künstler"
+
+msgctxt "Spotify"
+msgid "Albums"
+msgstr "Alben"
+
+msgctxt "Spotify"
+msgid "Playlists"
+msgstr "Playlists"
+
+msgctxt "Spotify"
+msgid "Audiobooks"
+msgstr "Hörbücher"
+
+msgctxt "Spotify"
+msgid "Podcasts"
+msgstr "Podcasts"
+
+msgctxt "Spotify"
+msgid "Search for"
+msgstr "Suchen nach"
+
+msgctxt "Spotify"
+msgid "Enter what you are looking for."
+msgstr "Geben Sie ein, wonach Sie suchen."
+
+msgctxt "Spotify"
+msgid "Track"
+msgstr "Titel"
+
+msgctxt "Spotify"
+msgid "Artist"
+msgstr "Künstler"
+
+msgctxt "Spotify"
+msgid "Album"
+msgstr "Album"
+
+msgctxt "Spotify"
+msgid "Playlist"
+msgstr "Playlist"
+
+msgctxt "Spotify"
+msgid "Audiobook"
+msgstr "Hörbuch"
+
+msgctxt "Spotify"
+msgid "Podcast"
+msgstr "Podcast"
+
+msgctxt "Spotify"
+msgid "Searching..."
+msgstr "Suche läuft..."
+
+msgctxt "Spotify"
+msgid "Results for %{query}"
+msgstr "Ergebnisse für %{query}"
+
+msgctxt "Spotify"
+msgid "Open"
+msgstr "Öffnen"
+
+msgctxt "Spotify"
+msgid "Go to artist"
+msgstr "Zum Künstler"
+
+msgctxt "Spotify"
+msgid "Go to album"
+msgstr "Zum Album"
+
+msgctxt "Spotify"
+msgid "Similar tracks"
+msgstr "Ähnliche Titel"
+
+msgctxt "Spotify"
+msgid "Looking for similar tracks..."
+msgstr "Ähnliche Titel werden gesucht..."
+
+msgctxt "Spotify"
+msgid "Similar to %{title}"
+msgstr "Ähnlich wie %{title}"
+
+msgctxt "Spotify"
+msgid "Play from here"
+msgstr "Ab hier abspielen"
+
+msgctxt "Spotify"
+msgid "Loading your liked songs..."
+msgstr "Ihre Lieblingssongs werden geladen..."
+
+msgctxt "Spotify"
+msgid "Loading your playlists..."
+msgstr "Ihre Playlists werden geladen..."
+
+msgctxt "Spotify"
+msgid "You have no playlists."
+msgstr "Sie haben keine Playlists."
+
+msgctxt "Spotify"
+msgid "Loading the playlist..."
+msgstr "Die Playlist wird geladen..."
+
+msgctxt "Spotify"
+msgid "Loading the album..."
+msgstr "Das Album wird geladen..."
+
+msgctxt "Spotify"
+msgid "Loading..."
+msgstr "Wird geladen..."
+
+msgctxt "Spotify"
+msgid "Resume: %{title}"
+msgstr "Fortsetzen: %{title}"
+
+msgctxt "Spotify"
+msgid "Loading the artist..."
+msgstr "Der Künstler wird geladen..."
+
+msgctxt "Spotify"
+msgid "Popular tracks"
+msgstr "Beliebte Titel"
+
+msgctxt "Spotify"
+msgid "Related artists"
+msgstr "Ähnliche Künstler"
+
+msgctxt "Spotify"
+msgid "Biography"
+msgstr "Biografie"
+
+msgctxt "Spotify"
+msgid "Popular tracks of %{artist}"
+msgstr "Beliebte Titel von %{artist}"
+
+msgctxt "Speech"
+msgid "Screen reader (%{name})"
+msgstr "Screenreader (%{name})"
+
+msgctxt "Speech"
+msgid "Screen reader (JAWS, NVDA, Narrator and others)"
+msgstr "Screenreader (JAWS, NVDA, Sprachausgabe und andere)"
