@@ -1,0 +1,57 @@
+# klangten_spotify - Spotify playback for Klangten as a native library.
+#
+# Part of Klangten. Copyright (C) 2026 Felix Valentin Herwig (sixdotsIT).
+# Licensed under the GNU General Public License, version 3 (see the
+# repository's licence). Built on librespot (MIT); vendor/librespot-core is a
+# patched copy of librespot-core 0.8.0 (MIT, see vendor/librespot-core/LICENSE
+# and PATCHES.md).
+#
+# The C ABI (src/ffi.rs) is loaded by src/eapi/spotify.rb through Fiddle.
+# Build: tools/build-spotify.sh (macOS, Linux) or tools\build-spotify.bat
+# (Windows); both place the library in bin/<runtime>/.
+[package]
+name = "klangten_spotify"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+# cdylib for Klangten; rlib only for `cargo test`.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# rustls instead of OpenSSL (clean Windows build, no DLLs to ship);
+# default-features = false leaves out librespot's own cpal/rodio speaker -
+# Klangten plays the PCM through BASS.
+librespot-core = { version = "0.8", default-features = false, features = ["rustls-tls-native-roots"] }
+librespot-playback = { version = "0.8", default-features = false, features = ["rustls-tls-native-roots"] }
+librespot-metadata = { version = "0.8", default-features = false, features = ["rustls-tls-native-roots"] }
+librespot-oauth = { version = "0.8", default-features = false, features = ["rustls-tls-native-roots"] }
+librespot-protocol = "0.8"
+protobuf = "3.7"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"] }
+# Only for the typed search through pathfinder (engine.rs: search_typed).
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+serde_json = "1"
+percent-encoding = "2"
+
+# librespot-core from vendor/ instead of crates.io, with two changes
+# (PATCHES.md):
+#   1. no exit(1) for an account without Premium (Session::check_catalogue
+#      only records it; engine.rs stops in an orderly way - otherwise the
+#      whole of Klangten would disappear, and again after every restart);
+#   2. Session::millis_since_last_packet (wall clock) - after sleep a dead
+#      connection would otherwise count as healthy for minutes.
+# The patch applies to all librespot crates, as they all pull librespot-core
+# from crates.io.
+[patch.crates-io]
+librespot-core = { path = "vendor/librespot-core" }
+
+[build-dependencies]
+# Not used directly - pins vergen for librespot-core's build script
+# (without it vergen 9.1.0 is chosen and fails with "trait Add not implemented").
+vergen = "=9.0.6"
+
+[profile.release]
+opt-level = 2
