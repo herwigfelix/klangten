@@ -78,7 +78,9 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     k.wait_for("Results for kraftwerk")
     k.expect("Track: Das Model - Kraftwerk")
     k.press("enter")
-    k.wait_for("Player: Kraftwerk - Das Model")
+    # like a playlist in Klango: the list comes first, on the track that plays
+    k.wait_for("Similar to Kraftwerk - Das Model")
+    k.expect("Kraftwerk - Das Model")
     assert_equal ["spotify:track:1", 0], @library.opened.first
     k.press("space")
     k.wait_for("Paused")
@@ -88,8 +90,18 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     k.wait_for("Kraftwerk - Neonlicht")
     k.press("right")
     assert_includes @library.controls, ["seekrel", 5000]
+    # tempo, pitch and balance like in Klangten's player
+    k.press("ctrl+up")
+    k.press("ctrl+up")
+    assert_equal 4.0, k.call { KlangtenSpotify.player.tempo }
+    k.press("shift+up")
+    assert_in_delta 44_100 + 176.4, k.call { KlangtenSpotify.player.frequency }, 0.01
+    k.press("shift+right")
+    assert_in_delta 0.02, k.call { KlangtenSpotify.player.pan }, 0.001
+    k.press("backspace")
+    assert_equal [0.0, 44_100.0, 0.0], k.call { [KlangtenSpotify.player.tempo, KlangtenSpotify.player.frequency, KlangtenSpotify.player.pan] }
     k.press("tab")
-    k.expect("Kraftwerk - Neonlicht")
+    k.expect("Player: Kraftwerk - Neonlicht")
     k.press("escape")
     k.wait_for("Results for kraftwerk")
     assert KlangtenSpotify.player.active?, "playback continues in the lists"
@@ -149,7 +161,7 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     k.wait_for("Kapitel 1")
     k.press("down")
     k.press("enter")
-    k.wait_for("Player: Kapitel 2")
+    k.wait_for("Kapitel 2")
     @library.position_ms = 600_000
     k.press("escape")
     k.press("escape")
@@ -157,7 +169,7 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     k.press("enter")
     k.wait_for("Resume: Kapitel 2")
     k.press("enter")
-    k.wait_for("Player: Kapitel 2")
+    k.wait_for("Kapitel 2")
     assert_operator @library.opened.last[1], :>=, 600_000
   end
 

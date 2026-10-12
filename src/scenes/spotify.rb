@@ -78,6 +78,7 @@ class Scene_Spotify
         p_("Spotify", "Left and right arrows: seek 5 seconds"),
         p_("Spotify", "Up and down arrows: volume"),
         p_("Spotify", "Page up and page down: previous and next track"),
+        p_("Spotify", "Control with up and down arrows: tempo; Shift with up and down arrows: pitch; Shift with left and right arrows: balance; Backspace: back to normal"),
         p_("Spotify", "Home: start the track again"),
         p_("Spotify", "Enter: what is playing")
       ]
@@ -93,21 +94,12 @@ class Scene_Spotify
 
     def update
       super
+      return if @scene.player_keys
       return if modifier_held?(:main_modifier) || raw_key_held?(:key_shift)
-      if key_pressed?(:key_space)
-        @scene.toggle_pause
-      elsif key_pressed?(:key_right)
-        @player.seek(KlangtenSpotify::Player::SEEK_STEP) || play_sound("border")
-      elsif key_pressed?(:key_left)
-        @player.seek(-KlangtenSpotify::Player::SEEK_STEP) || play_sound("border")
-      elsif key_pressed?(:key_up, repeat: true)
+      if key_pressed?(:key_up, repeat: true)
         change_volume(VOLUME_STEP)
       elsif key_pressed?(:key_down, repeat: true)
         change_volume(-VOLUME_STEP)
-      elsif key_pressed?(:key_page_down)
-        @scene.skip(1)
-      elsif key_pressed?(:key_page_up)
-        @scene.skip(-1)
       elsif key_pressed?(:key_home)
         @player.restart_track || play_sound("border")
       elsif key_pressed?(:key_enter)
@@ -126,6 +118,20 @@ class Scene_Spotify
       @player.volume = value
       KlangtenSpotify.save_volume
       speak("#{(value * 100).round}%")
+    end
+  end
+
+  # The track list of the player screen: Up and Down choose a track, Enter
+  # plays it; the player keys work here as well (like a playlist in Klango).
+  class QueueList < EltenAPI::Controls::ListBox
+    def initialize(scene, *args, **kw)
+      super(*args, **kw)
+      @scene = scene
+    end
+
+    def update
+      return if @scene.player_keys
+      super
     end
   end
 
@@ -246,6 +252,86 @@ class Scene_Spotify
     end
   end
 
+  TEMPO_STEP = 2
+  TEMPO_RANGE = (-50..100).freeze
+  PAN_STEP = 0.02
+
+  # The keys of Klangten's player (src/ui/controls/player.rb) for Spotify, in
+  # the track list and on the player field alike. True when a key was used.
+  def player_keys
+    return false unless KlangtenSpotify.player? && player.active?
+    main = modifier_held?(:main_modifier)
+    shift = raw_key_held?(:key_shift)
+    if !main && !shift
+      if key_pressed?(:key_space)
+        toggle_pause
+      elsif key_pressed?(:key_right)
+        player.seek(KlangtenSpotify::Player::SEEK_STEP) || play_sound("border")
+      elsif key_pressed?(:key_left)
+        player.seek(-KlangtenSpotify::Player::SEEK_STEP) || play_sound("border")
+      elsif key_pressed?(:key_page_down)
+        skip(1)
+      elsif key_pressed?(:key_page_up)
+        skip(-1)
+      elsif key_pressed?(0x08)
+        reset_sound
+      else
+        return false
+      end
+      return true
+    end
+    if main && !shift
+      if key_pressed?(:key_up, repeat: true) then change_tempo(TEMPO_STEP)
+      elsif key_pressed?(:key_down, repeat: true) then change_tempo(-TEMPO_STEP)
+      else return false
+      end
+      return true
+    end
+    if shift && !main
+      base = KlangtenSpotify::BassSink::DEFAULT_FREQUENCY.to_f
+      step = base / 500.0 * 2.0
+      if key_pressed?(:key_up, repeat: true) then change_frequency(step, base)
+      elsif key_pressed?(:key_down, repeat: true) then change_frequency(-step, base)
+      elsif key_pressed?(:key_right, repeat: true) then change_pan(PAN_STEP)
+      elsif key_pressed?(:key_left, repeat: true) then change_pan(-PAN_STEP)
+      else return false
+      end
+      return true
+    end
+    false
+  end
+
+  def change_tempo(step)
+    return if player.tempo == nil
+    value = (player.tempo + step).clamp(TEMPO_RANGE.min, TEMPO_RANGE.max)
+    player.tempo = value
+    play_sound("listbox_focus") if value == 0
+  end
+
+  def change_frequency(step, base)
+    return if player.frequency == nil
+    value = (player.frequency + step).clamp(base / 2, base * 2)
+    value = base if (value - base).abs < step / 2
+    player.frequency = value
+    play_sound("listbox_focus") if value == base
+  end
+
+  def change_pan(step)
+    return if player.pan == nil
+    value = (player.pan + step).round(2).clamp(-1.0, 1.0)
+    player.pan = value
+    play_sound("listbox_focus") if value == 0
+  end
+
+  # Backspace: everything back to normal, like in Klangten's player.
+  def reset_sound
+    player.tempo = 0
+    player.frequency = KlangtenSpotify::BassSink::DEFAULT_FREQUENCY
+    player.pan = 0
+    player.volume = 0.8
+    KlangtenSpotify.save_volume
+  end
+
   # Starts a list and opens the player screen.
   def play_list(tracks, index, header)
     tracks = Array(tracks).reject { |t| t.uri.to_s == "" }
@@ -270,9 +356,11 @@ class Scene_Spotify
   # The player screen: the transport and the track list.
   def player_screen
     transport = PlayerField.new(self, player)
-    @queue_list = ListBox.new(player.tracks.map(&:label), header: @queue_header.to_s == "" ? p_("Spotify", "Track list") : @queue_header, index: player.index, quiet: true)
+    @queue_list = QueueList.new(self, player.tracks.map(&:label), header: @queue_header.to_s == "" ? p_("Spotify", "Track list") : @queue_header, index: player.index, quiet: true)
     close = Button.new(p_("Spotify", "Back"))
-    form = Form.new([transport, @queue_list, close], quiet: true)
+    # Like a playlist in Klango: the list with the cursor on the track that
+    # plays comes first, the player field (volume) is one Tab away.
+    form = Form.new([@queue_list, transport, close], quiet: true)
     form.cancel_button = close
     done = false
     @queue_list.bind_context do |menu|
@@ -281,8 +369,6 @@ class Scene_Spotify
     end
     @queue_list.on(:select) do
       player.jump(@queue_list.index)
-      form.index = 0
-      form.focus
     end
     close.on(:press) { done = true }
     dialog_open

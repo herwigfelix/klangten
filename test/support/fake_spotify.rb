@@ -177,13 +177,16 @@ module FakeSpotify
   # Counts what the player would have played.
   class Sink
     attr_reader :bytes, :calls
-    attr_accessor :volume, :queued
+    attr_accessor :volume, :queued, :tempo, :frequency, :pan
 
     def initialize
       @bytes = 0
       @calls = []
       @volume = 1.0
       @queued = 0
+      @tempo = 0.0
+      @frequency = 44_100.0
+      @pan = 0.0
     end
 
     def open = (@calls << :open)

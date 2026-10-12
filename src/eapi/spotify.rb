@@ -798,6 +798,32 @@ module KlangtenSpotify
       @sink.volume = @volume
     end
 
+    # Tempo (percent), frequency (Hz) and pan of the sound, as in Klangten's
+    # other players; nil when the sink cannot do it (tests, old sinks).
+    def tempo
+      @sink.respond_to?(:tempo) ? @sink.tempo : nil
+    end
+
+    def tempo=(value)
+      @sink.tempo = value if @sink.respond_to?(:tempo=)
+    end
+
+    def frequency
+      @sink.respond_to?(:frequency) ? @sink.frequency : nil
+    end
+
+    def frequency=(value)
+      @sink.frequency = value if @sink.respond_to?(:frequency=)
+    end
+
+    def pan
+      @sink.respond_to?(:pan) ? @sink.pan : nil
+    end
+
+    def pan=(value)
+      @sink.pan = value if @sink.respond_to?(:pan=)
+    end
+
     # Position and duration of the current track in seconds.
     def position
       now = NowPlaying.from(@library.now_playing)

@@ -74,6 +74,8 @@ if Configuration.usepan==true
   Bass::BASS_ChannelSetAttribute.call(stream, 3, pan.to_f/50.0-1.0)
                                                   end
                                                                                                                                                                                                       Bass.play_stream(stream, 0)
+# Klangten: the handle, so a caller can wait for the sound (the exit sound)
+stream
                         end
                         end
                       end

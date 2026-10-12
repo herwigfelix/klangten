@@ -28417,3 +28417,7 @@ msgstr[1] "mit %{count} Einträgen"
 msgctxt "Klangten"
 msgid "MIDI files cannot be played in Klangten."
 msgstr "MIDI-Dateien kann Klangten nicht abspielen."
+
+msgctxt "Spotify"
+msgid "Control with up and down arrows: tempo; Shift with up and down arrows: pitch; Shift with left and right arrows: balance; Backspace: back to normal"
+msgstr "Strg mit Pfeil hoch und runter: Tempo; Umschalt mit Pfeil hoch und runter: Tonhöhe; Umschalt mit Pfeil links und rechts: Balance; Rücktaste: zurück auf normal"

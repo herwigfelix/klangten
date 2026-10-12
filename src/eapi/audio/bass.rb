@@ -215,6 +215,7 @@ module Bass
   BASS_FXSetParameters = Fiddle::Function.new(BASSDLL["BASS_FXSetParameters"], [F_UINT, F_PTR], F_INT, BASS_ABI)
   BASS_FXSetPriority = optional_fiddle(BASSDLL, "BASS_FXSetPriority", [F_UINT, F_INT], F_INT)
   BASS_FX_GetVersion = optional_fiddle(BASSFX, "BASS_FX_GetVersion", [], F_UINT)
+  BASS_FX_TempoCreate = Fiddle::Function.new(BASSDLL["BASS_FX_TempoCreate"], [F_UINT, F_UINT], F_UINT, BASS_ABI)
   BASS_Mixer_StreamCreate = Fiddle::Function.new(BASSMIX["BASS_Mixer_StreamCreate"], [F_UINT, F_UINT, F_UINT], F_UINT, BASS_ABI)
   BASS_Mixer_StreamAddChannel = Fiddle::Function.new(BASSMIX["BASS_Mixer_StreamAddChannel"], [F_UINT, F_UINT, F_UINT], F_INT, BASS_ABI)
   BASS_Mixer_ChannelRemove = Fiddle::Function.new(BASSMIX["BASS_Mixer_ChannelRemove"], [F_UINT], F_INT, BASS_ABI)

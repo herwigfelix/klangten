@@ -122,6 +122,7 @@ struct ka_channel {
     int feeder_running;
     volatile int feeder_stop;
     volatile int seek_pending;
+    volatile int restart_gen;   /* bumped by a synchronous restart: drop the feeder's chunk in flight */
     volatile int64_t seek_frame;
     kevent feeder_wake;
     int stalled;

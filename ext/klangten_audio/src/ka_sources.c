@@ -557,6 +557,13 @@ static void tempo_reset_state(ka_channel *ch, tempo *t) {
 static int tempo_seek(ka_channel *ch, int64_t frame) {
     tempo *t = (tempo *)ch->impl;
     ka_channel *src = ka_channel_get(t->input);
+    if (src && src->kind == KA_KIND_PUSH) {
+        /* a live input (Spotify): starting over drops what was queued */
+        ka_rb_clear(src);
+        src->ended = 0;
+        tempo_reset_state(ch, t);
+        return 1;
+    }
     if (!src || !src->ops->seek) return 0;
     kmutex_lock(&src->lock);
     if (!src->ops->seek(src, frame)) { kmutex_unlock(&src->lock); return 0; }

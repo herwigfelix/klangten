@@ -17,13 +17,40 @@ require "json"
 require_relative "spotify" unless defined?(::KlangtenSpotify::Library)
 
 module KlangtenSpotify
-  # Spotify PCM (44.1 kHz, stereo, 32-bit float) -> BASS push stream.
+  # Spotify PCM (44.1 kHz, stereo, 32-bit float) -> a push stream of the
+  # sound engine, played through a tempo stream, so that tempo, pitch and
+  # balance work like in every other player of Klangten.
   class BassSink
+    DEFAULT_FREQUENCY = SAMPLE_RATE
+
+    attr_reader :tempo, :frequency, :pan
+
     def initialize(volume_scale: nil)
       @handle = 0
+      @source = 0
       @mutex = Mutex.new
       @volume = 0.8
       @volume_scale = volume_scale
+      @tempo = 0.0
+      @frequency = DEFAULT_FREQUENCY.to_f
+      @pan = 0.0
+    end
+
+    # Tempo in percent (0 = normal), frequency in Hz (playback rate: pitch
+    # and speed), pan -1..1 - the same scales as Sound#tempo/frequency/pan.
+    def tempo=(value)
+      @tempo = value.to_f
+      @mutex.synchronize { apply_effects_locked }
+    end
+
+    def frequency=(value)
+      @frequency = value.to_f
+      @mutex.synchronize { apply_effects_locked }
+    end
+
+    def pan=(value)
+      @pan = [[value.to_f, -1.0].max, 1.0].min
+      @mutex.synchronize { apply_effects_locked }
     end
 
     def open
@@ -34,7 +61,7 @@ module KlangtenSpotify
       @mutex.synchronize do
         open_locked if @handle == 0
         return if @handle == 0
-        if Bass::BASS_StreamPutData.call(@handle, bytes, bytes.bytesize).to_i < 0
+        if Bass::BASS_StreamPutData.call(@source, bytes, bytes.bytesize).to_i < 0
           # The output device was reinitialised (settings): open a new stream.
           Log.warning("Spotify audio stream lost: #{Bass.error_name}") if defined?(Log)
           @handle = 0
@@ -50,8 +77,8 @@ module KlangtenSpotify
     def queued_bytes
       @mutex.synchronize do
         return 0 if @handle == 0
-        queued = Bass::BASS_StreamPutData.call(@handle, nil, 0).to_i
-        buffered = Bass::BASS_ChannelGetData.call(@handle, nil, 0).to_i # BASS_DATA_AVAILABLE
+        queued = Bass::BASS_StreamPutData.call(@source, nil, 0).to_i
+        buffered = Bass::BASS_ChannelGetData.call(@handle, nil, 0).to_i # decoded ahead by the tempo stream
         [queued, 0].max + [buffered, 0].max
       end
     rescue Exception
@@ -90,10 +117,13 @@ module KlangtenSpotify
     def close
       @mutex.synchronize do
         Bass::BASS_StreamFree.call(@handle) if @handle != 0
+        Bass::BASS_StreamFree.call(@source) if @source != 0
         @handle = 0
+        @source = 0
       end
     rescue Exception
       @handle = 0
+      @source = 0
     end
 
     private
@@ -102,16 +132,30 @@ module KlangtenSpotify
       return if @handle != 0
       return unless defined?(::Bass) && Bass.respond_to?(:initialized?) && Bass.initialized?
       Bass.with_output_device(nil) do
-        @handle = Bass::BASS_StreamCreate.call(SAMPLE_RATE, CHANNELS, Bass::BASS_SAMPLE_FLOAT, Bass::STREAMPROC_PUSH, nil).to_i
+        @source = Bass::BASS_StreamCreate.call(SAMPLE_RATE, CHANNELS, Bass::BASS_SAMPLE_FLOAT | Bass::BASS_STREAM_DECODE, Bass::STREAMPROC_PUSH, nil).to_i
+        @handle = Bass::BASS_FX_TempoCreate.call(@source, Bass::BASS_SAMPLE_FLOAT).to_i if @source != 0
       end
-      if @handle == 0
+      if @source == 0 || @handle == 0
         Log.error("Spotify audio stream: #{Bass.error_name}") if defined?(Log)
+        Bass::BASS_StreamFree.call(@source) if @source != 0
+        @source = 0
+        @handle = 0
         return
       end
       apply_volume_locked
+      apply_effects_locked
     rescue Exception => e
       @handle = 0
       Log.error("Spotify audio open: #{e.class}: #{e.message}") if defined?(Log)
+    end
+
+    def apply_effects_locked
+      return if @handle == 0
+      Bass::BASS_ChannelSetAttribute.call(@handle, Bass::BASS_ATTRIB_TEMPO, @tempo)
+      Bass::BASS_ChannelSetAttribute.call(@handle, Bass::BASS_ATTRIB_FREQ, @frequency)
+      Bass::BASS_ChannelSetAttribute.call(@handle, Bass::BASS_ATTRIB_PAN, @pan)
+    rescue Exception
+      nil
     end
 
     def apply_volume_locked

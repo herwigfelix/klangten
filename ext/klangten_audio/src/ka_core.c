@@ -674,7 +674,7 @@ static void *feeder_main(void *arg) {
     tmp = (float *)malloc((size_t)chunk * ch->chans * sizeof(float));
     if (!tmp) return NULL;
     while (!ch->feeder_stop) {
-        int end = 0, n;
+        int end = 0, n, gen;
         if (ch->seek_pending) {
             kmutex_lock(&ch->lock);
             if (ch->ops->seek) ch->ops->seek(ch, ch->seek_frame);
@@ -687,12 +687,14 @@ static void *feeder_main(void *arg) {
         if (ch->ended || rb_space(ch) < chunk) { kevent_wait(&ch->feeder_wake, 20); continue; }
         kmutex_lock(&ch->lock);
         if (ch->seek_pending) { kmutex_unlock(&ch->lock); continue; }
+        gen = ch->restart_gen;
         n = ch->ops->read(ch, tmp, chunk, &end);
         if (end && (ch->flags & KA_SAMPLE_LOOP) && ch->ops->seek) {
             int64_t len = ch->ops->length ? ch->ops->length(ch) : -1;
             if (ch->ops->seek(ch, 0)) { end = 0; if (len > 0) ch->loop_length = len; }
         }
         kmutex_unlock(&ch->lock);
+        if (gen != ch->restart_gen) continue;   /* restarted meanwhile: stale */
         if (n > 0) ka_rb_write(ch, tmp, n);
         if (end) ch->ended = 1;
         if (n <= 0 && !end) kevent_wait(&ch->feeder_wake, 10);
@@ -704,7 +706,9 @@ static void *feeder_main(void *arg) {
 static int start_feeder(ka_channel *ch) {
     if (ch->feeder_running) return 1;
     if (ch->kind == KA_KIND_PUSH || ch->kind == KA_KIND_SAMPLE || ch->kind == KA_KIND_RECORD) return 1;
-    if (!ch->rb_ready && !ka_rb_init(ch, ch->kind == KA_KIND_STREAM ? 30 : 10)) return 0;
+    /* streams decode 3 s ahead; tempo and converter streams on live input
+     * (Spotify, speech) only half a second, so pause and flush stay prompt */
+    if (!ch->rb_ready && !ka_rb_init(ch, ch->kind == KA_KIND_STREAM ? 30 : 5)) return 0;
     ch->feeder_stop = 0;
     if (!kthread_start(&ch->feeder, feeder_main, ch)) return 0;
     ch->feeder_running = 1;
@@ -914,7 +918,17 @@ KA_API int KA_ChannelPlay(KAHANDLE handle, int restart) {
     if (restart) {
         if (ch->kind == KA_KIND_SAMPLE) ch->sample_pos = 0;
         else if (ch->kind == KA_KIND_PUSH) { ka_rb_clear(ch); ch->ended = 0; }   /* restart drops queued data */
-        else if (ch->ops->seek) { ch->seek_frame = 0; ch->seek_pending = 1; ka_rb_clear(ch); ch->ended = 0; }
+        else if (ch->ops->seek) {
+            /* at once, not through the feeder: callers check right after
+             * (Spotify drops its queue this way and then measures it) */
+            kmutex_lock(&ch->lock);
+            ch->seek_pending = 0;
+            ch->restart_gen++;
+            ch->ops->seek(ch, 0);
+            ka_rb_clear(ch);
+            ch->ended = 0;
+            kmutex_unlock(&ch->lock);
+        }
         ch->position = 0;
     }
     if (ch->kind != KA_KIND_SAMPLE && ch->kind != KA_KIND_PUSH && !start_feeder(ch)) return ka_set_error(KA_ERROR_MEM);
@@ -1024,6 +1038,9 @@ KA_API int KA_ChannelGetData(KAHANDLE handle, void *buffer, uint32_t length) {
         /* a playing push stream has no playback buffer apart from its
          * queue, which KA_StreamPutData(h, NULL, 0) reports already */
         if (ch->kind == KA_KIND_RECORD || (ch->kind == KA_KIND_PUSH && (ch->flags & KA_STREAM_DECODE)))
+            return ka_rb_available(ch) * bytes_per_frame(ch);
+        /* a playing stream with a feeder: what is decoded ahead, not heard yet */
+        if (!(ch->flags & KA_STREAM_DECODE) && ch->kind != KA_KIND_PUSH && ch->kind != KA_KIND_SAMPLE)
             return ka_rb_available(ch) * bytes_per_frame(ch);
         return 0;
     }

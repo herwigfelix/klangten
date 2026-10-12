@@ -70,8 +70,15 @@ $toscene = false
           Log.warning("Session token invalidation failed on shutdown: #{$!.class}: #{$!.message}") if defined?(Log)
         end
       end
-      play_sound("logout")
-    delay(1)
+      logout_sound = play_sound("logout")
+    # Klangten: wait until the exit sound has been heard (it is longer than a
+    # second on some themes; on phones the process ended in the middle of it)
+    waited = 0.0
+    while waited < 6.0 && logout_sound.is_a?(Integer) && logout_sound != 0 && Bass::BASS_ChannelIsActive.call(logout_sound).to_i != 0
+      delay(0.05)
+      waited += 0.05
+    end
+    delay(0.2)
           speech_wait
               $exit = true
   if $exitupdate==true

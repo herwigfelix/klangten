@@ -406,6 +406,9 @@ module OSXWindowNative
       @msg_void_sel_ptr_double = Fiddle::Function.new(msg, [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_DOUBLE], Fiddle::TYPE_VOID)
       @msg_void_ptr_int = Fiddle::Function.new(msg, [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, native_int], Fiddle::TYPE_VOID)
       @msg_bool_ptr_ptr = Fiddle::Function.new(msg, [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP], Fiddle::TYPE_INT)
+      # +[NSEvent otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:]
+      # (NSPoint is two doubles; arm64 and x86-64 pass it like two double arguments)
+      @msg_other_event = Fiddle::Function.new(msg, [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_ULONG_LONG, Fiddle::TYPE_DOUBLE, Fiddle::TYPE_DOUBLE, Fiddle::TYPE_ULONG_LONG, Fiddle::TYPE_DOUBLE, Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_VOIDP, Fiddle::TYPE_SHORT, Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG], Fiddle::TYPE_VOIDP)
       @msg_init_window = Fiddle::Function.new(
         msg,
         [
@@ -732,12 +735,29 @@ module OSXWindowNative
       refresh_key_sink_focus if timer_due?(:focus_repair, TIMER_FOCUS_REPAIR_SECONDS, now)
       if @exit_requested == true || (@worker_thread != nil && !@worker_thread.alive?)
         clear_keyboard_state
-        @msg_void_ptr.call(@application, sel("stop:"), nil) if @application.to_i != 0
+        if @application.to_i != 0
+          @msg_void_ptr.call(@application, sel("stop:"), nil)
+          wake_event_loop
+        end
       end
       true
     rescue Exception => e
       debug("timer tick failed: #{e.class}: #{e.message}")
       false
+    end
+
+    # Klangten: -[NSApplication stop:] from a timer takes effect only after
+    # the next event; without one Klangten hung after the exit sound until a
+    # key was pressed. An empty application-defined event ends -run at once.
+    def wake_event_loop
+      return if @wake_event_posted == true
+      event = @msg_other_event.call(cls("NSEvent"), sel("otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:"),
+                                    15, 0.0, 0.0, 0, 0.0, 0, nil, 0, 0, 0)
+      return if event.to_i == 0
+      @msg_void_ptr_int.call(@application, sel("postEvent:atStart:"), event, 1)
+      @wake_event_posted = true
+    rescue Exception => e
+      debug("wake event failed: #{e.class}: #{e.message}")
     end
 
     def timer_due?(key, interval, now = nil)
