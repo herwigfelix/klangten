@@ -18,6 +18,8 @@
 #   macOS    remote commands (src/platforms/osx/eapi/mediabuttons.rb)
 # Linux has none. Settings, Media switches them; on by default on the phones,
 # off on computers, where they would take the media keys from other players.
+# Even when on they are only taken while Klangten plays or is paused: idling
+# in the menus Klangten could do nothing with them, so other apps keep them.
 #
 # Every backend reports a pressed button as a code: 1 play/pause, 2 play,
 # 3 pause, 4 next, 5 previous, 6 stop. KlangtenMediaButtons.tick (called by
@@ -120,13 +122,19 @@ module KlangtenMediaButtons
       @checked_at = nil
     end
 
+    # True while the buttons are taken (setting on and something plays).
+    def registered?
+      @wanted == true
+    end
+
     def tick
       return if !supported?
       now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       if @checked_at == nil || now - @checked_at > REFRESH_SECONDS
         @checked_at = now
-        refresh
+        @setting = enabled?
       end
+      refresh
       if @wanted
         while (code = backend.poll.to_i) > 0
           press(code)
@@ -139,8 +147,10 @@ module KlangtenMediaButtons
       Log.error("Media buttons: #{e.class}: #{e.message}") if defined?(Log)
     end
 
+    # The buttons belong to Klangten only while something plays or is paused;
+    # idling in the menus they stay with the other apps.
     def refresh
-      want = enabled?
+      want = @setting == true && KlangtenMedia.active?
       return if want == @wanted
       @wanted = want
       @announced = nil

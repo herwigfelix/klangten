@@ -194,6 +194,7 @@ for xc in "$HERE"/Frameworks/*.xcframework; do
 done
 echo "      - sdk: AVFoundation.framework"
 echo "      - sdk: AudioToolbox.framework"
+echo "      - sdk: MediaPlayer.framework"
 echo "      - sdk: CoreAudio.framework"
 echo "      - sdk: UIKit.framework"
 } > "$HERE/project.yml"

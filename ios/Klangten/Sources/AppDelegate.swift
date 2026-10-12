@@ -19,28 +19,19 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         // Boot the embedded Elten Ruby core. ios_boot.rb starts the gesture pump
         // and runs the real app event loop on the Ruby thread.
         eltenHostBridgeKeepAlive()
+        #if DEBUG
+        // KLANGTEN_MUTE=1: the sound engine plays into its null device (set
+        // before the Ruby core opens it); speech is muted in the host bridge.
+        if hostMuted { setenv("KLANGTEN_AUDIO_NULL", "1", 1) }
+        #endif
         RubyRuntime.shared.start()
         #if DEBUG
         scheduleTestGestures()
-        if hostMuted { muteBass() }
         #endif
         return true
     }
 
     #if DEBUG
-    // KLANGTEN_MUTE=1: BASS global volumes (stream 5, sample 4, music 6) to zero,
-    // repeated for a while in case the core sets them while it starts.
-    private func muteBass() {
-        typealias SetConfig = @convention(c) (UInt32, UInt32) -> Int32
-        for delay in [0.5, 2, 5, 10, 20] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                guard let sym = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "BASS_SetConfig") else { return }
-                let set = unsafeBitCast(sym, to: SetConfig.self)
-                for option: UInt32 in [4, 5, 6] { _ = set(option, 0) }
-            }
-        }
-    }
-
     // Test facility (debug builds only): KLANGTEN_GESTURES="8:swipe_down,2:double_tap"
     // ("clear" empties the caption, "text=abc" types abc as the system keyboard would)
     // pushes each gesture after waiting the given seconds, the way the Android

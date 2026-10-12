@@ -388,6 +388,7 @@ class MediaButtonsTest < Minitest::Test
     KlangtenMediaButtons.instance_variable_set(:@wanted, nil)
     KlangtenMediaButtons.instance_variable_set(:@checked_at, nil)
     KlangtenMediaButtons.instance_variable_set(:@announced, nil)
+    KlangtenMediaButtons.instance_variable_set(:@setting, nil)
   end
 
   def teardown
@@ -396,11 +397,30 @@ class MediaButtonsTest < Minitest::Test
   end
 
   def test_off_on_computers_unless_switched_on
+    KlangtenBackgroundPlayer.play(item(title: "Radio Eins", kind: :radio))
+    opened_sound
     KlangtenMediaButtons.tick
     assert_equal false, FakeBackend.enabled
     KlangtenMediaButtons.enabled = true
     KlangtenMediaButtons.tick
     assert_equal true, FakeBackend.enabled
+  end
+
+  # Idling in the menus the buttons stay with the other apps.
+  def test_taken_only_while_something_plays
+    KlangtenMediaButtons.enabled = true
+    KlangtenMediaButtons.tick
+    assert_equal false, FakeBackend.enabled
+    KlangtenBackgroundPlayer.play(item(title: "Radio Eins", kind: :radio))
+    opened_sound
+    KlangtenMediaButtons.tick
+    assert_equal true, FakeBackend.enabled
+    KlangtenBackgroundPlayer.pause
+    KlangtenMediaButtons.tick
+    assert_equal true, FakeBackend.enabled, "paused, play must still reach Klangten"
+    KlangtenBackgroundPlayer.stop
+    KlangtenMediaButtons.tick
+    assert_equal false, FakeBackend.enabled
   end
 
   def test_buttons_pause_resume_and_say_what_plays

@@ -135,7 +135,7 @@ module KlangtenGlobalKeys
 
     def media_keys?
       Backend.respond_to?(:media_keys?) && Backend.media_keys? &&
-        defined?(KlangtenMediaButtons) && KlangtenMediaButtons.enabled?
+        defined?(KlangtenMediaButtons) && KlangtenMediaButtons.registered?
     rescue StandardError
       false
     end

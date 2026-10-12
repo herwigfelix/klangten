@@ -29,7 +29,8 @@ private final class CStringHolder {
 
 private let hostSpeech = AVSpeechSynthesizer()
 
-// Debug builds only: KLANGTEN_MUTE=1 silences speech and every BASS sound, for
+// Debug builds only: KLANGTEN_MUTE=1 silences speech (nothing reaches the
+// audio system, the text is still shown) and every sound (null device), for
 // automated simulator runs on a machine where someone is working.
 #if DEBUG
 let hostMuted = ProcessInfo.processInfo.environment["KLANGTEN_MUTE"] == "1"
@@ -69,9 +70,9 @@ public func elten_host_speech_speak(_ text: UnsafePointer<CChar>?, _ voice: Unsa
         let utterance = AVSpeechUtterance(string: string)
         if !voiceId.isEmpty { utterance.voice = AVSpeechSynthesisVoice(identifier: voiceId) }
         utterance.rate = mapRate(rate)
-        utterance.volume = hostMuted ? 0 : max(0, min(100, Float(volume))) / 100.0
+        utterance.volume = max(0, min(100, Float(volume))) / 100.0
         utterance.pitchMultiplier = 0.5 + max(0, min(100, Float(pitch))) / 100.0
-        hostSpeech.speak(utterance)
+        if !hostMuted { hostSpeech.speak(utterance) }
         EltenGestureViewController.current?.showSpokenText(string, interrupt: interrupt != 0)
     }
 }

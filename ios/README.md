@@ -74,6 +74,10 @@ xcodebuild -exportArchive -archivePath build-rel/Klangten.xcarchive \
 - The missing dSYM for the klangten_audio framework is only a warning.
 - Klangten has no visual interface (the screen stays black), so simulator
   screenshots show nothing; the App Store listing will need illustrative images.
+- Automated simulator runs of a Debug build are silent with `KLANGTEN_MUTE=1`
+  (`SIMCTL_CHILD_KLANGTEN_MUTE=1 xcrun simctl launch ...`): nothing is spoken (the
+  text is still shown) and the sound engine uses its null device.
+  `KLANGTEN_GESTURES` drives the app (see AppDelegate.swift).
 
 ## Architecture
 
