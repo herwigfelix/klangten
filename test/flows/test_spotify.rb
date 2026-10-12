@@ -109,8 +109,11 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     assert_in_delta 0.02, k.call { KlangtenSpotify.player.pan }, 0.001
     k.press("backspace")
     assert_equal [0.0, 44_100.0, 0.0], k.call { [KlangtenSpotify.player.tempo, KlangtenSpotify.player.frequency, KlangtenSpotify.player.pan] }
-    # Alt (Option) with the arrows moves the item, Shift is pitch now
-    k.press("alt+up")
+    # Alt (Option) with the arrows is the volume, with Shift it moves the item
+    volume = k.call { KlangtenPlaylist.volume }
+    k.press("alt+down")
+    assert_in_delta (volume - KlangtenPlaylist::KEY_VOLUME_STEP) / 100.0, k.call { KlangtenSpotify.player.volume }, 0.001
+    k.press("alt+shift+up")
     assert_equal "spotify:track:2", k.call { KlangtenPlaylist.current_list.entries.first.location }
     # Spotify's lists are not saved
     refute k.call { KlangtenPlaylist.current_list.internal? }

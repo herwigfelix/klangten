@@ -437,7 +437,7 @@ class Scene_FileManager
   end
 
   def open_internal_playlist
-    Scene_Playlist.new.main
+    Scene_Playlist.new(KlangtenPlaylist.internal).main
     refocus
   end
 

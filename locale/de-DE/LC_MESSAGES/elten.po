@@ -28421,3 +28421,19 @@ msgstr "MIDI-Dateien kann Klangten nicht abspielen."
 msgctxt "Spotify"
 msgid "Control with up and down arrows: tempo; Shift with up and down arrows: pitch; Shift with left and right arrows: balance; Backspace: back to normal"
 msgstr "Strg mit Pfeil hoch und runter: Tempo; Umschalt mit Pfeil hoch und runter: Tonhöhe; Umschalt mit Pfeil links und rechts: Balance; Rücktaste: zurück auf normal"
+
+msgctxt "Klangten"
+msgid "Playlist: %{title}"
+msgstr "Wiedergabeliste: %{title}"
+
+msgctxt "Klangten"
+msgid "Show my playlist"
+msgstr "Meine Wiedergabeliste zeigen"
+
+msgctxt "Settings"
+msgid "Playlist"
+msgstr "Wiedergabeliste"
+
+msgctxt "WelcomeWizard"
+msgid "Playlist"
+msgstr "Wiedergabeliste"

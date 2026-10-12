@@ -64,8 +64,7 @@ class Scene_NowPlaying
   def main
     if !KlangtenBackgroundPlayer.active?
       if KlangtenPlaylist.active?
-        list = KlangtenPlaylist.current_list
-        $scene = list == nil || list.internal? ? Scene_Playlist.new : Scene_Playlist.new(list.unsaveable ? list : list.path)
+        $scene = Scene_Playlist.new
       else
         alert(p_("Klangten", "Nothing is playing in the background."))
         $scene = Scene_Main.new

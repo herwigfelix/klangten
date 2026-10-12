@@ -311,8 +311,12 @@ class QuickActionTest < Minitest::Test
     opened_sound
     EltenAPI::QuickActions.call(:klangten_player__status)
     assert_match(/Radio Eins/, Spoken.lines.last)
+    spoken = Spoken.lines.size
+    before = KlangtenBackgroundPlayer.volume_percent
     EltenAPI::QuickActions.call(:klangten_player__volume_up)
-    assert_match(/\AVolume \d+\z/, Spoken.lines.last)
+    # the volume keys say nothing, like the player's own
+    assert_equal before + 5, KlangtenBackgroundPlayer.volume_percent
+    assert_equal spoken, Spoken.lines.size
     EltenAPI::QuickActions.call(:klangten_player__stop)
     assert_equal "Stopped: Radio Eins", Spoken.lines.last
     refute KlangtenBackgroundPlayer.active?

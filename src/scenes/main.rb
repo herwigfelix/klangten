@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the feed tab shows the home timeline of a connected Mastodon account; runs the steps after a login (message of the day, Klango import offer).
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the feed tab shows the home timeline of a connected Mastodon account; a playlist tab shows Klangten's playlist; runs the steps after a login (message of the day, Klango import offer).
 
 class Scene_Main
   include NotificationGroups
@@ -140,6 +140,7 @@ def main_sections
   sections << :notifications if notifications_visible?
   sections << :actions if main_tab_enabled?(:actions)
   sections << :feed if main_tab_enabled?(:feed)
+  sections << :playlist if playlist_tab_available?
   sections.concat(program_main_tabs.map { |tab| tab.section_id })
   sections << :empty if sections.empty?
   sections
@@ -209,6 +210,16 @@ def entry_notification_focus_policy
   @notification_focus
 end
 
+# Klangten: the playlist tab, like in Klango always there - the list that
+# plays or played last, otherwise the internal one (src/scenes/playlist.rb).
+def playlist_tab_available?
+  main_tab_enabled?(:playlist) && defined?(KlangtenPlaylistView) != nil
+end
+
+def playlist_view
+  @playlist_view ||= KlangtenPlaylistView.new(nil, tab: true)
+end
+
 def notifications_visible?
   return false if !main_tab_enabled?(:notifications)
   Configuration.showemptynotifications == true || (@notification_groups.is_a?(Array) && @notification_groups.size>0)
@@ -257,6 +268,8 @@ def focus_current_control
     @acsel.focus if @acsel!=nil
   when :feed
     @feedsel.focus if @feedsel!=nil
+  when :playlist
+    playlist_view.focus
   when :empty
     empty_main_control.focus
   else
@@ -273,6 +286,8 @@ def say_current_option
     @acsel.sayoption if @acsel!=nil
   when :feed
     @feedsel.sayoption if @feedsel!=nil
+  when :playlist
+    playlist_view.say_option
   when :empty
     empty_main_control.sayoption
   else
@@ -324,6 +339,8 @@ def update_current_main_control
     @acsel.update if @acsel!=nil
   when :feed
     @feedsel.update if @feedsel!=nil
+  when :playlist
+    playlist_view.update
   when :empty
     empty_main_control.update
   else

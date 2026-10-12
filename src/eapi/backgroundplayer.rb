@@ -697,8 +697,7 @@ module KlangtenMedia
       when :background
         insert_scene(Scene_NowPlaying.new)
       when :playlist
-        list = KlangtenPlaylist.current_list
-        insert_scene(list == nil || list.internal? ? Scene_Playlist.new : Scene_Playlist.new(list.unsaveable ? list : list.path))
+        insert_scene(Scene_Playlist.new)
       else
         alert(p_("Klangten", "Nothing is playing in the background."), false)
       end
@@ -717,8 +716,10 @@ module KlangtenMedia
         player.stop
         alert(p_("Klangten", "Stopped: %{title}") % { title: title }, false)
       when :volume_down, :volume_up
+        # silent like the player's own volume keys; only the edge sounds
+        before = player.volume_percent
         percent = player.change_volume(action == :volume_up ? KlangtenBackgroundPlayer::VOLUME_STEP : -KlangtenBackgroundPlayer::VOLUME_STEP)
-        alert(p_("Klangten", "Volume %{volume}") % { volume: percent }, false)
+        play_sound("border") if percent == before
       when :status
         alert(player.status_text, false)
       when :record

@@ -78,8 +78,10 @@ class MediaFlowTest < KlangtenTest::FlowTest
     assert KlangtenBackgroundPlayer.playing?
     k.press("esc")
     assert KlangtenBackgroundPlayer.playing?, "Escape in the player of the background stops it"
+    mark = k.mark
     k.press("shift+f6")
-    k.expect("Volume 85")
+    assert_equal 85, KlangtenBackgroundPlayer.volume_percent
+    k.expect_not("85", since: mark)
     k.call { KlangtenMedia.quick_action(:stop) }
     k.expect("Stopped: Tone")
     refute KlangtenBackgroundPlayer.active?

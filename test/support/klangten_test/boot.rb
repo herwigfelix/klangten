@@ -108,7 +108,7 @@ module KlangtenTestBoot
       data = data_dir(dir)
       FileUtils.mkdir_p(data)
       ini = {
-        "Elten" => { "ConfigurationVersion" => "4" },
+        "Elten" => { "ConfigurationVersion" => "5" },
         "Interface" => {
           "Language" => language,
           "KeyboardScheme" => keyboard_scheme.to_s,

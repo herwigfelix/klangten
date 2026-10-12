@@ -315,10 +315,10 @@ def make_window
         setting_category(p_("Settings", "Main window"))
         make_setting(
           p_("Settings", "Tabs visible in the main window"),
-          [p_("Settings", "Notifications"), p_("Settings", "Feed"), p_("Settings", "Quick actions")],
+          [p_("Settings", "Notifications"), p_("Settings", "Feed"), p_("Settings", "Quick actions"), p_("Settings", "Playlist")],
           "MainWindow",
           "Tabs",
-          ["notifications", "feed", "actions"],
+          ["notifications", "feed", "actions", "playlist"],
           true
         )
         make_setting(p_("Settings", "Show the notifications tab even when there are no new notifications"), :bool, "MainWindow", "ShowNotificationsWhenEmpty")

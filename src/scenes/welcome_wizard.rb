@@ -209,9 +209,9 @@ class Scene_WelcomeWizard
         p_("WelcomeWizard", "In Elten 2.x, the main window had two tabs: Quick Actions and the feed. Elten 3.0 joins them with a third, Notifications, and leaves the whole arrangement to you: choose exactly the tabs you want to see. The notifications tab has two habits of its own that you can adjust as well: by default it appears only while there are notifications to show, and you can decide whether, and when, it takes focus as you return to the main window. All of this can also be changed later under Tools, Program settings, Main window.")
       end
       info = information_field(p_("WelcomeWizard", "The main window"), intro)
-      tab_values = ["notifications", "feed", "actions"]
+      tab_values = ["notifications", "feed", "actions", "playlist"]
       tabs = ListBox.new(
-        [p_("WelcomeWizard", "Notifications"), p_("WelcomeWizard", "Feed"), p_("WelcomeWizard", "Quick actions")],
+        [p_("WelcomeWizard", "Notifications"), p_("WelcomeWizard", "Feed"), p_("WelcomeWizard", "Quick actions"), p_("WelcomeWizard", "Playlist")],
         header: p_("WelcomeWizard", "Tabs visible in the main window"),
         flags: ListBox::Flags::MultiSelection
       )
@@ -273,10 +273,10 @@ class Scene_WelcomeWizard
   end
 
   def current_main_tabs
-    values = Configuration.maintabs.map(&:to_s) & ["notifications", "feed", "actions"]
-    values.empty? ? ["notifications", "feed", "actions"] : values
+    values = Configuration.maintabs.map(&:to_s) & ["notifications", "feed", "actions", "playlist"]
+    values.empty? ? ["notifications", "feed", "actions", "playlist"] : values
   rescue StandardError
-    ["notifications", "feed", "actions"]
+    ["notifications", "feed", "actions", "playlist"]
   end
 
   def add_autoplay_page

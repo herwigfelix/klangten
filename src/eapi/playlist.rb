@@ -35,6 +35,9 @@ module KlangtenPlaylist
   STATE_VERSION = 1
   SEEK_STEP = 5
   VOLUME_STEP = 5
+  # Alt with Up/Down in the playlist (repeats while held).
+  KEY_VOLUME_STEP = 2
+  MIN_KEY_VOLUME = 5
   DEFAULT_VOLUME = 80
   # Upper bound for "add folder" so a whole disk does not end up in the list.
   MAX_FOLDER_FILES = 10_000
@@ -85,12 +88,15 @@ module KlangtenPlaylist
     # Klangten 0.4: a list made elsewhere (Spotify) has a title and is never
     # saved as a file (Spotify's terms, like in Klango).
     attr_accessor :title, :unsaveable
+    # Counts the changes, so every view of the list sees them.
+    attr_reader :revision
 
     def initialize(entries = [], path: nil, internal: false)
       @entries = entries
       @path = path
       @internal = internal
       @dirty = false
+      @revision = 0
     end
 
     def internal?
@@ -154,6 +160,7 @@ module KlangtenPlaylist
     # The internal playlist is saved at once; a file only on save.
     def changed
       @dirty = true
+      @revision += 1
       KlangtenPlaylist.save_internal if @internal
     end
 
@@ -461,6 +468,19 @@ module KlangtenPlaylist
       volume
     end
 
+    # Klangten 0.4: the volume keys say nothing, like in Klangten's player;
+    # only the edge sounds. Never quite silent, so playback cannot seem lost.
+    def step_volume(delta)
+      target = (volume + delta).clamp(MIN_KEY_VOLUME, 100)
+      target = volume if delta < 0 && volume < MIN_KEY_VOLUME
+      if target == volume
+        play_sound("border")
+        return false
+      end
+      self.volume = target
+      true
+    end
+
     def repeat=(value)
       settings["repeat"] = value == true
       save_internal
@@ -616,6 +636,13 @@ module KlangtenPlaylist
       @list
     end
 
+    # Klangten 0.4: "the playlist" of the menu and the main window, like in
+    # Klango - the list that plays or played last (also a Spotify list),
+    # otherwise the internal one.
+    def shown_list
+      @list || internal
+    end
+
     # Index of the playing entry in its list, nil when it is not playing.
     def current_index
       @list == nil || @current == nil ? nil : @list.index_of(@current)
@@ -721,7 +748,7 @@ module KlangtenPlaylist
           alert(p_("Klangten", "End of the playlist"), false)
         end
       when :volume_down, :volume_up
-        alert(p_("Klangten", "Volume %{volume}") % { volume: change_volume(action == :volume_up ? VOLUME_STEP : -VOLUME_STEP) }, false)
+        step_volume(action == :volume_up ? VOLUME_STEP : -VOLUME_STEP)
       end
     rescue StandardError => e
       log(:error, "Playlist quick action failed: #{e.class}: #{e.message}")

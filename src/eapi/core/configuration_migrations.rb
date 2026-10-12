@@ -32,7 +32,7 @@ module EltenAPI
   end
 
   module ConfigurationMigrations
-    CURRENT_VERSION = 4
+    CURRENT_VERSION = 5
     REMOVED_SESSION_REFRESH_KEYS = %w[AgentSessionTime RefreshTime SessionRefreshInterval].freeze
     LEGACY_SESSION_REFRESH_KEYS = %w[AgentSessionTime RefreshTime].freeze
 
@@ -130,6 +130,7 @@ module EltenAPI
       migrate_configuration_to_version_2(path) if version < 2
       migrate_configuration_to_version_3(path) if version < 3
       migrate_configuration_to_version_4(path) if version < 4
+      migrate_configuration_to_version_5(path) if version < 5
       writeini(path, "Elten", "ConfigurationVersion", CURRENT_VERSION)
       true
     end
@@ -158,6 +159,14 @@ module EltenAPI
 
     def migrate_configuration_to_version_4(path)
       remove_session_refresh_configuration(path)
+    end
+
+    # Klangten 0.4: the main window gets a playlist tab; a list of tabs chosen
+    # earlier gets it as well (it can be switched off again in the settings).
+    def migrate_configuration_to_version_5(path)
+      tabs = readini(path, "MainWindow", "Tabs", "$DEFAULT")
+      return if tabs == "$DEFAULT" || tabs.split(",").include?("playlist")
+      writeini(path, "MainWindow", "Tabs", (tabs.split(",") + ["playlist"]).join(","))
     end
 
     def remove_session_refresh_configuration(path)
