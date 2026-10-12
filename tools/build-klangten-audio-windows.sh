@@ -34,7 +34,7 @@ fetch "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz" "ffmpeg-$FFMPE
 for ARCH in "$@"; do
   case "$ARCH" in
     x64) TRIPLE=x86_64-w64-mingw32; FFARCH=x86_64 ;;
-    x86) TRIPLE=i686-w64-mingw32; FFARCH=x86 ;;
+    x86) TRIPLE=i686-w64-mingw32; FFARCH=x86 ;;   # LAME's SSE code needs -msse2 below
     arm64) TRIPLE=aarch64-w64-mingw32; FFARCH=aarch64 ;;
     *) echo "unknown architecture $ARCH"; exit 1 ;;
   esac
@@ -47,7 +47,9 @@ for ARCH in "$@"; do
     tar -xzf "$SRC/lame-$LAME_VERSION.tar.gz" -C "$DEPS/build-lame"
     cd "$DEPS/build-lame/lame-$LAME_VERSION"
     sed -i.orig '/lame_init_old/d' include/libmp3lame.sym
-    CC=$TRIPLE-clang CFLAGS="-O2" ./configure --host=$TRIPLE --prefix="$DEPS" \
+    LAME_CFLAGS="-O2"
+    [ "$ARCH" = x86 ] && LAME_CFLAGS="-O2 -msse2"
+    CC=$TRIPLE-clang CFLAGS="$LAME_CFLAGS" ./configure --host=$TRIPLE --prefix="$DEPS" \
       --disable-shared --enable-static --disable-frontend --disable-decoder >/dev/null
     make -j"$JOBS" >/dev/null
     make install >/dev/null
