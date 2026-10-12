@@ -105,9 +105,11 @@ if [ "$OS" = osx ]; then
   cc $CFLAGS -dynamiclib -install_name @rpath/$LIBNAME -o "$OUT/$LIBNAME" $SOURCES $LIBS \
     -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreFoundation \
     -framework Security -framework CoreServices -lm -lpthread
+  strip -x "$OUT/$LIBNAME"
   codesign --force --sign - "$OUT/$LIBNAME" >/dev/null 2>&1 || true
 else
   cc $CFLAGS -shared -Wl,-soname,$LIBNAME -Wl,-Bsymbolic -o "$OUT/$LIBNAME" $SOURCES $LIBS \
     -lssl -lcrypto -ldl -lm -lpthread
+  strip --strip-unneeded "$OUT/$LIBNAME"
 fi
 echo "built $OUT/$LIBNAME ($(du -h "$OUT/$LIBNAME" | cut -f1))"

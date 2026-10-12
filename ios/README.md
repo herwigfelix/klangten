@@ -23,7 +23,7 @@ for SDK in iphonesimulator iphoneos; do
   SDK=$SDK ARCH=arm64 ios/scripts/build-gems-ios.sh
   SDK=$SDK ARCH=arm64 ios/scripts/build-codecs-ios.sh
 done
-ios/scripts/fetch-native-libs.sh          # BASS xcframeworks (device+sim)
+ios/scripts/build-klangten-audio.sh      # sound engine xcframework (device+sim)
 ios/scripts/fetch-teamconference.sh       # TeamConference core (optional, conferences)
 
 # 2. Assemble the app + generate the Xcode project
@@ -71,7 +71,7 @@ xcodebuild -exportArchive -archivePath build-rel/Klangten.xcarchive \
 - `ITSAppUsesNonExemptEncryption` is false (only standard TLS), so no export
   compliance question blocks the build. The app is iPhone only and needs iOS 18.5
   (the prebuilt OpenSSL in libruby is built for 18.5).
-- The missing dSYMs for the BASS frameworks are only warnings.
+- The missing dSYM for the klangten_audio framework is only a warning.
 - Klangten has no visual interface (the screen stays black), so simulator
   screenshots show nothing; the App Store listing will need illustrative images.
 
@@ -184,8 +184,8 @@ macOS↔iOS source patch set — heavier than Option 2.
 
 ### fiddle + libffi — DONE (verified)
 
-The prebuilt runtime omits fiddle, but Elten's whole platform layer and the BASS
-audio engine are Fiddle-based, so it is required. `ios/scripts/build-fiddle-ios.sh`
+The prebuilt runtime omits fiddle, but Elten's whole platform layer and the
+audio engine (klangten_audio) are Fiddle-based, so it is required. `ios/scripts/build-fiddle-ios.sh`
 builds libffi (aarch64 port) and the fiddle 1.1.8 C extension (matching CRuby's
 bundled fiddle) for iOS; `ruby_shim.c` registers it with
 `ruby_init_ext("fiddle.so", Init_fiddle)`. **Verified on the iOS simulator (8/8):**
@@ -206,14 +206,14 @@ All of Elten's native dependencies now build for iOS and load on the simulator:
 | bigdecimal, zstd-ruby, nokogiri | `build-gems-ios.sh` (nokogiri links the SDK's libxml2/libxslt) | ✅ |
 | ruby-xz, rubyzip, http-2, base62/64, ostruct | pure Ruby (bundle their `lib/`) | ✅ |
 | opus, ogg, vorbis, speexdsp | `build-codecs-ios.sh` (linked with `-Wl,-force_load`) | ✅ |
-| BASS + add-ons (mix/enc/opus/flac/midi/hls/webm) | `fetch-native-libs.sh` (un4seen frameworks) | ✅ |
+| Sound engine klangten_audio (miniaudio, FFmpeg LGPL, LAME) | `build-klangten-audio.sh` | ✅ |
 | TeamConference core (conferences) | `fetch-teamconference.sh` from the TeamConference xcframework; linked with `-Wl,-u,_tc_*` (not `-force_load`: the archive carries its own libopus), found by Fiddle in the process | ✅ |
 
 ### ✅ MILESTONE: the full Elten core boots on iOS
 
 With the runtime + all of the above, **the entire Elten Ruby core — all 185
 files for the iOS platform — loads on the iOS simulator and stops cleanly before
-`main.rb`** (`ELTEN_BOOT_STOP_BEFORE_MAIN`). Every gem, every audio codec, BASS,
+`main.rb`** (`ELTEN_BOOT_STOP_BEFORE_MAIN`). Every gem, every audio codec, the sound engine,
 the whole app resolves. Reproduced by `ios/embedtest/run.sh`.
 
 ### ✅ MILESTONE: the real Elten event loop runs on iOS
@@ -231,8 +231,7 @@ speech` chain running on iOS (`ios/embedtest/ruby/boot.rb`).
    lets `ios/Klangten`'s host drive it continuously (drop `ELTEN_BOOT_STOP_BEFORE_MAIN`,
    run `main.rb`, pump `IOSTouchInput` from the gesture queue, speak via the
    bridge) and completes the network login flow — needs on-device runtime testing.
-2. **Optional native libs** — `bass_fx` / `bass_vst` (Elten loads them
-   optionally; VST has no iOS build) and Steam Audio/phonon for 3D audio.
+2. **Optional native libs** — Steam Audio/phonon for 3D audio.
 3. **Apple signing** — a development team for on-device runs (the simulator does
    not require signing). Universal (device+sim) slices via xcframeworks/lipo.
 
@@ -242,7 +241,7 @@ ios/scripts/fetch-cruby-runtime.sh        # -> vendor/cruby (CRuby runtime)
 ios/scripts/build-fiddle-ios.sh           # -> vendor/fiddle (fiddle + libffi)
 ios/scripts/build-gems-ios.sh             # -> vendor/gems  (bigdecimal, zstd, nokogiri)
 ios/scripts/build-codecs-ios.sh           # -> vendor/codecs (opus, ogg, vorbis, speexdsp)
-ios/scripts/fetch-native-libs.sh          # -> Frameworks   (BASS + add-ons)
+ios/scripts/build-klangten-audio.sh      # -> Frameworks   (klangten_audio)
 ios/scripts/fetch-teamconference.sh       # -> vendor/teamconference (conferences)
 ios/scripts/build-app.sh                  # stage Ruby core + stdlib, generate, build
 ```

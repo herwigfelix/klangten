@@ -63,7 +63,7 @@ Earlier Klangten versions shipped three further programs from the Elten program 
 
 - YouTube: `src/eapi/youtube.rb`, `src/scenes/youtube.rb` (search, playback and downloads through yt-dlp and Deno, which are downloaded on first use; on Android through the host's NewPipeExtractor)
 - file manager, playlist and document reader: `src/scenes/filemanager.rb`, `src/scenes/playlist.rb`, `src/eapi/playlist.rb`, `src/eapi/document_text.rb`
-- encoders: `src/eapi/audio/encoders/mp3.rb` (MP3 through BASSenc_MP3 on every platform), `src/eapi/audio/encoders/ffmpeg.rb` (AAC, M4A, FLAC, WMA and video containers through an external FFmpeg)
+- encoders: `src/eapi/audio/encoders/mp3.rb` (MP3 through LAME in klangten_audio on every platform), `src/eapi/audio/encoders/ffmpeg.rb` (AAC, M4A, FLAC, WMA and video containers through an external FFmpeg)
 
 The UUIDs of the removed programs stay blocked (`Programs::BuiltIns::REPLACED_UUIDS`), so an old installed copy is never loaded next to the new features.
 

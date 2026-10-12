@@ -58,7 +58,11 @@ void kevent_wait(kevent *e, int ms) {
     LeaveCriticalSection(&e->cs);
 }
 void ksleep_ms(int ms) { Sleep((DWORD)ms); }
+#if defined(_MSC_VER)
 #define KA_TLS __declspec(thread)
+#else
+#define KA_TLS __thread
+#endif
 #else
 void kmutex_init(kmutex *m) {
     pthread_mutexattr_t a;
@@ -276,9 +280,51 @@ static int ensure_contexts(void) {
         if (ma_context_init(nb, 1, NULL, &g_null_ctx) == MA_SUCCESS) g_null_ctx_ready = 1;
     }
     if (!g_ctx_ready && !ka_null_forced()) {
-        if (ma_context_init(NULL, 0, NULL, &g_ctx) == MA_SUCCESS) g_ctx_ready = 1;
+        ma_context_config cc = ma_context_config_init();
+        /* iOS: plain playback. miniaudio's default would be playAndRecord,
+         * which locks Bluetooth headsets into the hands-free profile; the
+         * capture context switches to playAndRecord only while recording. */
+        cc.coreaudio.sessionCategory = ma_ios_session_category_playback;
+        cc.coreaudio.sessionCategoryOptions = 0;
+        if (ma_context_init(NULL, 0, &cc, &g_ctx) == MA_SUCCESS) g_ctx_ready = 1;
     }
     return g_null_ctx_ready;
+}
+
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
+/* iOS: recording needs the playAndRecord category; it is set by a context
+ * of its own and given back (playback) when the recording device is freed. */
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+static ma_context g_rec_ctx;
+static int g_rec_ctx_ready;
+#endif
+static ma_context *capture_context(void) {
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+    if (!g_rec_ctx_ready) {
+        ma_context_config cc = ma_context_config_init();
+        cc.coreaudio.sessionCategory = ma_ios_session_category_play_and_record;
+        cc.coreaudio.sessionCategoryOptions = ma_ios_session_category_option_allow_bluetooth | ma_ios_session_category_option_default_to_speaker;
+        if (ma_context_init(NULL, 0, &cc, &g_rec_ctx) == MA_SUCCESS) g_rec_ctx_ready = 1;
+    }
+    return g_rec_ctx_ready ? &g_rec_ctx : &g_ctx;
+#else
+    return &g_ctx;
+#endif
+}
+void ka_capture_release(void) {
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+    if (g_rec_ctx_ready) {
+        ma_context restore;
+        ma_context_config cc = ma_context_config_init();
+        ma_context_uninit(&g_rec_ctx);
+        g_rec_ctx_ready = 0;
+        cc.coreaudio.sessionCategory = ma_ios_session_category_playback;
+        if (ma_context_init(NULL, 0, &cc, &restore) == MA_SUCCESS) ma_context_uninit(&restore);
+    }
+#endif
 }
 
 static void refresh_devices(void) {
@@ -295,7 +341,7 @@ ma_context *ka_capture_context(int device, ma_device_id **id_out, int *is_null) 
     *is_null = 0;
     if (ka_null_forced() || !g_ctx_ready || device == 0) { *is_null = 1; return &g_null_ctx; }
     if (device >= 2 && (ma_uint32)(device - 2) < g_cap_count) *id_out = &g_cap_infos[device - 2].id;
-    return &g_ctx;
+    return capture_context();
 }
 
 int ka_capture_device_info(int device, KA_DEVICEINFO *info) {

@@ -22,11 +22,13 @@ import java.nio.file.Files;
 
 final class RubyRuntime {
     static {
-        // BASS needs its JNI_OnLoad (Java VM, audio output) before Ruby opens it via Fiddle.
+        // Klangten's sound engine (scripts/build-klangten-audio.sh). Ruby opens
+        // it by name through Fiddle; loading it here first only makes a
+        // missing library show up in logcat early.
         try {
-            System.loadLibrary("bass");
+            System.loadLibrary("klangten_audio");
         } catch (UnsatisfiedLinkError ignored) {
-            // Built without scripts/fetch-bass.sh: audio stays unavailable.
+            // Built without scripts/build-klangten-audio.sh: audio stays unavailable.
         }
         System.loadLibrary("klangten");
     }

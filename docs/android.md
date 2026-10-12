@@ -4,7 +4,7 @@ Status: **phase 2**. The APK embeds CRuby and runs the Klangten core: it speaks
 through Android's TextToSpeech and is driven by the same touch gestures as on
 iOS. First-run setup, login and the scenes still need to be walked through on
 real devices. Distribution is planned as our own APK
-(later possibly F-Droid, which BASS rules out as long as it is in the app), not
+(later possibly F-Droid, now that no proprietary audio library is in the app), not
 Google Play. TalkBack has to be switched off while Klangten runs (v1 decision):
 Klangten speaks for itself, like on the desktop.
 
@@ -30,7 +30,7 @@ and `android/build/` (both gitignored).
 android/scripts/build-runtime.sh     # libffi, libyaml, OpenSSL, CRuby, fiddle for arm64-v8a (a few minutes)
 android/scripts/build-gems.sh        # bigdecimal, zstd-ruby, nokogiri (+ libxml2/libxslt), pure-Ruby gems
 android/scripts/build-codecs.sh      # libopus/ogg/vorbis/vorbisenc/speexdsp.so
-android/scripts/fetch-bass.sh        # BASS + add-ons (incl. BASS_SSL for HTTPS) from un4seen.com
+android/scripts/build-klangten-audio.sh  # the sound engine (FFmpeg, LAME, miniaudio) into vendor/jnilibs
 android/scripts/stage-assets.sh      # stdlib, gems, the Klangten core into build/assets; TeamConference into vendor/jnilibs
 cd android && ./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
@@ -85,24 +85,16 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
   `files/ruby` once per installed APK, because `require` needs real files.
   The Ruby thread gets a 64 MB stack.
 - Native libraries stay **inside the APK** (`extractNativeLibs=false`). Open them
-  **by name** (`Fiddle.dlopen("libbass.so")`), never by path: there is no file at
-  `nativeLibraryDir`. BASS is loaded once from Java first (`System.loadLibrary`),
-  so its `JNI_OnLoad` sees the Java VM. BASS add-ons are loaded the same way:
-  `Bass.init` hands `BASS_PluginLoad` the bare name (`libbassopus.so`), which
-  BASS resolves in the app's library directory; the path it used to build
-  (`files/ruby/app/eltencore/bassopus`) failed with `BASS_ERROR_FILEOPEN`, so
-  before October 2026 no add-on (Opus, FLAC, WebM, HLS, MIDI, ALAC) was active.
-- **HTTPS in BASS needs `libbass_ssl.so`.** Every recording Klangten plays comes
-  as an `https://` URL that BASS streams itself (`BASS_StreamCreateURL`): voice
-  posts, recorded thread titles, voice messages, radio. On Linux/Android BASS
-  loads OpenSSL dynamically, and an app targeting API 24+ may not load the
-  system's `libssl.so`/`libboringssl.so`; without its own SSL library every such
-  stream failed with `BASS_ERROR_SSL` (10) and the player stayed silent, while
-  plain `http://` played (and our statically linked OpenSSL in `libklangten.so`
-  is invisible to BASS). `fetch-bass.sh` therefore also fetches Un4seen's
-  BASS_SSL add-on (OpenSSL 1.1.1w), which BASS picks up from the APK on its own;
-  `BASS_CONFIG_LIBSSL` is not needed. iOS is not affected: BASS uses Apple's
-  network stack there.
+  **by name** (`Fiddle.dlopen("libklangten_audio.so")`), never by path: there is
+  no file at `nativeLibraryDir`.
+- **Sound: `libklangten_audio.so`** (Klangten's own engine, since 0.4; built by
+  `scripts/build-klangten-audio.sh` after `build-runtime.sh`). It brings FFmpeg
+  (all codecs, HLS, http/https) and links the OpenSSL that `build-runtime.sh`
+  builds for Ruby statically, with hidden symbols - so `https://` voice posts and
+  radio work without a system SSL library, which an app may not load. Output
+  goes through AAudio/OpenSL ES (miniaudio picks them at run time). Until 0.3
+  this was BASS, which needed `libbass_ssl.so` for HTTPS and loaded its add-ons
+  by name; both problems are gone with it.
 - The STL is `c++_shared`: the TeamConference library needs `libc++_shared.so`.
 
 ## Findings (spike and phase 1, September 2026)
@@ -116,8 +108,7 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
 | libffi 3.8 | sets `FFI_EXEC_STATIC_TRAMP`: Fiddle closures work without writable+executable memory |
 | TLS | OpenSSL ignores `SSL_CERT_FILE` in app processes. Android keeps roots as single PEM files (`/system/etc/security/cacerts`, `/apex/com.android.conscrypt/cacerts`); add them to `OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE`, as `src/eapi/tls.rb` does with its bundle |
 | RubyGems | the prelude does not define `Gem` in the embedded runtime; `require "rubygems"` works |
-| BASS 2.4.18.3 | core + mix, enc, enc_mp3, opus, flac, midi, hls, webm, alac, ssl; no Android build of basswma, bass_spx, bass_vst. un4seen.com now also lists third-party Android builds of bass_fx, bass_aac and bass_ac3 (`files/z/…`), not fetched yet (`Configuration.usefx` has no effect until bass_fx is there) |
-| HTTPS streams | need BASS_SSL (`libbass_ssl.so`): without it `BASS_StreamCreateURL` fails with `BASS_ERROR_SSL` for every `https://` URL, also after an `http://` → `https://` redirect. Checked on the emulator in October 2026: without it error 10, with it the voice post opens and its position advances |
+| Sound | `libklangten_audio.so`: miniaudio (AAudio/OpenSL ES), FFmpeg 9.0.2 LGPL with the runtime's OpenSSL for https, LAME; tempo and effects are Klangten's own, so they work on Android too |
 | 16 KB pages | every library is aligned to `0x4000` (`-Wl,-z,max-page-size=16384`) |
 | TeamConference | public build loads, `tc_join_group_room` present |
 | nokogiri | links against our own libxml2 2.13.9/libxslt 1.1.43 (Android has none); its polyfill needs `HAVE_XMLCTXTSETOPTIONS`/`HAVE_XMLSWITCHENCODINGNAME` or it duplicates libxml2 symbols. libxml2 is built without iconv (Bionic has it only from API 28) |
@@ -145,7 +136,7 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
   streams (Opus/WebM, M4A) break whenever YouTube forces SABR on the client in use
   (2026: three months, 8 March to 9 June). "Sign in to confirm you're not a bot"
   is an IP block and can only be reported.
-- Playback through BASS: set the VISIONOS user agent (`BASS_CONFIG_NET_AGENT` or
+- Playback through the sound engine: set the VISIONOS user agent (`BASS_CONFIG_NET_AGENT`, i.e. KA_CONFIG_NET_AGENT, or
   headers appended to the URL), fetch the URL right before playing and again on
   HTTP 403 (URLs carry `expire=` and are bound to the IP). Long audio is safer
   through a small chunking proxy on 127.0.0.1.

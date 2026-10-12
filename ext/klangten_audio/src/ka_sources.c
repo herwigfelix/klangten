@@ -26,6 +26,7 @@
 
 ma_context *ka_capture_context(int device, ma_device_id **id_out, int *is_null);
 int ka_capture_device_info(int device, KA_DEVICEINFO *info);
+void ka_capture_release(void);
 void ka_free_channel(uint32_t handle);
 
 /* ---------------------------------------------------------------- push */
@@ -114,6 +115,7 @@ KA_API int KA_RecordInit(int device) {
 KA_API int KA_RecordFree(void) {
     if (g_record_device < 0) return ka_set_error(KA_ERROR_INIT);
     capture_stop();
+    ka_capture_release();
     g_record_device = -1;
     return ka_ok();
 }

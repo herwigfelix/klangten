@@ -67,21 +67,16 @@ check("HTTPS") do
   "#{uri.host}: HTTP #{response.code}, Zertifikat geprüft, #{((Time.now - t) * 1000).round} ms"
 end
 
-check("BASS") do
+check("Klangten audio") do
   require "fiddle"
   # The libraries stay inside the APK (extractNativeLibs=false): open them by
   # name, the app's linker namespace finds them there.
-  bass = Fiddle.dlopen("libbass.so")
-  v = Fiddle::Function.new(bass["BASS_GetVersion"], [], Fiddle::TYPE_INT).call
-  init = Fiddle::Function.new(bass["BASS_Init"], [Fiddle::TYPE_INT] * 3 + [Fiddle::TYPE_VOIDP] * 2, Fiddle::TYPE_INT)
+  ka = Fiddle.dlopen("libklangten_audio.so")
+  v = Fiddle::Function.new(ka["KA_GetVersion"], [], Fiddle::TYPE_INT).call
+  init = Fiddle::Function.new(ka["KA_Init"], [Fiddle::TYPE_INT] * 3 + [Fiddle::TYPE_VOIDP] * 2, Fiddle::TYPE_INT)
   ok = init.call(-1, 48000, 0, nil, nil)
-  code = Fiddle::Function.new(bass["BASS_ErrorGetCode"], [], Fiddle::TYPE_INT).call
-  plugins = %w[bassopus bassflac basshls basswebm].map do |m|
-    h = Fiddle::Function.new(bass["BASS_PluginLoad"], [Fiddle::TYPE_VOIDP, Fiddle::TYPE_INT], Fiddle::TYPE_INT).call("lib#{m}.so", 0)
-    "#{m}#{h == 0 ? '✗' : '✓'}"
-  end
-  format("%d.%d.%d.%d, BASS_Init %s, %s", (v >> 24) & 255, (v >> 16) & 255, (v >> 8) & 255, v & 255,
-         ok != 0 ? "ok" : "Fehler #{code}", plugins.join(" "))
+  code = Fiddle::Function.new(ka["KA_ErrorGetCode"], [], Fiddle::TYPE_INT).call
+  format("%d.%d, KA_Init %s", (v >> 16) & 255, (v >> 8) & 255, ok != 0 ? "ok" : "Fehler #{code}")
 end
 
 check("TeamConference") do

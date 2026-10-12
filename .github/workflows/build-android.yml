@@ -80,7 +80,8 @@ jobs:
             android/build/runtime-arm64-v8a
             android/build/gems-arm64-v8a
             android/build/codecs-arm64-v8a
-          key: androidrt-${{ runner.os }}-${{ hashFiles('android/scripts/build-runtime.sh', 'android/scripts/build-gems.sh', 'android/scripts/build-codecs.sh') }}
+            ext/klangten_audio/deps/android-arm64-v8a
+          key: androidrt-${{ runner.os }}-${{ hashFiles('android/scripts/build-runtime.sh', 'android/scripts/build-gems.sh', 'android/scripts/build-codecs.sh', 'android/scripts/build-klangten-audio.sh') }}
           restore-keys: androidrt-${{ runner.os }}-
 
       - name: Ruby-Laufzeit, Gems und Codecs
@@ -89,7 +90,7 @@ jobs:
           [ -f android/vendor/arm64-v8a/lib/libruby-static.a ] || sh android/scripts/build-runtime.sh
           sh android/scripts/build-gems.sh
           sh android/scripts/build-codecs.sh
-          sh android/scripts/fetch-bass.sh
+          sh android/scripts/build-klangten-audio.sh
 
       - name: TeamConference-Kern bauen
         run: |
