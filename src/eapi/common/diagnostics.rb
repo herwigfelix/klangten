@@ -178,7 +178,7 @@ module EltenAPI
               version = Bass::BASS_GetVersion.call.to_i
               format("%d.%d.%d.%d", (version >> 24) & 0xff, (version >> 16) & 0xff, (version >> 8) & 0xff, version & 0xff)
             end
-            add.call(lines, "BASS", bass_version)
+            add.call(lines, "Sound engine (klangten_audio)", bass_version)
             output_devices = safe.call([]) { Bass.soundcards }
             input_devices = safe.call([]) { Bass.microphones }
             add.call(lines, "Output devices", output_devices.size) if output_devices.respond_to?(:size)

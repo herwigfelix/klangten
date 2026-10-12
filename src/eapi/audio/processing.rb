@@ -1,6 +1,7 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: tempo through klangten_audio instead of BASS_FX.
 
 module Audio
   class GainSource < Source
@@ -202,7 +203,7 @@ module Audio
     def build_output_channel(source_channel)
       function = Bass.optional_fiddle(Bass::BASSFX, "BASS_FX_TempoCreate", [Bass::F_UINT, Bass::F_UINT], Bass::F_UINT)
       channel = function.call(source_channel, Bass::BASS_STREAM_DECODE | Bass::BASS_SAMPLE_FLOAT).to_i
-      raise UnsupportedOperation, "BASS_FX tempo processing is unavailable" if channel == 0
+      raise UnsupportedOperation, "Tempo processing is unavailable" if channel == 0
       if Bass::BASS_ChannelSetAttribute.call(channel, @attribute, @value).to_i == 0
         Bass.free_stream(channel)
         raise UnsupportedOperation, "Cannot set offline audio attribute: #{Bass.error_name}"

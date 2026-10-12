@@ -60,7 +60,7 @@ module MediaEncoders
       (builtin + external).uniq
     end
 
-    # Klangten: MP3 (bassenc_mp3) sits next to the other native encoders; the
+    # Klangten: MP3 (LAME in klangten_audio) sits next to the other native encoders; the
     # FFmpeg encoders follow where an FFmpeg is found or can be downloaded
     # (encoders/ffmpeg.rb).
     def builtin
