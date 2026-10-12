@@ -352,6 +352,83 @@ class QuickActionTest < Minitest::Test
   end
 end
 
+# Headset and media buttons (src/eapi/mediabuttons.rb) with a backend that
+# hands over the pressed buttons the test gives it.
+class MediaButtonsTest < Minitest::Test
+  include MediaTestReset
+
+  module FakeBackend
+    class << self
+      attr_accessor :enabled, :pressed, :playing
+
+      def supported?
+        true
+      end
+
+      def enable(on)
+        @enabled = on
+      end
+
+      def poll
+        @pressed.to_a.shift.to_i
+      end
+
+      def now_playing(title, state)
+        @playing = [title, state]
+      end
+    end
+  end
+
+  def setup
+    super
+    FakeBackend.enabled = nil
+    FakeBackend.pressed = []
+    FakeBackend.playing = nil
+    KlangtenMediaButtons.instance_variable_set(:@backend, FakeBackend)
+    KlangtenMediaButtons.instance_variable_set(:@wanted, nil)
+    KlangtenMediaButtons.instance_variable_set(:@checked_at, nil)
+    KlangtenMediaButtons.instance_variable_set(:@announced, nil)
+  end
+
+  def teardown
+    KlangtenMediaButtons.remove_instance_variable(:@backend)
+    super
+  end
+
+  def test_off_on_computers_unless_switched_on
+    KlangtenMediaButtons.tick
+    assert_equal false, FakeBackend.enabled
+    KlangtenMediaButtons.enabled = true
+    KlangtenMediaButtons.tick
+    assert_equal true, FakeBackend.enabled
+  end
+
+  def test_buttons_pause_resume_and_say_what_plays
+    KlangtenMediaButtons.enabled = true
+    KlangtenBackgroundPlayer.play(item(title: "Radio Eins", kind: :radio))
+    opened_sound
+    FakeBackend.pressed = [KlangtenMediaButtons::TOGGLE]
+    KlangtenMediaButtons.tick
+    assert KlangtenBackgroundPlayer.paused?
+    assert_equal ["Radio Eins", 2], FakeBackend.playing
+    FakeBackend.pressed = [KlangtenMediaButtons::PAUSE]
+    KlangtenMediaButtons.tick
+    assert KlangtenBackgroundPlayer.paused?, "pause on a paused player changes nothing"
+    FakeBackend.pressed = [KlangtenMediaButtons::PLAY]
+    KlangtenMediaButtons.tick
+    assert KlangtenBackgroundPlayer.playing?
+    assert_equal ["Radio Eins", 1], FakeBackend.playing
+  end
+
+  def test_buttons_are_ignored_while_switched_off
+    KlangtenBackgroundPlayer.play(item(title: "Radio Eins", kind: :radio))
+    opened_sound
+    FakeBackend.pressed = [KlangtenMediaButtons::TOGGLE]
+    KlangtenMediaButtons.tick
+    assert KlangtenBackgroundPlayer.playing?
+  end
+end
+
 class BookmarksTest < Minitest::Test
   include MediaTestReset
 

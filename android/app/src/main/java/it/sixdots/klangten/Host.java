@@ -400,6 +400,89 @@ final class Host {
         return audioFocus;
     }
 
+    // --- headset and media buttons (Klangten 0.4) ------------------------------------
+
+    // A media session receives the headset and Bluetooth buttons while
+    // Klangten plays (Settings, Media). Ruby polls the pressed buttons:
+    // 1 play/pause, 2 play, 3 pause, 4 next, 5 previous, 6 stop.
+    private static android.media.session.MediaSession mediaSession;
+    private static final java.util.concurrent.ConcurrentLinkedQueue<Integer> mediaButtons = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private static final long MEDIA_ACTIONS = android.media.session.PlaybackState.ACTION_PLAY
+            | android.media.session.PlaybackState.ACTION_PAUSE
+            | android.media.session.PlaybackState.ACTION_PLAY_PAUSE
+            | android.media.session.PlaybackState.ACTION_SKIP_TO_NEXT
+            | android.media.session.PlaybackState.ACTION_SKIP_TO_PREVIOUS
+            | android.media.session.PlaybackState.ACTION_STOP;
+
+    static void mediaButtonsEnable(int on) {
+        main.post(() -> {
+            if (app == null) return;
+            if (on == 0) {
+                if (mediaSession != null) {
+                    mediaSession.setActive(false);
+                    mediaSession.release();
+                    mediaSession = null;
+                }
+                mediaButtons.clear();
+                return;
+            }
+            if (mediaSession != null) return;
+            android.media.session.MediaSession session = new android.media.session.MediaSession(app, "Klangten");
+            session.setCallback(new android.media.session.MediaSession.Callback() {
+                @Override public void onPlay() { mediaButtons.add(2); }
+                @Override public void onPause() { mediaButtons.add(3); }
+                @Override public void onSkipToNext() { mediaButtons.add(4); }
+                @Override public void onSkipToPrevious() { mediaButtons.add(5); }
+                @Override public void onStop() { mediaButtons.add(6); }
+                @Override public boolean onMediaButtonEvent(Intent intent) {
+                    android.view.KeyEvent event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+                    // A single headset button: play and pause, whatever the state.
+                    if (event != null && event.getAction() == android.view.KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0
+                            && (event.getKeyCode() == android.view.KeyEvent.KEYCODE_HEADSETHOOK
+                                || event.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)) {
+                        mediaButtons.add(1);
+                        return true;
+                    }
+                    return super.onMediaButtonEvent(intent);
+                }
+            }, main);
+            mediaSession = session;
+            mediaNowPlayingOnMain("", 2);
+            session.setActive(true);
+        });
+    }
+
+    static int mediaButtonsPoll() {
+        Integer code = mediaButtons.poll();
+        return code == null ? 0 : code;
+    }
+
+    // Also keeps the playback service running while something plays or is
+    // paused, whether the buttons are on or not.
+    static void mediaNowPlaying(byte[] title, int state) {
+        String text = new String(title, StandardCharsets.UTF_8);
+        main.post(() -> {
+            mediaNowPlayingOnMain(text, state);
+            PlaybackService.update(app, text, state);
+        });
+    }
+
+    private static void mediaNowPlayingOnMain(String title, int state) {
+        android.media.session.MediaSession session = mediaSession;
+        if (session == null) return;
+        int playback = state == 1 ? android.media.session.PlaybackState.STATE_PLAYING
+                : state == 2 ? android.media.session.PlaybackState.STATE_PAUSED
+                : android.media.session.PlaybackState.STATE_STOPPED;
+        session.setPlaybackState(new android.media.session.PlaybackState.Builder()
+                .setActions(MEDIA_ACTIONS)
+                .setState(playback, android.media.session.PlaybackState.PLAYBACK_POSITION_UNKNOWN, state == 1 ? 1f : 0f)
+                .build());
+        session.setMetadata(new android.media.MediaMetadata.Builder()
+                .putString(android.media.MediaMetadata.METADATA_KEY_TITLE, title.isEmpty() ? "Klangten" : title)
+                .putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, "Klangten")
+                .build());
+    }
+
     // --- storage (file manager, file dialogs) ---------------------------------------------
 
     // What the file manager can browse: the shared storage ("Internal storage"

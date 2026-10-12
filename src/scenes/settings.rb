@@ -524,7 +524,8 @@ def make_window
     make_setting(p_("Settings", "Use noise reduction"), [p_("Settings", "Never"), p_("Settings", "In audio conferences only"), p_("Settings", "In audio conferences and when recording")], "Advanced", "UseDenoising", ["never", "conferences", "conferences_and_recording"])
     make_setting(p_("Settings", "Enable echo cancellation"), :bool, "Advanced", "UseEchoCancellation")
       end
-  # Klangten 0.4: where recordings go, and the global player keys.
+  # Klangten 0.4: where recordings go, the global player keys and the
+  # headset and media buttons.
   def load_media
     return if !defined?(KlangtenRecordings)
     setting_category(p_("Klangten", "Media and recordings"))
@@ -538,6 +539,12 @@ def make_window
     if defined?(KlangtenGlobalKeys) && KlangtenGlobalKeys.supported?
       modifier = platform_os == "osx" ? "Option" : "Windows"
       make_setting(p_("Klangten", "Global player keys, also in other programs (%{modifier}+F5, F6, Z, X, Space, F7, F8, F11)") % { modifier: modifier }, :bool, KlangtenGlobalKeys::CONFIG_GROUP, KlangtenGlobalKeys::CONFIG_KEY)
+    end
+    # Klangten 0.4: headset, Bluetooth and media keys (on by default on the phones).
+    if defined?(KlangtenMediaButtons) && KlangtenMediaButtons.supported?
+      make_bound_setting(p_("Klangten", "Control playback with the headset and media buttons (play, pause, next, previous)"), :bool, "klangten_media_buttons",
+        Proc.new { KlangtenMediaButtons.enabled? ? "true" : "false" },
+        Proc.new { |value| KlangtenMediaButtons.enabled = value })
     end
   end
   def choose_recordings_folder

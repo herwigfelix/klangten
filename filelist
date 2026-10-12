@@ -298,6 +298,8 @@ src/eapi/internetarchive.rb
 src/eapi/globalkeys.rb
 src/platforms/windows/eapi/globalkeys.rb :windows
 src/platforms/osx/eapi/globalkeys.rb :osx
+src/eapi/mediabuttons.rb
+src/platforms/osx/eapi/mediabuttons.rb :osx
 src/scenes/nowplaying.rb
 src/scenes/internetarchive.rb
 # Klangten: Spotify (native library built from ext/klangten_spotify; not on iOS and Android)

@@ -28437,3 +28437,7 @@ msgstr "Wiedergabeliste"
 msgctxt "WelcomeWizard"
 msgid "Playlist"
 msgstr "Wiedergabeliste"
+
+msgctxt "Klangten"
+msgid "Control playback with the headset and media buttons (play, pause, next, previous)"
+msgstr "Wiedergabe mit Headset- und Medientasten steuern (Wiedergabe, Pause, nächster, voriger Titel)"

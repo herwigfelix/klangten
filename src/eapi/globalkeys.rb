@@ -63,6 +63,16 @@ module KlangtenGlobalKeys
     [15, MOD_CONTROL | MOD_WIN, VK_SPACE, :toggle]
   ].freeze
 
+  # Klangten 0.4: the media keys of a keyboard, where the backend can take
+  # them (Windows) and the headset and media buttons are on
+  # (src/eapi/mediabuttons.rb). They report a media button code.
+  MEDIA_BINDINGS = [
+    [21, 0, 0xB3, 1],
+    [22, 0, 0xB0, 4],
+    [23, 0, 0xB1, 5],
+    [24, 0, 0xB2, 6]
+  ].freeze
+
   @queue = Queue.new
   @running = false
   @wanted = nil
@@ -95,7 +105,11 @@ module KlangtenGlobalKeys
       return if @queue.empty?
       loop do
         action = @queue.pop(true)
-        KlangtenMedia.quick_action(action) if action.is_a?(Symbol)
+        if action.is_a?(Integer)
+          KlangtenMediaButtons::KeysBackend.queue << action
+        elsif action.is_a?(Symbol)
+          KlangtenMedia.quick_action(action)
+        end
       end
     rescue ThreadError
       nil
@@ -105,17 +119,25 @@ module KlangtenGlobalKeys
 
     # A start that fails (the system refused every key) is not repeated until
     # the setting changes.
-    def refresh
-      want = enabled?
-      return if want == @wanted
+    def refresh(force: false)
+      want = [enabled?, media_keys?]
+      return if want == @wanted && !force
       @wanted = want
-      if want
-        @running = Backend.start(BINDINGS, @queue) == true
+      bindings = (want[0] ? BINDINGS : []) + (want[1] ? MEDIA_BINDINGS : [])
+      if !bindings.empty?
+        @running = Backend.start(bindings, @queue) == true
         Log.warning("Global player keys could not be started") if !@running && defined?(Log)
       else
         Backend.stop
         @running = false
       end
+    end
+
+    def media_keys?
+      Backend.respond_to?(:media_keys?) && Backend.media_keys? &&
+        defined?(KlangtenMediaButtons) && KlangtenMediaButtons.enabled?
+    rescue StandardError
+      false
     end
 
     def stop

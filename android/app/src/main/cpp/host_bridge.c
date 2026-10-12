@@ -295,6 +295,33 @@ EXPORT int elten_host_audio_focus_request(void) { return call_int("audioFocusReq
 EXPORT void elten_host_audio_focus_abandon(void) { call_void("audioFocusAbandon"); }
 EXPORT int elten_host_audio_focus_state(void) { return call_int("audioFocusState"); }
 
+// --- headset and media buttons (Klangten 0.4) --------------------------------------
+// A media session; poll: 0 none, 1 play/pause, 2 play, 3 pause, 4 next,
+// 5 previous, 6 stop. Now playing: state 0 nothing, 1 playing, 2 paused.
+
+EXPORT void elten_host_media_buttons_enable(int on) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return;
+    jmethodID id = method(env, "mediaButtonsEnable", "(I)V");
+    if (id == NULL) return;
+    (*env)->CallStaticVoidMethod(env, g_host, id, (jint)on);
+    clear_exception(env);
+}
+EXPORT int elten_host_media_buttons_poll(void) { return call_int("mediaButtonsPoll"); }
+EXPORT void elten_host_media_now_playing(const char *title, int state) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return;
+    jmethodID id = method(env, "mediaNowPlaying", "([BI)V");
+    if (id == NULL) return;
+    jsize length = title != NULL ? (jsize)strlen(title) : 0;
+    jbyteArray bytes = (*env)->NewByteArray(env, length);
+    if (bytes == NULL) { clear_exception(env); return; }
+    if (length > 0) (*env)->SetByteArrayRegion(env, bytes, 0, length, (const jbyte *)title);
+    (*env)->CallStaticVoidMethod(env, g_host, id, bytes, (jint)state);
+    (*env)->DeleteLocalRef(env, bytes);
+    clear_exception(env);
+}
+
 // --- storage (file manager, file dialogs; Android only) --------------------------------
 // {"shared": <shared storage root>, "app": <Klangten's own folder>, "access": true|false}
 

@@ -26,6 +26,11 @@ module KlangtenGlobalKeys
     START_TIMEOUT = 3.0
 
     class << self
+      # The media keys (play/pause, next, previous, stop) can be had too.
+      def media_keys?
+        true
+      end
+
       # Registers the bindings; true when at least one key could be had.
       def start(bindings, queue)
         stop

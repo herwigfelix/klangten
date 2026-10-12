@@ -121,34 +121,11 @@ targets:
     dependencies:
       - framework: vendor/cruby/CRuby.xcframework
         embed: false
-      - framework: Frameworks/bass.xcframework
-        embed: true
-        codeSign: true
-      - framework: Frameworks/bassenc_mp3.xcframework
-        embed: true
-        codeSign: true
-      - framework: Frameworks/bassenc.xcframework
-        embed: true
-        codeSign: true
-      - framework: Frameworks/bassflac.xcframework
-        embed: true
-        codeSign: true
-      - framework: Frameworks/basshls.xcframework
-        embed: true
-        codeSign: true
-      - framework: Frameworks/bassmidi.xcframework
-        embed: true
-        codeSign: true
-      - framework: Frameworks/bassmix.xcframework
-        embed: true
-        codeSign: true
-      - framework: Frameworks/bassopus.xcframework
-        embed: true
-        codeSign: true
-      - framework: Frameworks/basswebm.xcframework
+      - framework: Frameworks/klangten_audio.xcframework
         embed: true
         codeSign: true
       - sdk: AVFoundation.framework
       - sdk: AudioToolbox.framework
+      - sdk: MediaPlayer.framework
       - sdk: CoreAudio.framework
       - sdk: UIKit.framework

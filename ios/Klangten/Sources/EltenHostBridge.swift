@@ -10,6 +10,7 @@
 
 import Foundation
 import AVFoundation
+import MediaPlayer
 import UIKit
 
 // Keeps returned C strings alive until the next call of the same kind.
@@ -253,6 +254,84 @@ public func elten_host_audio_focus_state() -> Int32 {
     return EltenAudioFocus.shared.state
 }
 
+// --- headset and media buttons (Klangten 0.4) -------------------------------------
+// The remote commands of iOS (headset buttons, Bluetooth, lock screen, Control
+// Centre) control Klangten's playback when the user wants it (Settings, Media).
+// Ruby polls the pressed buttons: 1 play/pause, 2 play, 3 pause, 4 next,
+// 5 previous, 6 stop. Now playing: state 0 nothing, 1 playing, 2 paused.
+private final class EltenMediaButtons {
+    static let shared = EltenMediaButtons()
+    private let lock = NSLock()
+    private var pressed: [Int32] = []
+    private var targets: [(MPRemoteCommand, Any)] = []
+
+    func push(_ code: Int32) {
+        lock.lock(); pressed.append(code); lock.unlock()
+    }
+
+    func poll() -> Int32 {
+        lock.lock(); defer { lock.unlock() }
+        return pressed.isEmpty ? 0 : pressed.removeFirst()
+    }
+
+    func enable(_ on: Bool) {
+        DispatchQueue.main.async {
+            let center = MPRemoteCommandCenter.shared()
+            for (command, target) in self.targets { command.removeTarget(target) }
+            self.targets.removeAll()
+            let commands: [(MPRemoteCommand, Int32)] = [
+                (center.togglePlayPauseCommand, 1), (center.playCommand, 2), (center.pauseCommand, 3),
+                (center.nextTrackCommand, 4), (center.previousTrackCommand, 5), (center.stopCommand, 6),
+            ]
+            for (command, code) in commands {
+                command.isEnabled = on
+                guard on else { continue }
+                let target = command.addTarget { _ in
+                    EltenMediaButtons.shared.push(code)
+                    return .success
+                }
+                self.targets.append((command, target))
+            }
+            if on {
+                UIApplication.shared.beginReceivingRemoteControlEvents()
+            } else {
+                UIApplication.shared.endReceivingRemoteControlEvents()
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            }
+        }
+    }
+
+    func nowPlaying(_ title: String, _ state: Int32) {
+        DispatchQueue.main.async {
+            let info = MPNowPlayingInfoCenter.default()
+            if state == 0 {
+                info.nowPlayingInfo = nil
+                return
+            }
+            info.nowPlayingInfo = [
+                MPMediaItemPropertyTitle: title,
+                MPMediaItemPropertyArtist: "Klangten",
+                MPNowPlayingInfoPropertyPlaybackRate: state == 1 ? 1.0 : 0.0,
+            ]
+        }
+    }
+}
+
+@_cdecl("elten_host_media_buttons_enable")
+public func elten_host_media_buttons_enable(_ on: Int32) {
+    EltenMediaButtons.shared.enable(on != 0)
+}
+
+@_cdecl("elten_host_media_buttons_poll")
+public func elten_host_media_buttons_poll() -> Int32 {
+    return EltenMediaButtons.shared.poll()
+}
+
+@_cdecl("elten_host_media_now_playing")
+public func elten_host_media_now_playing(_ title: UnsafePointer<CChar>?, _ state: Int32) {
+    EltenMediaButtons.shared.nowPlaying(title.map { String(cString: $0) } ?? "", state)
+}
+
 // Force-keep the @_cdecl entry points. Only the embedded Ruby calls them (via
 // dlsym), so without a Swift-side reference the linker dead-strips them and the
 // app becomes silent + unresponsive. `@_used`-style retention via a referenced
@@ -269,6 +348,7 @@ public func eltenHostBridgeKeepAlive() {
         elten_host_system_keyboard_show_text, elten_host_system_keyboard_hide,
         elten_host_system_keyboard_visible,
         elten_host_audio_focus_request, elten_host_audio_focus_abandon, elten_host_audio_focus_state,
+        elten_host_media_buttons_enable, elten_host_media_buttons_poll, elten_host_media_now_playing,
     ]
     if keep.count == 0 { fatalError() } // never true; prevents the array being optimised away
 }

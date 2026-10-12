@@ -130,6 +130,34 @@ module IOSHostBridge
       call_int(:audio_focus_state)
     end
 
+    # --- headset and media buttons (Klangten 0.4) ---------------------------
+    # iOS: remote commands; Android: a media session. Codes of a pressed
+    # button: 1 play/pause, 2 play, 3 pause, 4 next, 5 previous, 6 stop.
+
+    def media_buttons_supported?
+      resolve!
+      symbol?("elten_host_media_buttons_poll")
+    end
+
+    def media_buttons_enable(on)
+      fn = func(:media_buttons_enable, [Fiddle::TYPE_INT], Fiddle::TYPE_VOID)
+      fn.call(on ? 1 : 0) if fn != nil
+    rescue Exception
+      nil
+    end
+
+    def media_buttons_poll
+      call_int(:media_buttons_poll)
+    end
+
+    # state: 0 nothing, 1 playing, 2 paused.
+    def media_now_playing(title, state)
+      fn = func(:media_now_playing, [Fiddle::TYPE_VOIDP, Fiddle::TYPE_INT], Fiddle::TYPE_VOID)
+      fn.call(cstr(title.to_s), state.to_i) if fn != nil
+    rescue Exception
+      nil
+    end
+
     def request_microphone_access(timeout = 15.0)
       fn = func(:microphone_request, [Fiddle::TYPE_DOUBLE], Fiddle::TYPE_INT)
       return true if fn == nil

@@ -609,6 +609,7 @@ module KlangtenMedia
     def tick
       KlangtenBackgroundPlayer.take_events.each { |event| announce(event) } if KlangtenBackgroundPlayer.events_pending?
       KlangtenGlobalKeys.tick if defined?(KlangtenGlobalKeys)
+      KlangtenMediaButtons.tick if defined?(KlangtenMediaButtons)
       # Only once the main menu is there: the quick actions are saved with
       # their labels, which must already be in the user's language.
       ensure_default_hotkeys if !@hotkeys_checked && defined?(Scene_Main) && $scene.is_a?(Scene_Main)
