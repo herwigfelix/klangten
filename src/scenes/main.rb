@@ -100,7 +100,9 @@ class Scene_Main
       end
       announce_notifications_after_restore_if_active
       feeds_load if Session.feeds_updated?
+      leave_empty_playlist_tab
       update_current_main_control
+      leave_empty_playlist_tab
       if key_pressed?(0x9)
         if key_held?(0x10)
           retreat_main_focus
@@ -210,10 +212,21 @@ def entry_notification_focus_policy
   @notification_focus
 end
 
-# Klangten: the playlist tab, like in Klango always there - the list that
-# plays or played last, otherwise the internal one (src/scenes/playlist.rb).
+# Klangten: the playlist tab - the list that plays or played last, otherwise
+# the internal one (src/scenes/playlist.rb). Like the notifications it is only
+# there while it has entries.
 def playlist_tab_available?
-  main_tab_enabled?(:playlist) && defined?(KlangtenPlaylistView) != nil
+  return false if !main_tab_enabled?(:playlist) || !defined?(KlangtenPlaylistView)
+  return true if !KlangtenPlaylist.shown_list.empty?
+  @playlist_view != nil && !@playlist_view.list.empty?
+end
+
+# The last entry was removed in the tab (also through its context menu,
+# which runs before the tab's frame): the focus goes to the next tab, aloud.
+def leave_empty_playlist_tab
+  section = current_main_section
+  focus_current_control if @playlist_tab_shown && section != :playlist && !playlist_tab_available?
+  @playlist_tab_shown = section == :playlist
 end
 
 def playlist_view

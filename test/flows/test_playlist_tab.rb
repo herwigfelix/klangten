@@ -41,16 +41,23 @@ class PlaylistTabFlowTest < KlangtenTest::FlowTest
     k.wait_until { KlangtenPlaylist.current_entry == nil }
   end
 
-  def test_the_tab_shows_the_internal_playlist_and_follows_a_new_list
+  # Like the notifications, the tab is only there while the playlist has
+  # entries; it follows a new list, and leaves when the last entry is removed.
+  def test_the_tab_appears_with_entries_and_follows_a_new_list
     k = logged_in
-    k.move_to("My playlist")
-    k.expect("The playlist is empty.")
+    mark = k.mark
+    4.times { k.press("tab") }
+    k.expect_not("My playlist", since: mark)
+    k.expect_not("Playlist: Made", since: mark)
     play_made_list(k)
-    k.press("down")
-    k.expect("Beta")
-    k.press("tab")
     k.move_to("Playlist: Made list")
+    k.expect("Alpha")
     assert_equal "Made list", k.call { KlangtenPlaylist.shown_list.title }
+    k.press("delete")
+    k.expect("Beta")
+    k.press("delete")
+    k.expect("Quick actions")
+    assert_equal :actions, k.call { k.scene.current_main_section }
   end
 
   def test_volume_and_moving_with_alt
