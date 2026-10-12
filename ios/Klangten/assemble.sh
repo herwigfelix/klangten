@@ -13,7 +13,7 @@
 #   SDK=iphonesimulator ARCH=arm64 ios/scripts/build-fiddle-ios.sh   # + iphoneos
 #   SDK=iphonesimulator ARCH=arm64 ios/scripts/build-gems-ios.sh     # + iphoneos
 #   SDK=iphonesimulator ARCH=arm64 ios/scripts/build-codecs-ios.sh   # + iphoneos
-#   ios/scripts/fetch-native-libs.sh   (BASS xcframeworks)
+#   ios/scripts/build-klangten-audio.sh   (the sound engine xcframework)
 #   ios/scripts/fetch-teamconference.sh   (optional: conferences)
 set -euo pipefail
 

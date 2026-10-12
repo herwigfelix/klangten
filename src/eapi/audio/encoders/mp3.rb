@@ -6,16 +6,15 @@
 # Klangten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 
-# Native MP3 encoding through BASSenc_MP3, which ships with Klangten on every
-# platform (bin/<target>, the iOS frameworks and the Android jniLibs).
+# Native MP3 encoding through LAME inside Klangten's sound engine
+# (klangten_audio, KA_Encode_MP3_StartFile), on every platform.
 #
 # The encoder sits on a decoding "dummy" stream (STREAMPROC_DUMMY): such a
 # stream has no data of its own, so the PCM is handed to the encoder directly
-# with BASS_Encode_Write. BASSenc_MP3 writes the result into a temporary file,
-# which is copied into the RecorderOutput when the session finishes. Going
-# through a file instead of an ENCODEPROC callback keeps native callbacks out of
-# the picture (iOS does not allow writable code for libffi closures, and the
-# callback would arrive on whatever thread BASS chooses).
+# with BASS_Encode_Write (KA_Encode_Write). The engine writes the result into a
+# temporary file, which is copied into the RecorderOutput when the session
+# finishes. Going through a file keeps native callbacks out of the picture
+# (iOS does not allow writable code for libffi closures).
 
 module KlangtenMp3
   BASS_UNICODE = 0x80000000
@@ -93,7 +92,7 @@ class Mp3AudioEncoder < AudioEncoder
 
   def start(output, frequency: 44_100, channels: 2, source_channel: nil)
     super(output, :frequency => frequency, :channels => [[channels.to_i, 1].max, 2].min, :source_channel => source_channel)
-    raise RuntimeError, "MP3 encoder (bassenc_mp3) is not available" if !KlangtenMp3.available?
+    raise RuntimeError, "MP3 encoder (klangten_audio) is not available" if !KlangtenMp3.available?
     @sample_bytes = @channels * 2
     @queue = "".b
     @finished = false

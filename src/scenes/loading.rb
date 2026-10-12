@@ -166,7 +166,6 @@ if defined?(NVDA)
   loop_update while !NVDA.waiting?
 end
 EltenAPI::InvisibleInterface.reset_for_loading if defined?(EltenAPI::InvisibleInterface) && EltenAPI::InvisibleInterface.respond_to?(:reset_for_loading)
-      Bass::BASS_SetConfigPtr.call(0x10403,EltenPath.join(Dirs.extras, "soundfont.sf2")) if FileTest.exists?(EltenPath.join(Dirs.extras, "soundfont.sf2"))
                                     startmessage = Elten.version.to_s
                                     # The iOS build announces itself as "Klangten on touch" followed by the
                                     # bare version. The product name is stripped first, otherwise the start

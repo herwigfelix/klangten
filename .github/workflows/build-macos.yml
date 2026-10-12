@@ -88,6 +88,17 @@ jobs:
       - name: Spotify-Bibliothek bauen
         run: sh tools/build-spotify.sh
 
+      # Klangmaschine: ext/klangten_audio (miniaudio, FFmpeg LGPL, LAME), gebaut
+      # nach bin/osx (nicht eingecheckt). FFmpeg und LAME kommen aus dem Cache.
+      - name: Klangmaschine aus dem Cache
+        uses: actions/cache@v4
+        with:
+          path: ext/klangten_audio/deps
+          key: klangtenaudio-osx-${{ hashFiles('tools/build-klangten-audio.sh') }}
+
+      - name: Klangmaschine bauen
+        run: sh tools/build-klangten-audio.sh
+
       - name: Signierung vorbereiten
         if: env.SIGN_IDENTITY != ''
         env:

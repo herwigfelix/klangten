@@ -263,7 +263,7 @@ src/platforms/ios/invisibleinterface/service.rb :ios
 src/platforms/linux/invisibleinterface/service.rb :linux
 src/eapi/audio/format.rb
 src/eapi/audio/encoders/media.rb
-# Klangten: native MP3 encoder (bassenc_mp3) and FFmpeg encoders (system or downloaded FFmpeg)
+# Klangten: native MP3 encoder (LAME in klangten_audio) and FFmpeg encoders (system or downloaded FFmpeg)
 src/eapi/audio/encoders/mp3.rb
 src/eapi/audio/encoders/ffmpeg.rb
 src/eapi/audio/source.rb

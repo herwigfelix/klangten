@@ -6,9 +6,9 @@
 # Klangten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 
-# Stream recording with the real BASS libraries (macOS and Linux builds in
-# bin/): an endless "radio station" on a local HTTP server is played on BASS's
-# silent "no sound" device, KlangtenRecordings puts the MP3 encoder on the
+# Stream recording with the real sound engine (klangten_audio, macOS and Linux
+# builds in bin/): an endless "radio station" on a local HTTP server is played
+# on the engine's null device, KlangtenRecordings puts the MP3 encoder on the
 # playing channel, and the recording that comes out is opened again and must
 # hold several seconds of audio. The station's MP3 is made by the same
 # encoder from a generated tone, so no test file and no network is needed.
@@ -32,7 +32,7 @@ module BassTestLibrary
   end
 
   def self.available?
-    directory != nil && File.file?(File.join(directory, "libbassenc_mp3.#{extension}"))
+    directory != nil && File.file?(File.join(directory, "libklangten_audio.#{extension}"))
   end
 end
 
@@ -46,9 +46,15 @@ if BassTestLibrary.available?
     BASS_ABI = Fiddle::Function::DEFAULT
     dir = BassTestLibrary.directory
     ext = BassTestLibrary.extension
-    BASSDLL = Fiddle.dlopen(File.join(dir, "libbass.#{ext}"))
-    BASSENC = Fiddle.dlopen(File.join(dir, "libbassenc.#{ext}"))
-    BASSENCMP3 = Fiddle.dlopen(File.join(dir, "libbassenc_mp3.#{ext}"))
+    # every BASS_* name is the engine's KA_* (see src/eapi/audio/bass.rb)
+    class EngineSymbols
+      def initialize(handle) = @handle = handle
+      def [](name) = @handle[name.to_s.sub(/\ABASS_/, "KA_")]
+    end
+    ENV["KLANGTEN_AUDIO_NULL"] = "1"
+    BASSDLL = EngineSymbols.new(Fiddle.dlopen(File.join(dir, "libklangten_audio.#{ext}")))
+    BASSENC = BASSDLL
+    BASSENCMP3 = BASSDLL
     BASS_Init = Fiddle::Function.new(BASSDLL["BASS_Init"], [F_INT, F_UINT, F_UINT, F_PTR, F_PTR], F_INT)
     BASS_ErrorGetCode = Fiddle::Function.new(BASSDLL["BASS_ErrorGetCode"], [], F_INT)
     BASS_StreamCreate = Fiddle::Function.new(BASSDLL["BASS_StreamCreate"], [F_UINT, F_UINT, F_UINT, F_PTR, F_PTR], F_UINT)

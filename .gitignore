@@ -25,3 +25,8 @@
 /ext/klangten_spotify/target/
 /bin/*/libklangten_spotify.*
 /bin/*/klangten_spotify.dll
+
+# Klangten: build trees of the sound engine (tools/build-klangten-audio.sh)
+/ext/klangten_audio/deps/
+/bin/*/libklangten_audio.*
+/bin/*/klangten_audio.dll

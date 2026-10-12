@@ -25,10 +25,10 @@ The suite runs on macOS and Linux; GitHub Actions runs it on both (`.github/work
 | Frames | Each `loop_update` stops at its start (in the test window's `begin_input_frame`) until the test releases exactly one frame. The test and Klangten run in lockstep, so every run is the same. |
 | Time | Virtual. Scene threads read a virtual clock through `Time.now` and `Process.clock_gettime(CLOCK_MONOTONIC)`, and their `sleep` advances it instead of waiting - one frame is the 10 ms `loop_update` sleeps. `delay`, timers, key repeat, speech length and recording length behave as in real life, at any speed. While work started by the interface is running (an HTTP request, a `Tasks.run` worker) the clock stands still, so no timeout or "please wait" screen depends on how fast the machine is. |
 | Speech | `KlangtenTestSpeech` (platform/speech.rb) is the only voice. Every utterance goes into the transcript; speaking takes virtual time in proportion to the text, the next key interrupts it, and indexed sequences fire their embedded sounds when the "voice" reaches them. |
-| Sound | Theme sounds go into the transcript under their name (`play_sound` is wrapped). BASS itself runs on its "no sound" device: streams are created and decoded normally, nothing reaches a sound card, so machines without one (CI) work. |
+| Sound | Theme sounds go into the transcript under their name (`play_sound` is wrapped). The sound engine (klangten_audio) runs on its null device (`KLANGTEN_AUDIO_NULL=1`): streams are created and decoded normally, nothing reaches a sound card, and the system's sound service is never even opened, so machines without one (CI) work. |
 | Microphone | `EltenRecorderRuntime::InputRecording` is replaced by a generated signal (`microphone.rb`) delivered in virtual time; the encoders, the Ogg writer and the upload are the real code. |
 | Background threads | Roles in `runtime.rb`: scene threads (virtual time), service loops that run in step with the frames (`$thr2`, the notification service), work started by the interface (the clock waits for it) and real background services (NVDA poll, MCP, TeamConference worker). |
-| Network | Closed. Every Ruby TCP connection must go to the loopback interface, BASS URL streams and the conference library are checked by the same rule (`net_guard.rb`); anything else fails as an unreachable network would and is listed in `app.blocked_connections`. |
+| Network | Closed. Every Ruby TCP connection must go to the loopback interface, the engine's URL streams and the conference library are checked by the same rule (`net_guard.rb`); anything else fails as an unreachable network would and is listed in `app.blocked_connections`. |
 | Data | Each test has an empty data directory (`klangten.ini`: English, Windows keyboard scheme, licence accepted, no welcome wizard), its own `HOME`, temp and XDG directories. The installation on the machine stays invisible and untouched. |
 
 ## Writing a test
@@ -159,7 +159,7 @@ web.url("/song.mp3")                               # http://127.0.0.1:<port>/son
 web.requests                                       # method, path, query, headers, body
 ```
 
-Both Ruby HTTP and BASS URL streams reach it. `KlangtenTest::Media.wav(seconds:, hz:)` makes a WAV file to serve; `KlangtenTest::Media.ogg_opus(bytes)` reads an Ogg Opus file (channels, `seconds`, `kbps`, `modes` - packets per SILK/hybrid/CELT mode -, `frame_ms`).
+Both Ruby HTTP and the engine's URL streams reach it. `KlangtenTest::Media.wav(seconds:, hz:)` makes a WAV file to serve; `KlangtenTest::Media.ogg_opus(bytes)` reads an Ogg Opus file (channels, `seconds`, `kbps`, `modes` - packets per SILK/hybrid/CELT mode -, `frame_ms`).
 
 ## The microphone
 
@@ -167,7 +167,7 @@ Both Ruby HTTP and BASS URL streams reach it. `KlangtenTest::Media.wav(seconds:,
 
 ## Never a real sound card
 
-The harness forbids everything that could open a real audio device (`forbid_real_audio_devices` in `hooks.rb`): BASS plays only on its "no sound" device and never records, the conference library (TeamConference, which opens CoreAudio/WASAPI by itself through cpal) is not loaded at all, and Chrome does not start. In October 2026 test runs on a developer's Mac that still loaded the conference library drove coreaudiod into an overload loop; the machine's audio hung until it was switched off. Keep it that way: a new native library that can touch an audio device needs the same treatment before any test loads it, and prefer running the suite on Linux (CI or a VM) rather than on a machine someone is listening to.
+The harness forbids everything that could open a real audio device (`forbid_real_audio_devices` in `hooks.rb`): the sound engine plays only on its null device and never records, the conference library (TeamConference, which opens CoreAudio/WASAPI by itself through cpal) is not loaded at all, and Chrome does not start. In October 2026 test runs on a developer's Mac that still loaded the conference library drove coreaudiod into an overload loop; the machine's audio hung until it was switched off. Keep it that way: a new native library that can touch an audio device needs the same treatment before any test loads it, and prefer running the suite on Linux (CI or a VM) rather than on a machine someone is listening to.
 
 ## Rules for new code and new tests
 
@@ -175,14 +175,14 @@ The harness forbids everything that could open a real audio device (`forbid_real
 - No `sleep` in tests, no real network addresses, no reliance on the machine's installation.
 - Time in Klangten: measure it with `Time.now` or `Process.clock_gettime(Process::CLOCK_MONOTONIC)` on the scene thread (both are virtual in tests) and wait with `loop_update`, `delay` or a `Runner` timer, not with a busy loop around another clock.
 - Long-running threads: work with an end (requests, `Tasks.run`) needs nothing - the harness waits for threads started by the interface. A **service that runs for the whole session** must be registered in `test/support/klangten_test/hooks.rb` (`wrap_background_services`), otherwise `settle` reports it as never-ending work ("Busy because: work thread ..."). A service loop the interface waits for by time (like the notification service) becomes a ticker there.
-- Native libraries that open connections themselves (BASS URL streams, TeamConference) are checked in `hooks.rb`; a new one needs the same check.
+- Native libraries that open connections themselves (the engine's URL streams, TeamConference) are checked in `hooks.rb`; a new one needs the same check.
 - A new platform file that opens a window, speaks or touches the clipboard needs an entry in `KlangtenTestBoot::REPLACE` (`test/support/klangten_test/boot.rb`).
 
 ## Limits
 
 - Windows is not covered (the test platform layer stands in for the macOS and Linux files only).
 - NVDA, SAPI, VoiceOver and the screen reader paths are not exercised; the speech double reports itself as a voice with index support.
-- Audio is decoded but never played: tests can check that a stream opened and how long it is, not how it sounds. The recorder's real input (BASS recording, microphone permission) is replaced.
+- Audio is decoded but never played: tests can check that a stream opened and how long it is, not how it sounds. The recorder's real input (the engine's recording, microphone permission) is replaced.
 - TeamConference loads its real library, but conferences are not tested yet: the library may only connect to loopback, and the test server hands out no conference token (`KLANGO_CONF_SECRET` is cleared for it).
 - The harness wraps a few methods by name (`play_sound`, `delay`, `thr1`/`thr2`, `NotificationService.start`/`worker_loop`, `Programs.load_all`, `Bass.raw_create_url_stream`, `EltenLink::Client#api_binary_payload` and others in `hooks.rb`). If one is renamed, every test fails with a message naming it.
 

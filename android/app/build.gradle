@@ -2,8 +2,8 @@
 //
 // The native part (src/main/cpp) links the Ruby runtime that
 // scripts/build-runtime.sh produces in vendor/<abi>; scripts/stage-assets.sh
-// stages the Ruby standard library into build/assets, scripts/fetch-bass.sh
-// puts BASS into vendor/jnilibs.
+// stages the Ruby standard library into build/assets,
+// scripts/build-klangten-audio.sh puts the sound engine into vendor/jnilibs.
 plugins {
     id "com.android.application"
 }

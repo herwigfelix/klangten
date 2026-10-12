@@ -31,11 +31,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build tools for native gems (Linux)
+      - name: Build tools for native gems and the sound engine (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libyaml-dev zlib1g-dev
+          sudo apt-get install -y build-essential pkg-config libyaml-dev zlib1g-dev nasm libssl-dev
+
+      - name: Sound engine from the cache
+        uses: actions/cache@v4
+        with:
+          path: ext/klangten_audio/deps
+          key: klangtenaudio-${{ matrix.os }}-${{ hashFiles('tools/build-klangten-audio.sh') }}
+
+      # klangten_audio (ext/klangten_audio); the tests run it on its null
+      # device only, so the runner's sound service is never touched.
+      - name: Build the sound engine
+        run: sh tools/build-klangten-audio.sh && sh ext/klangten_audio/test/run-selftest.sh
 
       - uses: ruby/setup-ruby@v1
         with:

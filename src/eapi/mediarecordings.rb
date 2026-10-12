@@ -10,8 +10,8 @@
 #
 # Stream recording ("R" in a player): what is playing - a radio station, a
 # podcast episode, a YouTube video - is written to MP3 while it plays. The
-# MP3 encoder of BASSenc_MP3 sits directly on the playing channel and writes
-# the file itself (BASS_Encode_MP3_StartFile), so no native callback is
+# MP3 encoder of the sound engine (LAME in klangten_audio) sits directly on the
+# playing channel and writes the file itself (KA_Encode_MP3_StartFile), so no native callback is
 # involved and it works the same on every platform, the phones included. The
 # encoder receives the decoded sound before the volume is applied: turning the
 # player down does not make the recording quieter, pausing simply pauses it.

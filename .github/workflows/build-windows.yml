@@ -91,6 +91,27 @@ jobs:
         shell: cmd
         run: call tools\build-spotify.bat all
 
+      # Klangmaschine: ext/klangten_audio (miniaudio, FFmpeg LGPL, LAME) mit
+      # llvm-mingw in MSYS2 (auf dem Runner vorhanden), nach bin\windows-x64
+      # und bin\windows-x86 (nicht eingecheckt). FFmpeg und LAME aus dem Cache.
+      - name: Klangmaschine aus dem Cache
+        uses: actions/cache@v4
+        with:
+          path: ext/klangten_audio/deps
+          key: klangtenaudio-win-${{ hashFiles('tools/build-klangten-audio-windows.sh') }}
+
+      - name: Klangmaschine bauen
+        shell: pwsh
+        run: |
+          $zip = "$env:RUNNER_TEMP\llvm-mingw.zip"
+          Invoke-WebRequest https://github.com/mstorsjo/llvm-mingw/releases/download/20261006/llvm-mingw-20261006-ucrt-x86_64.zip -OutFile $zip
+          Expand-Archive $zip -DestinationPath "$env:RUNNER_TEMP"
+          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed make nasm diffutils pkgconf tar xz"
+          $llvm = (Get-ChildItem "$env:RUNNER_TEMP" -Directory -Filter "llvm-mingw-*").FullName -replace '\\','/' -replace '^([A-Za-z]):','/$1'
+          $repo = "$env:GITHUB_WORKSPACE" -replace '\\','/' -replace '^([A-Za-z]):','/$1'
+          C:\msys64\usr\bin\bash.exe -lc "cd '$repo' && LLVM_MINGW='$llvm' sh tools/build-klangten-audio-windows.sh x64 x86"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
       - name: Launcher und Installer bauen
         shell: cmd
         run: |

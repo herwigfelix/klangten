@@ -108,6 +108,8 @@ module KlangtenTest
     # So: no conference library at all, BASS output only on device 0 and no
     # BASS recording, no Chrome. Conference tests use a fake library.
     def forbid_real_audio_devices
+      # klangten_audio itself: every device is the null device
+      ENV["KLANGTEN_AUDIO_NULL"] = "1"
       wrap(TeamConference::Library.singleton_class, :open) do |_original, *_args|
         [nil, "the conference library is disabled in tests"]
       end

@@ -8,22 +8,21 @@ This inventory was compiled from the files in this repository (September 2026). 
 
 Platform abbreviations: w86/w64/warm = `windows-x86`/`windows-x64`/`windows-arm64`, l86/l64/larm = `linux-x86`/`linux-x64`/`linux-arm64`, osx = `osx`.
 
-### BASS audio library family — proprietary
+### klangten_audio — Klangten's sound engine (GPL v3, with miniaudio, FFmpeg and LAME)
 
-| Library | Author | Version (Windows) | Platforms |
-| --- | --- | --- | --- |
-| bass | Un4seen Developments | 2.4.18 | all |
-| bassenc, bassenc_mp3, bassflac, basshls, bassmidi, bassmix, bassopus, basswebm | Un4seen Developments | 2.4.x | all |
-| bassalac | Un4seen Developments | 2.4.1 | w86, w64, l86, l64, larm |
-| basswma | Un4seen Developments | 2.4.5 | w86, w64 |
-| bass_fx | JOBnik! (Arthur Aminov) | 2.4 | all |
-| bass_aac, bass_ac3, bass_spx | MaresWEB / Sebastian Andersson | 2.4.x | Windows, Linux (bass_spx also osx) |
-| bass_vst | Bjoern Petersen Software Design and Development | 2.4.1 | w86, w64, osx |
-| bass_ssl (`libbass_ssl.so`) | Un4seen Developments, built on OpenSSL 1.1.1w | 1.1.1w | Android only (fetched by `android/scripts/fetch-bass.sh`) |
+Since 0.4 Klangten plays, records and encodes through its own library `klangten_audio` (source in `ext/klangten_audio`, built by `tools/build-klangten-audio.sh`, `tools/build-klangten-audio-windows.sh`, `android/scripts/build-klangten-audio.sh` and `ios/scripts/build-klangten-audio.sh`): `bin/osx/libklangten_audio.dylib`, `bin/linux-<arch>/libklangten_audio.so`, `bin/windows-<arch>/klangten_audio.dll`, `libklangten_audio.so` in the Android APK and `klangten_audio.xcframework` on iOS. BASS and all its add-ons are gone; nothing proprietary is left in the audio path.
 
-- **Licence:** proprietary freeware from Un4seen Developments (<https://www.un4seen.com/bass.html>). Free only for non-commercial use; commercial use (including sales or advertising revenue) needs a paid licence; redistribution only as part of an end-user product. The add-ons by other authors have their own terms (**to verify**).
-- **BASS_SSL** gives BASS its HTTPS support on Android, where an app cannot load the system's OpenSSL/BoringSSL. It contains OpenSSL 1.1.1w, which is under the dual OpenSSL and SSLeay licences: release packages must carry their texts and the acknowledgements "This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/)" and "This product includes cryptographic software written by Eric Young (eay@cryptsoft.com)" (**to verify** against the archive, which ships no licence file). Because of its advertising clause the OpenSSL 1.x licence is, like BASS itself, not GPL-compatible; the GPL caveat below applies to it as well.
-- **GPL compatibility:** BASS is **not GPL-compatible**. Elten's licence contains no additional permission (GPL section 7) for linking with BASS. Klangten therefore needs either an explicit exception from the copyright holders of Elten (Dawid Pieper and the other contributors) for BASS, or a replacement of BASS with a GPL-compatible audio library (upstream plans a LINDAR backend, see `docs/roadmap.md`). Until this is resolved, binary distribution of Klangten with BASS is legally unclear.
+| Component | Author | Version | Licence | How it is used |
+| --- | --- | --- | --- | --- |
+| klangten_audio (`ext/klangten_audio/src`) | Felix Valentin Herwig (sixdotsIT) | 1.0 | GPL-3.0 | Klangten's own code: channels, mixer, effects (Freeverb by Jezar at Dreampoint, public domain; biquads after Robert Bristow-Johnson's Audio EQ Cookbook), tempo (WSOLA) |
+| miniaudio (`ext/klangten_audio/vendor/miniaudio.h`) | David Reid | 0.11.25 | public domain or MIT-0 (choice) | output, capture, resampling; compiled into the library |
+| FFmpeg (libavformat, libavcodec, libavutil, libswresample) | the FFmpeg developers | 9.0.2 | **LGPL-2.1-or-later, used as LGPL-3.0** (`--enable-version3`; no `--enable-gpl`, no `--enable-nonfree`) | demuxing, decoding, http/https, HLS, Icecast; linked statically |
+| LAME (libmp3lame) | the LAME project | 3.100 | LGPL-2.0-or-later | MP3 encoding; linked statically |
+| OpenSSL (Android only) | the OpenSSL Project | 3.5.x (the one Klangten's Android runtime builds) | Apache-2.0 | TLS for FFmpeg on Android; linked statically with hidden symbols |
+
+- **LGPL compliance:** FFmpeg and LAME are linked statically into `klangten_audio`, which is itself free software under the GPL v3 with its complete source in this repository; the build scripts above download the exact upstream sources (<https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz>, <https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz>), list the configure options and rebuild the library, so users can modify and relink it. Release packages must include the texts of the LGPL 2.1/3.0, the GPL v3 and the notices above.
+- **TLS:** macOS and iOS use Apple's Secure Transport, Windows uses SChannel (both part of the operating system), Linux uses the system's OpenSSL 3 (`libssl.so.3`, Apache-2.0, bundled with the Linux packages like before), Android the statically linked OpenSSL above.
+- **Formats:** MP3, MP2, AAC (also in MP4/M4A and HLS), ALAC, FLAC, Ogg Vorbis, Opus (Ogg and WebM/Matroska), WMA (1, 2, Pro, Lossless), AC-3/E-AC-3, DTS, APE, WavPack, TTA, AMR, WAV/AIFF/CAF/AU PCM, ADPCM, GSM. MIDI and VST plugins, which came with BASS, are no longer available.
 
 ### Steam Audio (Valve) — Apache License 2.0
 
@@ -297,14 +296,14 @@ The document reader of the file manager (`src/eapi/document_text.rb`, including 
 
 ### FFmpeg (FFmpeg encoders) — not shipped
 
-- Klangten does **not** ship an FFmpeg binary. It runs FFmpeg as a separate process (`src/eapi/audio/encoders/ffmpeg.rb`) only for the additional formats AAC, M4A, FLAC, WMA, MP4, MKV, MOV and AVI; playback never uses it.
+- Playback and recording use the FFmpeg libraries inside `klangten_audio` (see above). For *writing* the additional formats AAC, M4A, FLAC, WMA, MP4, MKV, MOV and AVI, Klangten runs a separate FFmpeg program (`src/eapi/audio/encoders/ffmpeg.rb`), which it does not ship:
 - **Windows x64:** the first time the user chooses one of the FFmpeg formats (conversion, YouTube download, saving a stream), Klangten asks and then downloads FFmpeg 9.0.2 "essentials" by Gyan Doshi (a build linked from <https://ffmpeg.org/download.html>) from <https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip>, checks the SHA-256 checksum `60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba` and extracts only `ffmpeg.exe` and the build's `LICENSE` (plus a short `version.txt`) into `ffmpeg/` in Klangten's data directory. The build is configured with `--enable-gpl --enable-version3`, so this FFmpeg is licensed under the **GNU General Public License, version 3**; it includes further libraries (for example LAME, libx264, libvpx) under GPL/LGPL-compatible licences listed by the build. Source code: <https://ffmpeg.org/download.html>, build scripts and component list: <https://www.gyan.dev/ffmpeg/builds/>. No build is offered for 32-bit or ARM64 Windows.
 - **macOS and Linux:** an FFmpeg installed by the user (for example Homebrew, MacPorts, apt) is used; Klangten never downloads one there. Its licence depends on that installation.
 - **iOS and Android:** not available.
 
-### MP3 encoding — BASSenc_MP3
+### MP3 encoding — LAME
 
-- MP3 files are written with `bassenc_mp3` (with `bassenc`, both already listed under the BASS family above; LAME-based, by Un4seen Developments) through `src/eapi/audio/encoders/mp3.rb`, on every platform including iOS and Android. No other MP3 encoder is shipped.
+- MP3 files are written with LAME inside `klangten_audio` (see above) through `src/eapi/audio/encoders/mp3.rb`, on every platform including iOS and Android. No other MP3 encoder is shipped.
 
 ### yt-dlp and Deno (YouTube) — downloaded at run time
 
