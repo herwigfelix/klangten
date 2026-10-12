@@ -41,6 +41,9 @@ module KlangtenPlaylist
   ENGINE_INTERVAL = 0.2
   # A sound that reports "stopped" this soon after starting is not finished yet.
   START_GRACE_SECONDS = 1.0
+  # Tempo and balance steps of Klangten's player (src/ui/controls/player.rb).
+  TEMPO_STEP = 2
+  PAN_STEP = 0.02
 
   # One playlist entry: a local path or a URL, an optional title and the
   # length in seconds (nil when unknown).
@@ -79,6 +82,9 @@ module KlangtenPlaylist
   class List
     attr_reader :entries
     attr_accessor :path, :dirty
+    # Klangten 0.4: a list made elsewhere (Spotify) has a title and is never
+    # saved as a file (Spotify's terms, like in Klango).
+    attr_accessor :title, :unsaveable
 
     def initialize(entries = [], path: nil, internal: false)
       @entries = entries
@@ -615,6 +621,50 @@ module KlangtenPlaylist
       @list == nil || @current == nil ? nil : @list.index_of(@current)
     end
 
+    # Tempo, pitch and balance of what plays, with the steps and limits of
+    # Klangten's player (src/ui/controls/player.rb). Each returns the new
+    # value, or nil when nothing plays.
+    # Tempo, pitch and balance hold for the whole session and carry over to
+    # the next entry, like in Klangten's player; they are not saved.
+    def change_tempo(step)
+      @lock.synchronize do
+        @sound_tempo = (@sound_tempo.to_f + step).clamp(-50, 100)
+        apply_sound_settings
+        @sound_tempo
+      end
+    end
+
+    # Returns [frequency, base frequency] of the playing entry (nil when
+    # nothing plays); pitch is kept as a ratio to the base frequency.
+    def change_frequency(direction)
+      @lock.synchronize do
+        ratio = ((@sound_pitch || 1.0) + direction * 2.0 / 500.0).clamp(0.5, 2.0)
+        ratio = 1.0 if (ratio - 1.0).abs < 0.5 / 500.0
+        @sound_pitch = ratio
+        apply_sound_settings
+        base = sound_base_frequency
+        base == nil ? nil : [base * ratio, base]
+      end
+    end
+
+    def change_pan(step)
+      @lock.synchronize do
+        @sound_pan = (@sound_pan.to_f + step).round(2).clamp(-1.0, 1.0)
+        apply_sound_settings
+        @sound_pan
+      end
+    end
+
+    # Backspace: tempo, pitch and balance back to normal.
+    def reset_sound
+      @lock.synchronize do
+        @sound_tempo = 0
+        @sound_pitch = 1.0
+        @sound_pan = 0.0
+        apply_sound_settings
+      end
+    end
+
     def position
       @sound == nil ? nil : @sound.position.to_f
     rescue StandardError
@@ -845,6 +895,23 @@ module KlangtenPlaylist
       nil
     end
 
+    def sound_base_frequency
+      return nil if @sound == nil
+      (@sound.respond_to?(:basefrequency) ? @sound.basefrequency : @sound.frequency).to_f
+    rescue StandardError
+      nil
+    end
+
+    def apply_sound_settings
+      return if @sound == nil
+      @sound.tempo = @sound_tempo.to_f if @sound.respond_to?(:tempo=)
+      base = sound_base_frequency
+      @sound.frequency = base * (@sound_pitch || 1.0) if base != nil && base > 0 && @sound.respond_to?(:frequency=)
+      @sound.pan = @sound_pan.to_f if @sound.respond_to?(:pan=)
+    rescue StandardError => e
+      log(:warning, "Playlist sound settings failed: #{e.class}: #{e.message}")
+    end
+
     def ensure_thread
       return if @thread != nil && @thread.alive?
       @thread = Thread.new { engine_loop }
@@ -881,12 +948,18 @@ module KlangtenPlaylist
       error = nil
       begin
         location = entry.location
-        raise "missing file" if !url?(location) && !File.file?(location)
-        sound = Sound.new(location)
-        if !sound.opened?
-          sound.close
-          sound = nil
-          raise "cannot open"
+        if defined?(KlangtenSpotify::PlaylistSound) && KlangtenSpotify::PlaylistSound.location?(location)
+          # a Spotify track: played by the session's Spotify player
+          sound = KlangtenSpotify::PlaylistSound.new(location, entry.title, entry.length)
+          raise "Spotify is not available or not signed in" if !sound.opened?
+        else
+          raise "missing file" if !url?(location) && !File.file?(location)
+          sound = Sound.new(location)
+          if !sound.opened?
+            sound.close
+            sound = nil
+            raise "cannot open"
+          end
         end
       rescue Exception => e
         error = e
@@ -910,6 +983,7 @@ module KlangtenPlaylist
         @failures = 0
         @sound = sound
         apply_volume
+        apply_sound_settings if @sound_tempo.to_f != 0 || (@sound_pitch || 1.0) != 1.0 || @sound_pan.to_f != 0
         length = sound.length.to_f rescue 0
         if length > 0 && (entry.length == nil || (entry.length - length).abs > 1)
           entry.length = length
@@ -926,7 +1000,9 @@ module KlangtenPlaylist
 
     def check_finished
       return if @sound == nil || @paused || @current == nil
-      return if @started_at != nil && monotonic - @started_at < START_GRACE_SECONDS
+      # a Spotify track says itself when it ends (KlangtenSpotify::PlaylistSound)
+      grace = !@sound.respond_to?(:reports_end?) || !@sound.reports_end?
+      return if grace && @started_at != nil && monotonic - @started_at < START_GRACE_SECONDS
       return if !@sound.finished?
       self.next(auto: true)
     rescue StandardError => e

@@ -236,13 +236,17 @@ class Sound
     end
   end
 
-  attr_accessor :volume, :length, :downloaded, :finished, :status
-  attr_reader :file, :position, :plays, :pauses
+  attr_accessor :volume, :length, :downloaded, :finished, :status, :tempo, :frequency, :pan
+  attr_reader :file, :position, :plays, :pauses, :basefrequency
 
   def initialize(file = nil, **_options)
     raise "cannot open" if self.class.fail.include?(file)
     @file = file
     @volume = 0.8
+    @tempo = 0
+    @basefrequency = 44_100.0
+    @frequency = 44_100.0
+    @pan = 0.0
     @position = 0.0
     @length = 600.0
     @downloaded = self.class.default_downloaded

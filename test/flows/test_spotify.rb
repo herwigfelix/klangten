@@ -7,8 +7,8 @@
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 
 # The Spotify screens with a double of the library (test/support/fake_spotify.rb):
-# sign-in, search, lists, artist page, audiobooks, the player and signing
-# out. Neither the real library nor a Spotify account is needed (the real
+# sign-in, search, lists in Klangten's playlist, artist page, audiobooks and
+# signing out. Neither the real library nor a Spotify account is needed (the real
 # library's C ABI is covered by test/unit/test_spotify_core.rb); the sign-in
 # in a real browser and real playback need an account with Spotify Premium.
 
@@ -16,6 +16,7 @@ require_relative "../test_helper"
 require_relative "../support/fake_spotify"
 
 class SpotifyFlowTest < KlangtenTest::FlowTest
+  ENGINE = 3600
   # Starts Scene_Spotify on the fake library. long: tracks that keep playing
   # (otherwise the fake plays each track in a moment).
   def spotify(library = FakeSpotify::Library.new, long: false)
@@ -23,10 +24,15 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     library.frames_per_track = 44_100 * 600 if long
     k = klangten
     KlangtenSpotify.library_override = library
-    # The player's worker thread is a service, not work the interface waits for.
+    # The player's worker thread and the playlist's engine are services, not
+    # work the interface waits for. They run in real time: waits for what
+    # they do get a long virtual timeout (ENGINE), the real one stays.
     KlangtenTest::Runtime.add_frame_hook do
       thread = KlangtenSpotify.player? ? KlangtenSpotify.player.instance_variable_get(:@thread) : nil
       KlangtenTest::Runtime.register(thread, :bg) if thread != nil && KlangtenTest::Runtime.kind(thread) != :bg
+      Thread.list.each do |t|
+        KlangtenTest::Runtime.register(t, :bg) if t.name == "klangten-playlist" && KlangtenTest::Runtime.kind(t) != :bg
+      end
     end
     k.start do
       $scene = Scene_Spotify.new
@@ -78,18 +84,21 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     k.wait_for("Results for kraftwerk")
     k.expect("Track: Das Model - Kraftwerk")
     k.press("enter")
-    # like a playlist in Klango: the list comes first, on the track that plays
+    # like in Klango: the list opens in Klangten's playlist, on the track that plays
     k.wait_for("Similar to Kraftwerk - Das Model")
     k.expect("Kraftwerk - Das Model")
-    assert_equal ["spotify:track:1", 0], @library.opened.first
+    k.wait_until(timeout: ENGINE) { @library.opened.first == ["spotify:track:1", 0] }
     k.press("space")
     k.wait_for("Paused")
+    assert_equal :paused, k.call { KlangtenSpotify.player.state }
     k.press("space")
-    k.wait_for("Playing")
-    k.press("pagedown")
-    k.wait_for("Kraftwerk - Neonlicht")
+    k.wait_until(timeout: ENGINE) { KlangtenSpotify.player.state == :playing }
+    k.press("down")
+    k.expect("Kraftwerk - Neonlicht")
+    k.press("enter")
+    k.wait_until(timeout: ENGINE) { @library.opened.last.first == "spotify:track:2" }
     k.press("right")
-    assert_includes @library.controls, ["seekrel", 5000]
+    k.wait_until(timeout: ENGINE) { @library.controls.any? { |c| c[0] == "seekrel" && c[1].between?(4900, 5000) } }
     # tempo, pitch and balance like in Klangten's player
     k.press("ctrl+up")
     k.press("ctrl+up")
@@ -100,11 +109,19 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     assert_in_delta 0.02, k.call { KlangtenSpotify.player.pan }, 0.001
     k.press("backspace")
     assert_equal [0.0, 44_100.0, 0.0], k.call { [KlangtenSpotify.player.tempo, KlangtenSpotify.player.frequency, KlangtenSpotify.player.pan] }
-    k.press("tab")
-    k.expect("Player: Kraftwerk - Neonlicht")
+    # Alt (Option) with the arrows moves the item, Shift is pitch now
+    k.press("alt+up")
+    assert_equal "spotify:track:2", k.call { KlangtenPlaylist.current_list.entries.first.location }
+    # Spotify's lists are not saved
+    refute k.call { KlangtenPlaylist.current_list.internal? }
+    assert k.call { KlangtenPlaylist.current_list.unsaveable }
     k.press("escape")
     k.wait_for("Results for kraftwerk")
     assert KlangtenSpotify.player.active?, "playback continues in the lists"
+    k.press("escape", "escape", "escape")
+    k.wait_until { k.finished? }
+    assert KlangtenSpotify.player.active?, "playback continues in the background, like in Klango"
+    k.call { KlangtenPlaylist.stop }
   end
 
   def test_nothing_found
@@ -125,7 +142,9 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     k.wait_for("Liked songs: Kraftwerk - Das Model")
     k.press("down")
     k.press("enter")
-    k.wait_for("End of the list.")
+    k.wait_for("Liked songs")
+    k.call { KlangtenPlaylist.repeat = false }
+    k.wait_until(timeout: ENGINE) { @library.opened.size >= 2 && KlangtenPlaylist.current_entry == nil }
     assert_equal %w[spotify:track:2 spotify:track:3], @library.opened.map(&:first)
   end
 
@@ -170,7 +189,8 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     k.wait_for("Resume: Kapitel 2")
     k.press("enter")
     k.wait_for("Kapitel 2")
-    assert_operator @library.opened.last[1], :>=, 600_000
+    k.wait_until(timeout: ENGINE) { @library.opened.size >= 2 }
+    assert_operator @library.opened.last[1], :>=, 600_000, @library.opened.inspect
   end
 
   def test_track_that_spotify_does_not_play
@@ -182,7 +202,7 @@ class SpotifyFlowTest < KlangtenTest::FlowTest
     k.press("enter")
     k.wait_for("Liked songs")
     k.press("enter")
-    k.wait_for("Spotify does not play this track")
+    k.wait_for("Spotify does not play this track", timeout: ENGINE)
   end
 
   def test_sign_out_forgets_the_login

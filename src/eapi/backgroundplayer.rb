@@ -698,7 +698,7 @@ module KlangtenMedia
         insert_scene(Scene_NowPlaying.new)
       when :playlist
         list = KlangtenPlaylist.current_list
-        insert_scene(list == nil || list.internal? ? Scene_Playlist.new : Scene_Playlist.new(list.path))
+        insert_scene(list == nil || list.internal? ? Scene_Playlist.new : Scene_Playlist.new(list.unsaveable ? list : list.path))
       else
         alert(p_("Klangten", "Nothing is playing in the background."), false)
       end

@@ -234,6 +234,27 @@ class MediaCoordinationTest < Minitest::Test
     assert_equal :playlist, KlangtenMedia.source
   end
 
+  # The keys of Klangten's player in the playlist: tempo, pitch and balance
+  # hold for the next entry too, Backspace puts them back.
+  def test_tempo_pitch_and_balance_carry_over_to_the_next_entry
+    KlangtenPlaylist.play
+    song = playlist_sound
+    assert_equal 2, KlangtenPlaylist.change_tempo(KlangtenPlaylist::TEMPO_STEP)
+    value, base = KlangtenPlaylist.change_frequency(1)
+    assert_in_delta base + base / 250.0, value, 0.01
+    assert_in_delta 0.02, KlangtenPlaylist.change_pan(KlangtenPlaylist::PAN_STEP), 0.001
+    assert_equal [2.0, value, 0.02], [song.tempo, song.frequency, song.pan]
+    assert_equal 100, KlangtenPlaylist.change_tempo(500), "tempo stops at 100"
+    KlangtenPlaylist.change_tempo(-98)
+    KlangtenPlaylist.next
+    assert wait_until { (sound = KlangtenPlaylist.instance_variable_get(:@sound)) != nil && !sound.equal?(song) }
+    following = KlangtenPlaylist.instance_variable_get(:@sound)
+    assert_equal [2.0, value, 0.02], [following.tempo, following.frequency, following.pan]
+    KlangtenPlaylist.reset_sound
+    sound = KlangtenPlaylist.instance_variable_get(:@sound)
+    assert_equal [0.0, 44_100.0, 0.0], [sound.tempo, sound.frequency, sound.pan]
+  end
+
   def test_when_the_background_entry_stops_the_actions_go_to_the_playlist
     KlangtenPlaylist.play
     playlist_sound

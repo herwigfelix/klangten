@@ -14,8 +14,8 @@
 # KlangtenPlaylist and keeps running when the screen is closed.
 #
 # Keys: Enter plays from the focused item, Space pauses and resumes,
-# Left/Right seek by five seconds, Shift+Up/Down (and Alt+Up/Down where the main
-# modifier is Ctrl) move the item, Delete removes it, Ctrl+Delete clears the
+# Left/Right seek by five seconds, Alt+Up/Down (Option on the Mac) move the
+# item, Delete removes it, Ctrl+Delete clears the
 # list, Insert adds files, Ctrl+S switches shuffle, Ctrl+R repeat and Ctrl+I
 # speaks what is playing. Everything else is in the context menu. Changes to
 # the internal playlist are saved at once; a playlist file asks on closing.
@@ -26,21 +26,45 @@ class Scene_Playlist
   VOLUME_STEPS = (0..100).step(5).to_a.freeze
   URL_PATTERN = /\A(https?|ftp|rtmp|rtsp|mms):\/\/\S+\z/i.freeze
 
+  # The sound keys come before the list: Ctrl (Cmd) with Up/Down would
+  # otherwise speak the item number.
+  class SoundList < EltenAPI::Controls::ListBox
+    def initialize(scene, *args, **kw)
+      super(*args, **kw)
+      @scene = scene
+    end
+
+    def update
+      return if @scene.sound_keys
+      super
+    end
+  end
+
+  # file: nil (the internal playlist), a playlist file, or - Klangten 0.4 - a
+  # KlangtenPlaylist::List made elsewhere (Spotify).
   def initialize(file = nil)
-    @file = file
+    if file.is_a?(KlangtenPlaylist::List)
+      @given = file
+      @file = nil
+    else
+      @file = file
+    end
   end
 
   def main
+    # Run inline (file manager, Spotify), $scene is the caller's scene; the
+    # screen closes when another scene is chosen.
+    @owner_scene = $scene
     @list = load_list
     if @list == nil
       $scene = Scene_Main.new if $scene == self
       return
     end
-    header = @list.internal? ? p_("Klangten", "My playlist") : File.basename(@file.to_s)
+    header = @list.internal? ? p_("Klangten", "My playlist") : (@list.title.to_s != "" ? @list.title.to_s : File.basename(@file.to_s))
     index = 0
     index = KlangtenPlaylist.saved_index if @list.internal?
     index = KlangtenPlaylist.current_index if KlangtenPlaylist.current_list.equal?(@list) && KlangtenPlaylist.current_index != nil
-    @sel = ListBox.new(labels, header: header, index: index, empty_label: p_("Klangten", "The playlist is empty."), quiet: true)
+    @sel = SoundList.new(self, labels, header: header, index: index, empty_label: p_("Klangten", "The playlist is empty."), quiet: true)
     @marked = nil
     @marked_entry = nil
     update_marker(true)
@@ -51,7 +75,8 @@ class Scene_Playlist
       loop_update
       @sel.update
       update_marker
-      break if $scene != self || @closing
+      say_notice
+      break if !$scene.equal?(@owner_scene) || @closing
       if key_pressed?(:key_escape)
         close
       elsif key_pressed?(:key_enter)
@@ -61,22 +86,62 @@ class Scene_Playlist
       elsif key_pressed?(:key_delete) && modifier_held?(:main_modifier)
         clear
       elsif (key_pressed?(:key_up) || key_pressed?(:key_down)) && move_modifier_held?
+        # releasing Alt afterwards must not open the menu
+        cancel_pending_alt_menu
         move(key_pressed?(:key_up) ? -1 : 1)
       elsif key_pressed?(:key_left, repeat: true) && !navigation_modifier_held? && !raw_key_held?(:key_shift)
         seek(-KlangtenPlaylist::SEEK_STEP)
       elsif key_pressed?(:key_right, repeat: true) && !navigation_modifier_held? && !raw_key_held?(:key_shift)
         seek(KlangtenPlaylist::SEEK_STEP)
       end
-      break if $scene != self || @closing
+      break if !$scene.equal?(@owner_scene) || @closing
     end
     $scene = Scene_Main.new if $scene == self
   end
 
+  # The sound keys of Klangten's player (src/ui/controls/player.rb):
+  # main modifier with Up/Down tempo, Shift with Up/Down pitch, Shift with
+  # Left/Right balance, Backspace back to normal. True when one was used.
+  def sound_keys
+    main = modifier_held?(:main_modifier)
+    shift = raw_key_held?(:key_shift)
+    if main && !shift && (key_pressed?(:key_up, repeat: true) || key_pressed?(:key_down, repeat: true))
+      value = KlangtenPlaylist.change_tempo(key_pressed?(:key_up, repeat: true) ? KlangtenPlaylist::TEMPO_STEP : -KlangtenPlaylist::TEMPO_STEP)
+      play_sound("listbox_focus") if value == 0
+      return true
+    end
+    if shift && !main
+      if key_pressed?(:key_up, repeat: true) || key_pressed?(:key_down, repeat: true)
+        value, base = KlangtenPlaylist.change_frequency(key_pressed?(:key_up, repeat: true) ? 1 : -1)
+        play_sound("listbox_focus") if value != nil && value == base
+        return true
+      end
+      if key_pressed?(:key_left, repeat: true) || key_pressed?(:key_right, repeat: true)
+        value = KlangtenPlaylist.change_pan(key_pressed?(:key_right, repeat: true) ? KlangtenPlaylist::PAN_STEP : -KlangtenPlaylist::PAN_STEP)
+        play_sound("listbox_focus") if value == 0
+        return true
+      end
+    end
+    if !main && !shift && key_pressed?(0x08)
+      KlangtenPlaylist.reset_sound
+      return true
+    end
+    false
+  end
+
   private
+
+  # A Spotify track the playlist skipped (Premium, not available).
+  def say_notice
+    return unless defined?(KlangtenSpotify) && KlangtenSpotify.respond_to?(:take_notice_text)
+    text = KlangtenSpotify.take_notice_text
+    alert(text, false) if text != nil
+  end
 
   # ------------------------------------------------------------------ data
 
   def load_list
+    return @given if @given != nil
     return KlangtenPlaylist.internal if @file == nil
     if File.file?(@file)
       KlangtenPlaylist.read_file(@file)
@@ -127,10 +192,13 @@ class Scene_Playlist
     @sel.set_item_state(index, playing_status) if index != nil
   end
 
+  # Klangten 0.4: Alt (Option) moves items; Shift with the arrows belongs to
+  # pitch and balance, as in Klangten's player.
   def move_modifier_held?
-    return false if modifier_held?(:main_modifier)
-    raw_key_held?(:key_shift) || (EltenAPI::KeyboardScheme.main_modifier == :control && modifier_held?(:option))
+    return false if modifier_held?(:main_modifier) || raw_key_held?(:key_shift)
+    modifier_held?(:option)
   end
+
 
   def focused_entry
     @list.empty? ? nil : @list[@sel.index]
@@ -170,7 +238,9 @@ class Scene_Playlist
         menu.option(p_("Klangten", "Move up")) { move(-1) }
         menu.option(p_("Klangten", "Move down")) { move(1) }
       end
-      if @list.internal?
+      if @list.unsaveable
+        nil
+      elsif @list.internal?
         menu.option(p_("Klangten", "Export")) { save_as(export: true) }
       else
         menu.option(_("Save")) { save }
@@ -392,7 +462,7 @@ class Scene_Playlist
   end
 
   def close
-    if !@list.internal? && @list.dirty
+    if !@list.internal? && !@list.unsaveable && @list.dirty
       choice = select_action(
         [[:save, _("Save")], [:discard, p_("Klangten", "Discard changes")], [:cancel, _("Cancel")]],
         header: p_("Klangten", "The playlist has been changed."), cancel: :cancel

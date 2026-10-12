@@ -303,6 +303,7 @@ src/scenes/internetarchive.rb
 # Klangten: Spotify (native library built from ext/klangten_spotify; not on iOS and Android)
 src/eapi/spotify.rb :!ios
 src/eapi/spotify_host.rb :!ios
+src/eapi/spotify_playlist.rb :!ios
 src/scenes/spotify.rb :!ios
 # Klangten: the Klangten browser (full browser over Chrome for Testing, text browser)
 src/eapi/web/web.rb

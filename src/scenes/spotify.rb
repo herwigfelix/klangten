@@ -7,21 +7,19 @@
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 
 # Spotify (Media menu): sign in with the web browser, search, the user's
-# library and playlists, artists, albums, song radio, audiobooks and podcasts,
-# and a player screen with the track list. The data comes from
-# KlangtenSpotify (src/eapi/spotify.rb, src/eapi/spotify_host.rb); every
-# query runs in EltenAPI::Tasks.run, so a busy indicator appears after half a
+# library and playlists, artists, albums, song radio, audiobooks and
+# podcasts. The data comes from KlangtenSpotify (src/eapi/spotify.rb,
+# src/eapi/spotify_host.rb); every query runs in EltenAPI::Tasks.run, so a busy indicator appears after half a
 # second and Escape cancels.
 #
-# Playback continues while the user moves around the Spotify screens and
-# stops when Spotify is left. Nothing can be recorded or saved: Spotify's
-# terms do not allow it.
+# Like in Klango, a chosen list (playlist, album, the artist's popular tracks,
+# similar tracks) plays in Klangten's playlist (Scene_Playlist), with its keys
+# for tempo, pitch and balance; KlangtenSpotify::PlaylistSound plays the
+# tracks. Playback continues in the background. Nothing can be recorded or
+# saved: Spotify's terms do not allow it.
 #
-# Keys in the player: Space pauses, Left/Right seek 5 seconds, Up/Down change
-# the volume, Page Up/Page Down go to the previous/next track, Home restarts
-# the track, Enter says what is playing. In track lists Enter plays the list
-# from the chosen track; the context menu leads to the artist, the album and
-# similar tracks.
+# In track lists Enter plays the list from the chosen track; the context menu
+# leads to the artist, the album and similar tracks.
 
 class Scene_Spotify
   # Search field that steps through earlier searches with Up and Down.
@@ -53,84 +51,6 @@ class Scene_Spotify
         $activecontrols.push(self) if $activecontrols.is_a?(Array)
         return
       end
-      super
-    end
-  end
-
-  # The transport of the Spotify player as a form field.
-  class PlayerField < EltenAPI::Controls::FormField
-    VOLUME_STEP = 0.05
-
-    def initialize(scene, player)
-      super()
-      @scene = scene
-      @player = player
-      @header = p_("Spotify", "Player")
-    end
-
-    def focus(index = nil, count = nil)
-      speak(header + ": " + @scene.playing_label)
-    end
-
-    def tips
-      [
-        p_("Spotify", "Space: play or pause"),
-        p_("Spotify", "Left and right arrows: seek 5 seconds"),
-        p_("Spotify", "Up and down arrows: volume"),
-        p_("Spotify", "Page up and page down: previous and next track"),
-        p_("Spotify", "Control with up and down arrows: tempo; Shift with up and down arrows: pitch; Shift with left and right arrows: balance; Backspace: back to normal"),
-        p_("Spotify", "Home: start the track again"),
-        p_("Spotify", "Enter: what is playing")
-      ]
-    end
-
-    def hascontext
-      true
-    end
-
-    def context(menu, submenu = false)
-      @scene.player_menu(menu)
-    end
-
-    def update
-      super
-      return if @scene.player_keys
-      return if modifier_held?(:main_modifier) || raw_key_held?(:key_shift)
-      if key_pressed?(:key_up, repeat: true)
-        change_volume(VOLUME_STEP)
-      elsif key_pressed?(:key_down, repeat: true)
-        change_volume(-VOLUME_STEP)
-      elsif key_pressed?(:key_home)
-        @player.restart_track || play_sound("border")
-      elsif key_pressed?(:key_enter)
-        @scene.say_now_playing
-      end
-    end
-
-    private
-
-    def change_volume(step)
-      value = (@player.volume + step).round(2)
-      if value < 0.05 || value > 1.0
-        play_sound("border")
-        return
-      end
-      @player.volume = value
-      KlangtenSpotify.save_volume
-      speak("#{(value * 100).round}%")
-    end
-  end
-
-  # The track list of the player screen: Up and Down choose a track, Enter
-  # plays it; the player keys work here as well (like a playlist in Klango).
-  class QueueList < EltenAPI::Controls::ListBox
-    def initialize(scene, *args, **kw)
-      super(*args, **kw)
-      @scene = scene
-    end
-
-    def update
-      return if @scene.player_keys
       super
     end
   end
@@ -170,9 +90,7 @@ class Scene_Spotify
   # Called from every loop of the Spotify screens: announces new tracks and
   # problems, and keeps the stored login in step with the library.
   def tick
-    if KlangtenSpotify.player?
-      player.events.each { |event| handle_event(event) }
-    end
+    say_notice
     now = KlangtenSpotify.monotonic
     if now - @last_sync > 5
       @last_sync = now
@@ -180,209 +98,48 @@ class Scene_Spotify
     end
   end
 
-  def handle_event(event)
-    case event.type
-    when :started
-      speak(event.track.label) if @announce != false
-      @announce = true
-      @queue_list.index = event.index if @queue_list != nil && event.index < @queue_list.options.size
-    when :unavailable
-      alert(p_("Spotify", "Spotify does not play this track. Playback needs Spotify Premium, and some tracks are not available in your country."), false)
-    when :failed
-      alert(p_("Spotify", "This track could not be opened. Check your internet connection."), false)
-    when :finished
-      speak(p_("Spotify", "End of the list."))
-    end
+  # Problems of the track that plays (Premium, not available, no
+  # connection) - the playlist only skips such a track.
+  def say_notice
+    text = KlangtenSpotify.take_notice_text
+    alert(text, false) if text != nil
   end
 
-  def playing_label
-    track = KlangtenSpotify.player? ? player.current_track : nil
-    return p_("Spotify", "Nothing is playing") if track == nil || !player.active?
-    state = case player.state
-            when :paused then p_("Spotify", "paused")
-            when :loading then p_("Spotify", "loading")
-            else p_("Spotify", "playing")
-            end
-    "#{track.label}, #{state}"
-  end
-
-  def say_now_playing
-    track = KlangtenSpotify.player? ? player.current_track : nil
-    if track == nil || !player.active?
-      speak(p_("Spotify", "Nothing is playing"))
-      return
-    end
-    parts = [track.label]
-    parts << track.album if track.album.to_s != ""
-    parts << p_("Spotify", "%{position} of %{duration}") % { position: format_time(player.position), duration: format_time(track.seconds) }
-    parts << p_("Spotify", "paused") if player.paused?
-    speak(parts.join(", "))
-  end
-
-  def toggle_pause
-    if !player.active?
-      play_sound("border")
-    elsif player.toggle_pause
-      speak(player.paused? ? p_("Spotify", "Paused") : p_("Spotify", "Playing"))
-    end
-  end
-
-  def skip(step)
-    ok = step > 0 ? player.next_track : player.previous_track
-    play_sound("border") unless ok
-  end
-
-  def format_time(seconds)
-    seconds = seconds.to_i
-    h = seconds / 3600
-    m = (seconds % 3600) / 60
-    s = seconds % 60
-    h > 0 ? format("%d:%02d:%02d", h, m, s) : format("%d:%02d", m, s)
-  end
-
-  # Context menu of the player field and of the player screen.
-  def player_menu(menu)
-    if player.active?
-      menu.option(player.paused? ? p_("Spotify", "Play") : p_("Spotify", "Pause"), nil, :space) { toggle_pause }
-      menu.option(p_("Spotify", "Next track")) { skip(1) }
-      menu.option(p_("Spotify", "Previous track")) { skip(-1) }
-      menu.option(p_("Spotify", "Stop")) { player.stop }
-      track = player.current_track
-      track_menu(menu, track) if track != nil
-    end
-  end
-
-  TEMPO_STEP = 2
-  TEMPO_RANGE = (-50..100).freeze
-  PAN_STEP = 0.02
-
-  # The keys of Klangten's player (src/ui/controls/player.rb) for Spotify, in
-  # the track list and on the player field alike. True when a key was used.
-  def player_keys
-    return false unless KlangtenSpotify.player? && player.active?
-    main = modifier_held?(:main_modifier)
-    shift = raw_key_held?(:key_shift)
-    if !main && !shift
-      if key_pressed?(:key_space)
-        toggle_pause
-      elsif key_pressed?(:key_right)
-        player.seek(KlangtenSpotify::Player::SEEK_STEP) || play_sound("border")
-      elsif key_pressed?(:key_left)
-        player.seek(-KlangtenSpotify::Player::SEEK_STEP) || play_sound("border")
-      elsif key_pressed?(:key_page_down)
-        skip(1)
-      elsif key_pressed?(:key_page_up)
-        skip(-1)
-      elsif key_pressed?(0x08)
-        reset_sound
-      else
-        return false
-      end
-      return true
-    end
-    if main && !shift
-      if key_pressed?(:key_up, repeat: true) then change_tempo(TEMPO_STEP)
-      elsif key_pressed?(:key_down, repeat: true) then change_tempo(-TEMPO_STEP)
-      else return false
-      end
-      return true
-    end
-    if shift && !main
-      base = KlangtenSpotify::BassSink::DEFAULT_FREQUENCY.to_f
-      step = base / 500.0 * 2.0
-      if key_pressed?(:key_up, repeat: true) then change_frequency(step, base)
-      elsif key_pressed?(:key_down, repeat: true) then change_frequency(-step, base)
-      elsif key_pressed?(:key_right, repeat: true) then change_pan(PAN_STEP)
-      elsif key_pressed?(:key_left, repeat: true) then change_pan(-PAN_STEP)
-      else return false
-      end
-      return true
-    end
-    false
-  end
-
-  def change_tempo(step)
-    return if player.tempo == nil
-    value = (player.tempo + step).clamp(TEMPO_RANGE.min, TEMPO_RANGE.max)
-    player.tempo = value
-    play_sound("listbox_focus") if value == 0
-  end
-
-  def change_frequency(step, base)
-    return if player.frequency == nil
-    value = (player.frequency + step).clamp(base / 2, base * 2)
-    value = base if (value - base).abs < step / 2
-    player.frequency = value
-    play_sound("listbox_focus") if value == base
-  end
-
-  def change_pan(step)
-    return if player.pan == nil
-    value = (player.pan + step).round(2).clamp(-1.0, 1.0)
-    player.pan = value
-    play_sound("listbox_focus") if value == 0
-  end
-
-  # Backspace: everything back to normal, like in Klangten's player.
-  def reset_sound
-    player.tempo = 0
-    player.frequency = KlangtenSpotify::BassSink::DEFAULT_FREQUENCY
-    player.pan = 0
-    player.volume = 0.8
-    KlangtenSpotify.save_volume
-  end
-
-  # Starts a list and opens the player screen.
+  # Like in Klango, a Spotify list plays in Klangten's playlist: it opens with
+  # the chosen track, playback goes on in the background when it is closed.
+  # Spotify's lists are not saved (Spotify's terms).
   def play_list(tracks, index, header)
     tracks = Array(tracks).reject { |t| t.uri.to_s == "" }
     if tracks.empty?
       alert(p_("Spotify", "Nothing was found."))
       return
     end
-    @queue_header = header
-    @announce = false
-    player.play(tracks, index)
-    player_screen
+    entries = tracks.map do |track|
+      KlangtenPlaylist::Entry.new(track.uri, track.label, track.seconds.to_i > 0 ? track.seconds.to_f : nil)
+    end
+    list = KlangtenPlaylist::List.new(entries)
+    list.title = header.to_s == "" ? p_("Spotify", "Track list") : header
+    list.unsaveable = true
+    index = [[index.to_i, 0].max, entries.size - 1].min
+    KlangtenPlaylist.play(list, index)
+    playlist_screen
+  end
+
+  def spotify_list_playing?
+    list = KlangtenPlaylist.current_list
+    list != nil && list.unsaveable && KlangtenPlaylist.current_entry != nil
+  end
+
+  def playlist_screen
+    list = KlangtenPlaylist.current_list
+    return if list == nil
+    Scene_Playlist.new(list).main
   end
 
   def leave_playback
-    return unless KlangtenSpotify.player?
-    player.stop if player.active?
     @client.sync_credentials if @client != nil
   rescue Exception => e
-    Log.warning("Spotify: stopping playback failed: #{e.class}: #{e.message}")
-  end
-
-  # The player screen: the transport and the track list.
-  def player_screen
-    transport = PlayerField.new(self, player)
-    @queue_list = QueueList.new(self, player.tracks.map(&:label), header: @queue_header.to_s == "" ? p_("Spotify", "Track list") : @queue_header, index: player.index, quiet: true)
-    close = Button.new(p_("Spotify", "Back"))
-    # Like a playlist in Klango: the list with the cursor on the track that
-    # plays comes first, the player field (volume) is one Tab away.
-    form = Form.new([@queue_list, transport, close], quiet: true)
-    form.cancel_button = close
-    done = false
-    @queue_list.bind_context do |menu|
-      track = player.tracks[@queue_list.index]
-      track_menu(menu, track) if track != nil
-    end
-    @queue_list.on(:select) do
-      player.jump(@queue_list.index)
-    end
-    close.on(:press) { done = true }
-    dialog_open
-    dialog_mute
-    form.focus
-    loop do
-      loop_update
-      tick
-      form.update
-      break if done || key_pressed?(:key_escape) || left?
-    end
-  ensure
-    @queue_list = nil
-    dialog_close
+    Log.warning("Spotify: syncing the login failed: #{e.class}: #{e.message}")
   end
 
   # ------------------------------------------------------------------- login
@@ -425,6 +182,7 @@ class Scene_Spotify
 
   def sign_out
     return unless confirm(p_("Spotify", "Do you want to sign out of Spotify? Klangten then forgets your Spotify login."))
+    KlangtenPlaylist.stop if spotify_list_playing?
     player.stop if KlangtenSpotify.player?
     EltenAPI::Tasks.run(title: p_("Spotify", "Signing out...")) { @client.logout }
     alert(p_("Spotify", "You have signed out of Spotify."))
@@ -442,7 +200,7 @@ class Scene_Spotify
       [:player, p_("Spotify", "Now playing")],
       [:signout, p_("Spotify", "Sign out of Spotify")]
     ]
-    visible = proc { entries.reject { |key, _| key == :player && !(KlangtenSpotify.player? && player.active?) } }
+    visible = proc { entries.reject { |key, _| key == :player && !spotify_list_playing? } }
     shown = visible.call
     list = ListBox.new(shown.map { |e| e[1] }, header: "Spotify", index: 0, quiet: false)
     loop do
@@ -462,7 +220,7 @@ class Scene_Spotify
       when :search then search_screen
       when :library then open_library
       when :playlists then open_playlists
-      when :player then player_screen
+      when :player then playlist_screen
       when :signout
         sign_out
         break unless @client.logged_in?
