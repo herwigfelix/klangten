@@ -21,6 +21,8 @@ class KCommunityGroupMessageTest < KlangtenTest::FlowTest
     k = klangten(server: server)
     k.boot_logged_in("hans")
     k.menu("Community", "Messages")
+    # the list is announced once it has loaded; a key pressed before that is lost
+    k.wait_for("Empty list")
     k.menu("Context menu", "Message to the members of a group")
     k.expect("Send a message to the members of which group?")
     k.expect("Runde")
