@@ -22,6 +22,7 @@ module KlangtenTest
       wrap_background_services
       record_uploads
       route_audio_to_no_sound_device
+      forbid_real_audio_devices
       require_relative "microphone"
       Microphone.install
     end
@@ -97,6 +98,27 @@ module KlangtenTest
         data = body.respond_to?(:read) ? nil : body.to_s.b
         KlangtenTest.uploads << { method: method.to_s.upcase, path: path.to_s, body: data, params: (params || {}).dup }
         original.call(method, path, body, headers, params, **kw)
+      end
+    end
+
+    # No test may ever reach a real sound card or microphone. On 2026-10-11/12
+    # test runs on a developer's Mac drove coreaudiod into an overload loop
+    # (audio hung, the machine had to be switched off): the conference
+    # library (TeamConference, cpal) opens CoreAudio by itself after login.
+    # So: no conference library at all, BASS output only on device 0 and no
+    # BASS recording, no Chrome. Conference tests use a fake library.
+    def forbid_real_audio_devices
+      wrap(TeamConference::Library.singleton_class, :open) do |_original, *_args|
+        [nil, "the conference library is disabled in tests"]
+      end
+      wrap(Bass.singleton_class, :setdevice) do |original, _device, *args, **kw|
+        original.call(0, *args, **kw)
+      end
+      wrap(Bass.singleton_class, :record_prepare) do |_original, *_args|
+        false
+      end
+      wrap(KlangtenWeb::Chrome.singleton_class, :browser) do |_original, *_args|
+        raise HarnessError, "Chrome must not start in tests (tools/web-probe.rb is the manual check)"
       end
     end
 

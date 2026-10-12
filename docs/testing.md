@@ -165,6 +165,10 @@ Both Ruby HTTP and BASS URL streams reach it. `KlangtenTest::Media.wav(seconds:,
 
 `k.microphone.signal = :music` (default: a chord with overtones plus noise, which keeps a variable-bitrate encoder busy across the band), `:tone` (440 Hz), `:silence` or a lambda `->(t) { value }`. The signal is deterministic, and it is delivered in virtual time: `run_for(3)` while recording records three seconds. `test/flows/test_forum_voice.rb` shows the whole path from the record button to the server.
 
+## Never a real sound card
+
+The harness forbids everything that could open a real audio device (`forbid_real_audio_devices` in `hooks.rb`): BASS plays only on its "no sound" device and never records, the conference library (TeamConference, which opens CoreAudio/WASAPI by itself through cpal) is not loaded at all, and Chrome does not start. In October 2026 test runs on a developer's Mac that still loaded the conference library drove coreaudiod into an overload loop; the machine's audio hung until it was switched off. Keep it that way: a new native library that can touch an audio device needs the same treatment before any test loads it, and prefer running the suite on Linux (CI or a VM) rather than on a machine someone is listening to.
+
 ## Rules for new code and new tests
 
 - **Every new or changed feature gets a flow test** in `test/flows/test_<area>.rb`: the way in (keys), what is heard, what arrives on the server.
