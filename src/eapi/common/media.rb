@@ -32,17 +32,11 @@ def player_session(file, label, wait, control, background, bookmark, position)
   dialog_opened=false
   handoff=false
   begin
-  soundfont=EltenPath.join(Dirs.extras, "soundfont.sf2")
-  if File.extname(file).downcase==".mid" and FileTest.exists?(soundfont) == false
-    if confirm(p_("EAPI_Common", "You are trying to play a MIDI file. Elten needs an external instrument sound bank to play MIDI files. Do you want to download it from the server now? This may take several minutes."))
-      alert(p_("EAPI_Common", "Please wait, the soundfont is being downloaded. It may take a while."))
-    download_file(soundfont_url,soundfont)
-    alert(p_("EAPI_Common", "SoundFont downloaded successfully."))
-    Bass::BASS_SetConfigPtr.call(0x10403,soundfont)
-  else
+  # Klangten 0.4: the sound engine has no MIDI synthesiser (it came with BASS).
+  if [".mid", ".midi"].include?(File.extname(file.to_s.split(/[?#]/, 2)[0].to_s).downcase)
+    alert(p_("Klangten", "MIDI files cannot be played in Klangten."))
     return
-    end
-      end
+  end
     if label != ""
   if wait==false
     dialog_open

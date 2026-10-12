@@ -28413,3 +28413,7 @@ msgid "with %{count} item"
 msgid_plural "with %{count} items"
 msgstr[0] "mit %{count} Eintrag"
 msgstr[1] "mit %{count} Einträgen"
+
+msgctxt "Klangten"
+msgid "MIDI files cannot be played in Klangten."
+msgstr "MIDI-Dateien kann Klangten nicht abspielen."
