@@ -29,6 +29,7 @@
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/opt.h>
+#include <libavutil/log.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/dict.h>
 #include <libswresample/swresample.h>
@@ -125,6 +126,15 @@ static int map_error(int averr, int is_url) {
 }
 
 /* Opens everything up to a working decoder. Returns 0 and sets the error. */
+static void quiet_ffmpeg(void) {
+    static int done;
+    if (done) return;
+    done = 1;
+    /* FFmpeg logs to stderr; Klangten reports errors itself. KLANGTEN_AUDIO_DEBUG
+     * brings the messages back for debugging. */
+    av_log_set_level(getenv("KLANGTEN_AUDIO_DEBUG") ? AV_LOG_INFO : AV_LOG_QUIET);
+}
+
 static int dec_open(dec *d, const char *url) {
     AVDictionary *opts = NULL;
     const AVCodec *codec = NULL;
@@ -132,6 +142,7 @@ static int dec_open(dec *d, const char *url) {
     AVChannelLayout out_layout;
     int r;
 
+    quiet_ffmpeg();
     d->fmt = avformat_alloc_context();
     if (!d->fmt) return ka_set_error(KA_ERROR_MEM);
     d->fmt->interrupt_callback.callback = interrupt_cb;
