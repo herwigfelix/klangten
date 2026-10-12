@@ -169,6 +169,10 @@ static int dec_open(dec *d, const char *url) {
         av_dict_set(&opts, "reconnect_on_network_error", "1", 0);
         av_dict_set(&opts, "reconnect_delay_max", "4", 0);
         av_dict_set(&opts, "icy", "1", 0);
+        {
+            const char *ca = ka_config_string(KA_CONFIG_CA_FILE);
+            if (ca && ca[0]) av_dict_set(&opts, "ca_file", ca, 0);
+        }
         d->deadline = ka_clock() + timeout_ms / 1000.0 + 5.0;
     }
     r = avformat_open_input(&d->fmt, d->mem_io ? NULL : url, NULL, &opts);

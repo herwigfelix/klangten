@@ -43,7 +43,8 @@ if [ ! -f "$DEPS/lib/libmp3lame.a" ]; then
   cd "$DEPS/build-lame/lame-$LAME_VERSION"
   sed -i.orig '/lame_init_old/d' include/libmp3lame.sym
   # config.sub of lame 3.100 does not know android; tell it the plain triple
-  CC="$CC" CFLAGS="-O2 -fPIC" ./configure --host=${TRIPLE%-android}-linux --prefix="$DEPS" \
+  # the NDK's archiver, or libtool makes an empty archive with the host's ar
+  CC="$CC" AR="$TC/bin/llvm-ar" RANLIB="$TC/bin/llvm-ranlib" CFLAGS="-O2 -fPIC" ./configure --host=${TRIPLE%-android}-linux --prefix="$DEPS" \
     --disable-shared --enable-static --disable-frontend --disable-decoder --with-pic >/dev/null
   make -j"$JOBS" >/dev/null
   make install >/dev/null
@@ -76,7 +77,7 @@ fi
 OUT="$ROOT/android/vendor/jnilibs/$ABI"
 mkdir -p "$OUT"
 "$CC" -O2 -fPIC -fvisibility=hidden -Wall -Wno-unused-function -I"$EXT/src" -I"$EXT/vendor" -I"$DEPS/include" \
-  -shared -Wl,-soname,libklangten_audio.so -Wl,-Bsymbolic -Wl,--exclude-libs,ALL -Wl,-z,max-page-size=16384 \
+  -shared -Wl,-soname,libklangten_audio.so -Wl,-Bsymbolic -Wl,--exclude-libs,ALL -Wl,-z,max-page-size=16384 -Wl,--no-undefined \
   -o "$OUT/libklangten_audio.so" \
   "$EXT/src/ka_core.c" "$EXT/src/ka_decoder.c" "$EXT/src/ka_sources.c" "$EXT/src/ka_fx.c" "$EXT/src/ka_encode.c" "$EXT/src/ka_miniaudio.c" \
   "$DEPS/lib/libavformat.a" "$DEPS/lib/libavcodec.a" "$DEPS/lib/libswresample.a" "$DEPS/lib/libavutil.a" "$DEPS/lib/libmp3lame.a" \

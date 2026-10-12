@@ -76,7 +76,16 @@ check("Klangten audio") do
   init = Fiddle::Function.new(ka["KA_Init"], [Fiddle::TYPE_INT] * 3 + [Fiddle::TYPE_VOIDP] * 2, Fiddle::TYPE_INT)
   ok = init.call(-1, 48000, 0, nil, nil)
   code = Fiddle::Function.new(ka["KA_ErrorGetCode"], [], Fiddle::TYPE_INT).call
-  format("%d.%d, KA_Init %s", (v >> 16) & 255, (v >> 8) & 255, ok != 0 ? "ok" : "Fehler #{code}")
+  # an https stream through FFmpeg and the built-in OpenSSL (voice posts, radio),
+  # with the CA bundle of the check above (like Bass.install_ca_bundle)
+  Fiddle::Function.new(ka["KA_SetConfigPtr"], [Fiddle::TYPE_INT, Fiddle::TYPE_VOIDP], Fiddle::TYPE_INT).call(50, File.join(files, "cacert.pem"))
+  url_fn = Fiddle::Function.new(ka["KA_StreamCreateURL"], [Fiddle::TYPE_VOIDP, Fiddle::TYPE_INT, Fiddle::TYPE_INT, Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP], Fiddle::TYPE_INT)
+  data_fn = Fiddle::Function.new(ka["KA_ChannelGetData"], [Fiddle::TYPE_INT, Fiddle::TYPE_VOIDP, Fiddle::TYPE_INT], Fiddle::TYPE_INT)
+  ch = url_fn.call("https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3", 0, 0x200000 | 0x100, nil, nil)
+  bytes = ch != 0 ? data_fn.call(ch, "\0" * 16384, 16384 | 0x40000000) : -1
+  err = Fiddle::Function.new(ka["KA_ErrorGetCode"], [], Fiddle::TYPE_INT).call
+  format("%d.%d, KA_Init %s, https-Stream %s", (v >> 16) & 255, (v >> 8) & 255, ok != 0 ? "ok" : "Fehler #{code}",
+         bytes > 0 ? "#{bytes} Bytes dekodiert" : "Fehler #{err} (Kanal #{ch})")
 end
 
 check("TeamConference") do

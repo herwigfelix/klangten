@@ -291,10 +291,6 @@ static int ensure_contexts(void) {
     return g_null_ctx_ready;
 }
 
-#if defined(__APPLE__)
-#include <TargetConditionals.h>
-#endif
-
 /* iOS: recording needs the playAndRecord category; it is set by a context
  * of its own and given back (playback) when the recording device is freed. */
 #if defined(__APPLE__) && TARGET_OS_IPHONE
@@ -327,8 +323,18 @@ void ka_capture_release(void) {
 #endif
 }
 
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
 static void refresh_devices(void) {
     if (!g_ctx_ready) { g_play_count = 0; g_cap_count = 0; return; }
+#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IPHONE)
+    /* Phones: no device choice, and listing the inputs opens the microphone
+     * (Android logs a refusal, iOS would ask for permission at start). */
+    g_play_count = 0; g_cap_count = 0;
+    return;
+#endif
     if (ma_context_get_devices(&g_ctx, &g_play_infos, &g_play_count, &g_cap_infos, &g_cap_count) != MA_SUCCESS) {
         g_play_count = 0; g_cap_count = 0;
     }

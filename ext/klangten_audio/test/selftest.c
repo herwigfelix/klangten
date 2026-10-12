@@ -72,6 +72,8 @@ int main(int argc, char **argv) {
     snprintf(mp3_path, sizeof mp3_path, "%s/ka_selftest.mp3", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp");
 #endif
 
+    if (getenv("KLANGTEN_CA_FILE")) KA_SetConfigPtr(KA_CONFIG_CA_FILE, getenv("KLANGTEN_CA_FILE"));
+
     /* 1. the null device */
     CHECK(KA_Init(0, 48000, 0, NULL, NULL), "init null device");
     CHECK(KA_GetDeviceInfo(0, &di) && strcmp(di.name, "No sound") == 0, "device 0 is No sound");

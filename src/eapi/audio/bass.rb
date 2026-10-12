@@ -727,11 +727,29 @@ BASS_SetConfig.call(11, 3000)
 BASS_SetConfig.call(12, 10000)
 BASS_SetConfig.call(15, 25)
 BASS_SetConfigPtr.call(16, Klangten::Config.user_agent)
+install_ca_bundle
 BASS_SetConfig.call(21, 1)
 BASS_SetConfig.call(0x20000, 0)    
 BASS_SetDevice.call(card) if card>0
 prewarm_url_loader
         end
+
+  # Linux and Android: the engine's https goes through OpenSSL, which does not
+  # reliably find the system's certificates there (Android: not at all).
+  # Hand it Klangten's own CA bundle (resources/ssl/cert.pem) as a file.
+  # macOS, iOS and Windows use the system's store.
+  def self.install_ca_bundle
+    platform = EltenRuntimePaths.platform.to_s rescue ""
+    android = defined?(EltenSystemHelpers) && EltenSystemHelpers.respond_to?(:android?) && EltenSystemHelpers.android?
+    return if platform != "linux" && !android
+    pem = EltenAPI::Resources.read("ssl/cert.pem").to_s.b
+    return if pem == ""
+    path = EltenPath.join(Dirs.temp, "klangten-ca.pem")
+    File.binwrite(path, pem) if !File.file?(path) || File.binread(path) != pem
+    BASS_SetConfigPtr.call(50, path)
+  rescue Exception => e
+    Log.warning("CA bundle for the sound engine: #{e.class}: #{e.message}") if defined?(Log)
+  end
 
   def self.free
     devices = [output_device_id, *(@additional_output_devices || [])].uniq

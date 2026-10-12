@@ -135,6 +135,9 @@ enum {
 #define KA_CONFIG_NET_AGENT    16
 #define KA_CONFIG_NET_PROXY    17
 #define KA_CONFIG_NET_READTIMEOUT 37
+/* Klangten: PEM file with the trusted CAs for https where TLS is OpenSSL
+ * (Linux, Android); elsewhere the system's store is used. */
+#define KA_CONFIG_CA_FILE 50
 
 typedef struct KA_DEVICEINFO {
     const char *name;
