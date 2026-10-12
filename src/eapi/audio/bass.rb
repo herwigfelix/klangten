@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3. 
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. 
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>. 
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: the engine is klangten_audio (miniaudio, FFmpeg, LAME) instead of BASS; this module stays as its compatibility layer.
 module EltenBassStructs
   POINTER_SIZE = [nil].pack("p").bytesize
   POINTER_PACK = POINTER_SIZE == 8 ? "Q" : "L"
@@ -57,15 +57,27 @@ module EltenBassStructs
 end
 
 module Bass
+  # Klangten 0.4: the sound engine is Klangten's own klangten_audio
+  # (ext/klangten_audio: miniaudio, FFmpeg, LAME), no longer BASS. It keeps
+  # the channel model and the numbers this module was written for, so the
+  # module stays as the compatibility layer: every "BASS_Name" below is the
+  # library's "KA_Name". Programs that call Bass:: directly keep working.
   EltenRuntimePaths.configure_dll_search!
-  BassLib=EltenRuntimePaths.relative_library_name("bass")
-  BassfxLib=EltenRuntimePaths.relative_library_name("bass_fx")
-  BassmixLib=EltenRuntimePaths.relative_library_name("bassmix")
-  BassvstLib=EltenRuntimePaths.relative_library_name("bass_vst")
-  BassencLib=EltenRuntimePaths.relative_library_name("bassenc")
-  Bassencmp3Lib=EltenRuntimePaths.relative_library_name("bassenc_mp3")
+
+  # A library handle that answers BASS_* names with the KA_* symbol.
+  class EngineSymbols
+    def initialize(handle)
+      @handle = handle
+    end
+
+    def [](name)
+      @handle[name.to_s.sub(/\ABASS_/, "KA_")]
+    end
+  end
+
+  EngineLib = EltenRuntimePaths.relative_library_name("klangten_audio")
   BASS_INTPTR = Fiddle::SIZEOF_VOIDP == 8 ? Fiddle::TYPE_LONG_LONG : Fiddle::TYPE_INT
-  BASS_ABI = EltenSystemHelpers.bass_abi(EltenRuntimePaths.architecture)
+  BASS_ABI = Fiddle::Function::DEFAULT
   F_INT = Fiddle::TYPE_INT
   F_UINT = Fiddle::TYPE_UINT
   F_PTR = Fiddle::TYPE_VOIDP
@@ -118,26 +130,25 @@ module Bass
   BASS_FX_BFX_ECHO4 = 0x10014
   BASS_FX_BFX_FREEVERB = 0x10016
   BASS_BFX_FREEVERB_MODE_FREEZE = 1
-
   def self.optional_dlopen(lib)
     EltenRuntimePaths.dlopen(lib)
   rescue Exception
     nil
   end
-
   def self.optional_fiddle(handle, func, import, export, fallback=0)
     return lambda { |*_args| fallback } if handle == nil
     Fiddle::Function.new(handle[func], import, export, BASS_ABI)
   rescue Exception
     lambda { |*_args| fallback }
   end
-
-  BASSDLL = EltenRuntimePaths.dlopen("bass")
-  BASSMIX = EltenRuntimePaths.dlopen("bassmix")
-  BASSFX = optional_dlopen("bass_fx")
-  BASSENC = optional_dlopen("bassenc")
-  BASSENCMP3 = optional_dlopen("bassenc_mp3")
-  BASSVST = optional_dlopen("bass_vst")
+  # One library holds everything that used to be separate add-ons (mixer,
+  # tempo and effects, encoders). VST plugins are gone.
+  BASSDLL = EngineSymbols.new(EltenRuntimePaths.dlopen("klangten_audio"))
+  BASSMIX = BASSDLL
+  BASSFX = BASSDLL
+  BASSENC = BASSDLL
+  BASSENCMP3 = BASSDLL
+  BASSVST = nil
   BASS_GetVersion = Fiddle::Function.new(BASSDLL["BASS_GetVersion"], [], F_INT, BASS_ABI)
   BASS_ErrorGetCode = Fiddle::Function.new(BASSDLL["BASS_ErrorGetCode"], [], F_INT, BASS_ABI)
   BASS_Init = Fiddle::Function.new(BASSDLL["BASS_Init"], [F_INT, F_INT, F_INT, F_PTR, F_PTR], F_INT, BASS_ABI)
@@ -709,15 +720,7 @@ return if @init==true
       raise(error_name)
     end
     @output_device_id = BASS_GetDevice.call
-    plugins = ["bassopus", "bassflac", "bassmidi", "basswebm", "basswma", "bass_aac", "bass_ac3", "bass_spx", "basshls", "bassalac"]
-        plugins.each do |pl|
-              Log.debug("Loading Bass plugin #{pl}")
-          plugin_path = bass_plugin_file(pl)
-          if BASS_PluginLoad.call(plugin_path, 0) == 0
-            error=BASS_ErrorGetCode.call
-            Log.warning("Failed to load Bass plugin #{pl}: #{error_name(error)} (#{plugin_path})") if error!=14
-          end
-    end
+    # Klangten 0.4: every format is built into klangten_audio (FFmpeg); no plugins.
         BASS_SetConfig.call(0, 1000)
 BASS_SetConfig.call(1, 100)
 BASS_SetConfig.call(11, 3000)

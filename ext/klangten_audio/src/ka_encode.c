@@ -182,7 +182,6 @@ static void encoder_finish(enc *e) {
 KA_API uint32_t KA_Encode_MP3_StartFile(KAHANDLE handle, const char *options, uint32_t flags, const char *file) {
     ka_channel *ch = ka_channel_get(handle);
     enc *e;
-    (void)flags;
     if (!ch) return 0;
     if (!file) return ka_set_error(KA_ERROR_FILEOPEN);
     if (ch->encoder) return ka_set_error(KA_ERROR_ALREADY);
@@ -202,9 +201,17 @@ KA_API uint32_t KA_Encode_MP3_StartFile(KAHANDLE handle, const char *options, ui
     lame_set_brate(e->gf, 128);
     lame_set_quality(e->gf, 5);
     lame_set_write_id3tag_automatic(e->gf, 0);   /* v2 at the start, v1 at the end, by hand */
-    apply_options(e, options ? options : "");
+    {
+        char *opt = options ? ka_utf8_arg(options, flags) : NULL;
+        apply_options(e, opt ? opt : "");
+        free(opt);
+    }
     if (lame_init_params(e->gf) < 0) { encoder_finish(e); return ka_set_error(KA_ERROR_FORMAT); }
-    e->out = open_utf8(file);
+    {
+        char *path = ka_utf8_arg(file, flags);
+        e->out = path ? open_utf8(path) : NULL;
+        free(path);
+    }
     if (!e->out) { encoder_finish(e); return ka_set_error(KA_ERROR_CREATE); }
     {
         /* id3v2 goes first: write it now, the frames follow */

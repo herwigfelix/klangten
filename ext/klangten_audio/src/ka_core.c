@@ -861,6 +861,7 @@ KA_API int KA_ChannelPlay(KAHANDLE handle, int restart) {
     if (!dev) return ka_set_error(KA_ERROR_START);
     if (restart) {
         if (ch->kind == KA_KIND_SAMPLE) ch->sample_pos = 0;
+        else if (ch->kind == KA_KIND_PUSH) { ka_rb_clear(ch); ch->ended = 0; }   /* restart drops queued data */
         else if (ch->ops->seek) { ch->seek_frame = 0; ch->seek_pending = 1; ka_rb_clear(ch); ch->ended = 0; }
         ch->position = 0;
     }
@@ -968,7 +969,10 @@ KA_API int KA_ChannelGetData(KAHANDLE handle, void *buffer, uint32_t length) {
     if (!ch) return -1;
     if (length == KA_DATA_AVAILABLE) {
         ka_ok();
-        if (ch->kind == KA_KIND_RECORD || ch->kind == KA_KIND_PUSH) return ka_rb_available(ch) * bytes_per_frame(ch);
+        /* a playing push stream has no playback buffer apart from its
+         * queue, which KA_StreamPutData(h, NULL, 0) reports already */
+        if (ch->kind == KA_KIND_RECORD || (ch->kind == KA_KIND_PUSH && (ch->flags & KA_STREAM_DECODE)))
+            return ka_rb_available(ch) * bytes_per_frame(ch);
         return 0;
     }
     if (length & 0x80000000u) return ka_set_error(KA_ERROR_NOTAVAIL), -1;   /* FFT */
@@ -1295,13 +1299,49 @@ KA_API int KA_FXSetPriority(uint32_t fxh, int priority) {
 }
 KA_API uint32_t KA_FX_GetVersion(void) { ka_ok(); return KA_VERSION; }
 
+
+/* Klangten hands paths and addresses over as UTF-16LE when KA_UNICODE is
+ * set (that is what its old engine wanted); inside everything is UTF-8. */
+char *ka_utf8_arg(const void *str, uint32_t flags) {
+    const uint16_t *w;
+    size_t n = 0, i, o = 0;
+    char *out;
+    if (!str) return NULL;
+    if (!(flags & KA_UNICODE)) return strdup((const char *)str);
+    w = (const uint16_t *)str;
+    while (w[n]) n++;
+    out = (char *)malloc(n * 3 + 1);
+    if (!out) return NULL;
+    for (i = 0; i < n; i++) {
+        uint32_t c = w[i];
+        if (c >= 0xD800 && c <= 0xDBFF && i + 1 < n && w[i + 1] >= 0xDC00 && w[i + 1] <= 0xDFFF) {
+            c = 0x10000 + ((c - 0xD800) << 10) + (w[i + 1] - 0xDC00);
+            i++;
+        }
+        if (c < 0x80) out[o++] = (char)c;
+        else if (c < 0x800) { out[o++] = (char)(0xC0 | (c >> 6)); out[o++] = (char)(0x80 | (c & 0x3F)); }
+        else if (c < 0x10000) { out[o++] = (char)(0xE0 | (c >> 12)); out[o++] = (char)(0x80 | ((c >> 6) & 0x3F)); out[o++] = (char)(0x80 | (c & 0x3F)); }
+        else { out[o++] = (char)(0xF0 | (c >> 18)); out[o++] = (char)(0x80 | ((c >> 12) & 0x3F)); out[o++] = (char)(0x80 | ((c >> 6) & 0x3F)); out[o++] = (char)(0x80 | (c & 0x3F)); }
+        if (o + 4 > n * 3) { char *p = (char *)realloc(out, o + (n - i) * 4 + 8); if (!p) { free(out); return NULL; } out = p; }
+    }
+    out[o] = '\0';
+    return out;
+}
+
 /* ----------------------------------------------------------- streams */
 KA_API KAHANDLE KA_StreamCreateFile(int mem, const void *file, uint64_t offset, uint64_t length, uint32_t flags) {
     collect_finished();
     ensure_contexts();
     if (!file) return ka_set_error(KA_ERROR_FILEOPEN);
     if (mem) return ka_decoder_open_memory((const char *)file + offset, length, flags);
-    return ka_decoder_open_file((const char *)file, offset, length, flags);
+    {
+        char *path = ka_utf8_arg(file, flags);
+        KAHANDLE h;
+        if (!path) return ka_set_error(KA_ERROR_MEM);
+        h = ka_decoder_open_file(path, offset, length, flags);
+        free(path);
+        return h;
+    }
 }
 
 KA_API KAHANDLE KA_StreamCreateURL(const char *url, uint32_t offset, uint32_t flags, void *proc, void *user) {
@@ -1309,7 +1349,14 @@ KA_API KAHANDLE KA_StreamCreateURL(const char *url, uint32_t offset, uint32_t fl
     collect_finished();
     ensure_contexts();
     if (!url) return ka_set_error(KA_ERROR_FILEOPEN);
-    return ka_decoder_open_url(url, offset, flags);
+    {
+        char *u = ka_utf8_arg(url, flags);
+        KAHANDLE h;
+        if (!u) return ka_set_error(KA_ERROR_MEM);
+        h = ka_decoder_open_url(u, offset, flags);
+        free(u);
+        return h;
+    }
 }
 
 KA_API KAHANDLE KA_StreamCreate(uint32_t freq, uint32_t chans, uint32_t flags, intptr_t proc, void *user) {
@@ -1364,8 +1411,12 @@ KA_API KAHANDLE KA_SampleLoad(int mem, const void *file, uint64_t offset, uint32
     collect_finished();
     ensure_contexts();
     if (!file) return ka_set_error(KA_ERROR_FILEOPEN);
-    if (!ka_decoder_probe_sample(mem ? NULL : (const char *)file, mem ? (const char *)file + offset : NULL, length, &data, &frames, &rate, &chans))
-        return 0;
+    {
+        char *path = mem ? NULL : ka_utf8_arg(file, flags);
+        int ok = ka_decoder_probe_sample(path, mem ? (const char *)file + offset : NULL, length, &data, &frames, &rate, &chans);
+        free(path);
+        if (!ok) return 0;
+    }
     s = (ka_sample *)calloc(1, sizeof *s);
     if (!s) { free(data); return ka_set_error(KA_ERROR_MEM); }
     s->handle = ka_new_handle();

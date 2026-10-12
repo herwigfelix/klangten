@@ -220,6 +220,7 @@ int ka_register_encoder(uint32_t handle, void *enc);
 void *ka_encoder_lookup(uint32_t handle);
 void ka_unregister(uint32_t handle);
 void ka_free_channel(uint32_t handle);
+char *ka_utf8_arg(const void *str, uint32_t flags);
 
 /* ---- encoder (ka_encode.c) ---- */
 void ka_encoder_feed(ka_channel *ch, const float *frames, int count);
