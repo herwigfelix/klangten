@@ -81,6 +81,15 @@ for command_name in cmake file; do
   fi
 done
 
+# Klangten's sound engine (ext/klangten_audio) for this machine, unless it is
+# there already (bin/linux-<arch>/libklangten_audio.so is not checked in).
+if [ ! -f "$ROOT/bin/linux-$ELTEN_LINUX_ARCH/libklangten_audio.so" ]; then
+  echo "Building the sound engine (klangten_audio) for linux-$ELTEN_LINUX_ARCH..."
+  sh "$ROOT/tools/build-klangten-audio.sh"
+  [ -f "$ROOT/bin/linux-$ELTEN_LINUX_ARCH/libklangten_audio.so" ] ||
+    { echo "The sound engine was built for another architecture than linux-$ELTEN_LINUX_ARCH" >&2; exit 1; }
+fi
+
 echo "Configuring Elten launcher linux-$ELTEN_LINUX_ARCH..."
 cmake -S "$ROOT" -B "$BUILD_DIR" -G "$GENERATOR" \
   -DCMAKE_BUILD_TYPE=Release \
