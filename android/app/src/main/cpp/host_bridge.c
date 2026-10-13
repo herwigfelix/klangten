@@ -21,6 +21,7 @@
 
 static JavaVM *g_vm;
 static jclass g_host;
+static jclass g_youtube;
 
 // --- JNI plumbing --------------------------------------------------------------
 
@@ -32,6 +33,16 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     jclass host = (*env)->FindClass(env, "it/sixdots/klangten/Host");
     if (host == NULL) return JNI_ERR;
     g_host = (*env)->NewGlobalRef(env, host);
+    // Looked up here, where the app's class loader is in effect: FindClass on
+    // a Ruby thread attached later only sees the system classes, so YouTube
+    // was "not available" whenever a scene thread asked (not the main thread).
+    jclass youtube = (*env)->FindClass(env, "it/sixdots/klangten/YouTube");
+    if (youtube != NULL) {
+        g_youtube = (*env)->NewGlobalRef(env, youtube);
+        (*env)->DeleteLocalRef(env, youtube);
+    } else {
+        (*env)->ExceptionClear(env);
+    }
     return JNI_VERSION_1_6;
 }
 
@@ -234,9 +245,8 @@ EXPORT void elten_host_speech_speak(const char *text, const char *voice, int rat
 
 static const char *call_youtube(const char *name, const char *a, const char *b) {
     JNIEnv *env = env_for_thread();
-    if (env == NULL) return hold(S_YOUTUBE, NULL);
-    jclass cls = (*env)->FindClass(env, "it/sixdots/klangten/YouTube");
-    if (cls == NULL) { (*env)->ExceptionClear(env); return hold(S_YOUTUBE, NULL); }
+    if (env == NULL || g_youtube == NULL) return hold(S_YOUTUBE, NULL);
+    jclass cls = g_youtube;
     const char *signature = b != NULL ? "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"
                                       : "(Ljava/lang/String;)Ljava/lang/String;";
     jmethodID id = (*env)->GetStaticMethodID(env, cls, name, signature);
@@ -253,9 +263,8 @@ static const char *call_youtube(const char *name, const char *a, const char *b) 
 
 EXPORT int elten_host_youtube_available(void) {
     JNIEnv *env = env_for_thread();
-    if (env == NULL) return 0;
-    jclass cls = (*env)->FindClass(env, "it/sixdots/klangten/YouTube");
-    if (cls == NULL) { (*env)->ExceptionClear(env); return 0; }
+    if (env == NULL || g_youtube == NULL) return 0;
+    jclass cls = g_youtube;
     jmethodID id = (*env)->GetStaticMethodID(env, cls, "available", "()I");
     if (id == NULL) { (*env)->ExceptionClear(env); return 0; }
     jint value = (*env)->CallStaticIntMethod(env, cls, id);

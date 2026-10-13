@@ -527,12 +527,28 @@ class Scene_YouTube
   def play_video(item)
     video = resolve(item, fresh: true)
     return if video == nil
-    stream = KlangtenYouTube.best_audio(video)
-    if stream == nil
+    sound, stream = open_best_stream(video)
+    if sound == nil
       alert(p_("Klangten", "This video has no audio stream that can be played."))
       return
     end
-    player_screen(video, stream)
+    player_screen(video, stream, sound)
+  end
+
+  # The best audio stream that opens, with its Sound. Now and then YouTube
+  # refuses one stream address while the others work; then the next one
+  # plays instead of a silent player.
+  def open_best_stream(video)
+    best = KlangtenYouTube.best_audio(video)
+    return nil if best == nil
+    candidates = [best] + KlangtenYouTube.audio_streams(video).reject { |stream| stream.equal?(best) }
+    candidates.first(3).each do |stream|
+      sound = Sound.new(stream.url)
+      return [sound, stream] if sound.opened?
+      sound.close
+      Log.warning("YouTube: the #{stream.codec} stream of #{video.id} did not open, trying the next one")
+    end
+    nil
   end
 
   # Klangten 0.4: the video plays on while you work elsewhere (Media, Player).
@@ -554,14 +570,14 @@ class Scene_YouTube
   end
 
   # The playlist and the background player pause while the video plays.
-  def player_screen(video, stream)
-    KlangtenMedia.suspend { video_player_screen(video, stream) }
+  def player_screen(video, stream, sound = nil)
+    KlangtenMedia.suspend { video_player_screen(video, stream, sound) }
   end
 
   # Space pauses, Left/Right seek, Control+Up/Down change the tempo (all from
   # the core player), Escape closes. The end of the video starts it again
   # while repeat is on. B continues in the background, R records.
-  def video_player_screen(video, stream)
+  def video_player_screen(video, stream, sound = nil)
     item = KlangtenYouTube.item_from_video(video)
     KlangtenYouTube.add_to_history(item)
     repeat = true
@@ -569,7 +585,7 @@ class Scene_YouTube
     dialog_open
     # No dialog background sound under the video, as in the core player().
     dialog_mute
-    player = StreamPlayer.new(stream.url, label: video.title.to_s, autoplay: true, quiet: false)
+    player = StreamPlayer.new(sound || stream.url, label: video.title.to_s, autoplay: true, quiet: false)
     handoff = false
     player.background_handoff = proc { handoff = true }
     player.extra_context = proc do |menu|
