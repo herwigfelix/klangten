@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: touch gestures; recording what plays (R) and continuing in the background (B); a finished sound plays again from the beginning.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: touch gestures; recording what plays (R) and continuing in the background (B); a finished sound plays again from the beginning; the media buttons control a playing player.
 
 module EltenAPI
   module Controls
@@ -83,6 +83,7 @@ end
 def update
 super
   @@focused_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  @updated_at = @@focused_at
   return if @sound!=nil && @sound.closed?
   # Klangten: on touch devices a double tap plays and pauses, as Space does.
   if get_sound!=nil && touch_activate!
@@ -311,6 +312,8 @@ def play
   @pause=false
   Programs.emit_event(:player_play)
   sound.play
+  # Klangten: the headset and media buttons now control this player.
+  KlangtenMedia.player_started(self) if defined?(KlangtenMedia)
 end
 
 def stop
@@ -334,6 +337,21 @@ end
 def paused?
   @pause==true
   end
+
+# Klangten: whether the player has been closed (or its sound given away).
+def closed?
+  @closed==true
+end
+
+# Klangten: whether the player still belongs to someone: it plays, or its
+# owner ran it within the last moments (a player only updates while it has
+# the focus). A paused player in a form that was left behind does not keep
+# the media buttons.
+def attended?(within = 3.0)
+  return false if @closed || @sound==nil || @sound.closed?
+  return true if @pause!=true && !completed
+  @updated_at!=nil && Process.clock_gettime(Process::CLOCK_MONOTONIC)-@updated_at<=within
+end
 
 def completed
   return true if get_sound==nil
@@ -360,6 +378,7 @@ def close
   return if @closed
   @closed=true
   @pause=true
+  KlangtenMedia.player_closed(self) if defined?(KlangtenMedia)
   # Klangten: closing the player ends its recording.
   KlangtenRecordings.announce_stopped(KlangtenRecordings.stop_stream(@sound)) if @sound!=nil && defined?(KlangtenRecordings) && KlangtenRecordings.recording?(@sound)
   Programs.emit_event(:player_close)
@@ -380,6 +399,7 @@ def detach
   @sound=nil
   @closed=true
   @pause=true
+  KlangtenMedia.player_closed(self) if defined?(KlangtenMedia)
   sound
 end
 

@@ -8,8 +8,9 @@
 
 # Headset and media buttons (Klangten 0.4): play/pause, next and previous of
 # a headset, a Bluetooth device, the lock screen or the media keys of a
-# keyboard control Klangten's playback - the background player or the
-# playlist, whichever plays (KlangtenMedia.quick_action).
+# keyboard control Klangten's playback - a player on the screen (one file, a
+# YouTube video), the background player or the playlist, whichever plays
+# (KlangtenMedia.quick_action).
 #
 # Where the buttons come from:
 #   iOS      remote commands (ios/Klangten/Sources/EltenHostBridge.swift)
@@ -162,6 +163,7 @@ module KlangtenMediaButtons
     def press(code)
       source = KlangtenMedia.source
       playing = case source
+                when :player then (player = KlangtenMedia.screen_player) != nil && !player.paused? && !player.completed
                 when :background then KlangtenBackgroundPlayer.playing?
                 when :playlist then KlangtenPlaylist.playing?
                 else false
@@ -194,6 +196,9 @@ module KlangtenMediaButtons
 
     def now_playing
       case KlangtenMedia.source
+      when :player
+        player = KlangtenMedia.screen_player
+        [player.recording_title.to_s, player.paused? ? 2 : 1]
       when :background
         player = KlangtenBackgroundPlayer
         [player.item&.title.to_s, player.playing? ? 1 : 2]

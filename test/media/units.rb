@@ -440,6 +440,81 @@ class MediaButtonsTest < Minitest::Test
     assert_equal ["Radio Eins", 1], FakeBackend.playing
   end
 
+  # What a player on the screen needs for the buttons (src/ui/controls/player.rb).
+  class ScreenPlayer
+    attr_reader :sound
+    attr_accessor :attended
+
+    def initialize(title)
+      @title = title
+      @sound = Sound.new("http://media.invalid/video.webm")
+      @paused = false
+      @attended = true
+    end
+
+    def attended?
+      @attended
+    end
+
+    def paused?
+      @paused
+    end
+
+    def completed
+      false
+    end
+
+    def play
+      @paused = false
+    end
+
+    def pause
+      @paused = true
+    end
+
+    def recording_title
+      @title
+    end
+  end
+
+  # One file or a video on the screen takes the buttons too, not only the
+  # playlist and the background player.
+  def test_a_player_on_the_screen_takes_the_buttons
+    KlangtenMediaButtons.enabled = true
+    player = ScreenPlayer.new("Ein Video")
+    KlangtenMedia.player_started(player)
+    KlangtenMediaButtons.tick
+    assert_equal true, FakeBackend.enabled
+    assert_equal ["Ein Video", 1], FakeBackend.playing
+    FakeBackend.pressed = [KlangtenMediaButtons::TOGGLE]
+    KlangtenMediaButtons.tick
+    assert player.paused?
+    assert_equal ["Ein Video", 2], FakeBackend.playing
+    FakeBackend.pressed = [KlangtenMediaButtons::PLAY]
+    KlangtenMediaButtons.tick
+    refute player.paused?
+    KlangtenMedia.player_closed(player)
+    KlangtenMediaButtons.tick
+    assert_equal false, FakeBackend.enabled
+  ensure
+    KlangtenMedia.player_closed(player)
+  end
+
+  # A paused player left behind in a form does not keep the buttons.
+  def test_a_paused_player_nobody_uses_lets_go
+    KlangtenMediaButtons.enabled = true
+    player = ScreenPlayer.new("Anhang")
+    KlangtenMedia.player_started(player)
+    KlangtenMediaButtons.tick
+    assert_equal true, FakeBackend.enabled
+    player.attended = false
+    KlangtenMediaButtons.tick
+    assert_equal false, FakeBackend.enabled
+    assert_nil KlangtenMedia.source
+  ensure
+    KlangtenMedia.player_closed(player)
+  end
+
   def test_buttons_are_ignored_while_switched_off
     KlangtenBackgroundPlayer.play(item(title: "Radio Eins", kind: :radio))
     opened_sound

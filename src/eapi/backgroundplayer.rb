@@ -569,9 +569,29 @@ module KlangtenMedia
       KlangtenBackgroundPlayer.pause if KlangtenBackgroundPlayer.playing?
     end
 
-    # Which background player the generic actions control: the one started
-    # last while it is still there, otherwise the other one.
+    # A player on the screen (one file, a video, an attachment) started to
+    # play: until it is closed it gets the media buttons and the player keys.
+    def player_started(player)
+      @player = player
+    end
+
+    def player_closed(player)
+      @player = nil if @player.equal?(player)
+    end
+
+    # The player on the screen while it plays or is in use, otherwise nil.
+    def screen_player
+      player = @player
+      player != nil && player.attended? ? player : nil
+    rescue StandardError
+      nil
+    end
+
+    # Which player the generic actions control: a player on the screen first
+    # (opening it paused the others), then the background player started last
+    # while it is still there, otherwise the other one.
     def source
+      return :player if screen_player != nil
       background = KlangtenBackgroundPlayer.active?
       playlist = KlangtenPlaylist.active?
       return @last if @last == :background && background
@@ -683,6 +703,7 @@ module KlangtenMedia
         return open_player
       end
       case source
+      when :player then player_action(action)
       when :background then background_action(action)
       when :playlist then playlist_action(action)
       else
@@ -695,6 +716,8 @@ module KlangtenMedia
     def open_player
       return if defined?(GlobalMenu) && GlobalMenu.opened?
       case source
+      when :player
+        alert(player_status_text(screen_player), false)
       when :background
         insert_scene(Scene_NowPlaying.new)
       when :playlist
@@ -704,7 +727,50 @@ module KlangtenMedia
       end
     end
 
+    # Title and state of a player on the screen, like the playlist says it.
+    def player_status_text(player)
+      return p_("Klangten", "Nothing is playing in the background.") if player == nil
+      label = player.paused? ? p_("Klangten", "Paused: %{title}") : p_("Klangten", "Playing: %{title}")
+      text = label % { title: player.recording_title }
+      sound = player.sound
+      if sound != nil && !sound.closed? && sound.length.to_f > 0
+        text += ", " + p_("Klangten", "%{position} of %{length}") % { position: KlangtenPlaylist.format_duration(sound.position), length: KlangtenPlaylist.format_duration(sound.length) }
+      end
+      text
+    end
+
     private
+
+    # The player on the screen: the same steps as its own keys.
+    def player_action(action)
+      player = screen_player
+      return if player == nil
+      sound = player.sound
+      case action
+      when :toggle
+        if player.paused? || player.completed
+          player.play
+        else
+          player.pause
+          alert(p_("Klangten", "Paused"), false)
+        end
+      when :stop
+        player.stop
+        sound.position = 0 if sound != nil && !sound.closed?
+        alert(p_("Klangten", "Stopped"), false)
+      when :volume_down, :volume_up
+        before = sound.volume
+        step = action == :volume_up ? 0.05 : -0.05
+        sound.volume = (before + step).clamp(0.05, 1.0)
+        play_sound("border") if sound.volume == before
+      when :status
+        alert(player_status_text(player), false)
+      when :record
+        player.toggle_recording
+      when :next, :previous
+        play_sound("border")
+      end
+    end
 
     def background_action(action)
       player = KlangtenBackgroundPlayer
