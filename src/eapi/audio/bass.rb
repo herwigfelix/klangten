@@ -252,7 +252,15 @@ module Bass
 
   def self.create_url_stream(url, pos = 0, flags = 0, download_proc = 0, user = 0)
     prewarm_url_loader if @init == true && @url_loader_prewarm_started != true
-    raw_create_url_stream(url, pos, flags, download_proc, user)
+    # Klangten: BASS followed playlist addresses (.m3u, .pls ...) by itself,
+    # FFmpeg does not - see src/eapi/audio/stream_playlists.rb.
+    target = KlangtenStreamPlaylists.address?(url) ? (KlangtenStreamPlaylists.resolve(url) || url) : url
+    channel = raw_create_url_stream(target, pos, flags, download_proc, user)
+    # An address without a telling extension can still be a playlist.
+    if channel == 0 && target.equal?(url) && (resolved = KlangtenStreamPlaylists.resolve(url)) != nil
+      channel = raw_create_url_stream(resolved, pos, flags, download_proc, user)
+    end
+    channel
   end
 
   def self.prewarm_url_loader(url = nil)

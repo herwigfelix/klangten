@@ -130,6 +130,7 @@ src/platforms/osx/eapi/clipboard.rb :osx
 src/platforms/ios/eapi/clipboard.rb :ios
 src/platforms/linux/eapi/clipboard.rb :linux
 src/scenes/authentication.rb
+src/eapi/audio/stream_playlists.rb
 src/eapi/audio/bass.rb
 src/eapi/audio/sound.rb
 src/eapi/audio/soundpool.rb

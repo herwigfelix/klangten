@@ -32,4 +32,8 @@ class MediaTestFiles < Minitest::Test
   def test_stream_recording_with_bass
     run_file("bass_recording.rb")
   end
+
+  def test_stream_playlists
+    run_file("stream_playlists.rb")
+  end
 end
