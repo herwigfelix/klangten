@@ -145,6 +145,7 @@ class Scene_Changes
 ["0.23", "2026-10-03", Klangten::Config::PRODUCT_NAME],
 ["0.3", "2026-10-05", Klangten::Config::PRODUCT_NAME],
 ["0.4", "2026-10-12", Klangten::Config::PRODUCT_NAME],
+["0.41", "2026-10-13", Klangten::Config::PRODUCT_NAME],
 ]
 @changes=versions.map{|v|
 verdots=v[0].delete(".").split("").join(".")
