@@ -84,6 +84,7 @@ class KlangtenPlaylistView
   end
 
   def focus
+    give_way_to_playlist
     @sel.focus
   end
 
@@ -174,10 +175,24 @@ class KlangtenPlaylistView
   # action): the playlist shows it.
   def follow_playlist
     return if !@follow
+    if give_way_to_playlist
+      @sel.focus
+      return
+    end
     current = KlangtenPlaylist.current_list
     return if current == nil || current.equal?(@followed)
     @followed = current
     show(current) if !current.equal?(@list)
+  end
+
+  # Another list shown here that has become empty makes way for the playlist
+  # (KlangtenPlaylist.shown_list). Returns true when the list was switched.
+  def give_way_to_playlist
+    return false if !@follow || @list.internal? || !@list.empty?
+    shown = KlangtenPlaylist.shown_list
+    return false if shown.equal?(@list) || shown.empty?
+    show(shown)
+    true
   end
 
   # A Spotify track the playlist skipped (Premium, not available).

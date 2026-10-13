@@ -60,6 +60,22 @@ class PlaylistTabFlowTest < KlangtenTest::FlowTest
     assert_equal :actions, k.call { k.scene.current_main_section }
   end
 
+  # A list played after the own playlist does not hide it once it is empty:
+  # the tab stays and shows "My playlist" again.
+  def test_an_emptied_list_gives_way_to_my_playlist
+    k = logged_in
+    k.call { KlangtenPlaylist.internal.add(KlangtenPlaylist::Entry.new(File.join(work_dir, "missing", "gamma.mp3"), "Gamma")) }
+    play_made_list(k)
+    k.move_to("Playlist: Made list")
+    k.press("delete")
+    k.expect("Beta")
+    k.press("delete")
+    k.expect("My playlist")
+    k.expect("Gamma")
+    assert_equal :playlist, k.call { k.scene.current_main_section }
+    assert k.call { KlangtenPlaylist.shown_list.internal? }
+  end
+
   def test_volume_and_moving_with_alt
     k = logged_in
     play_made_list(k)

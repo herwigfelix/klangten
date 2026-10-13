@@ -639,8 +639,12 @@ module KlangtenPlaylist
     # Klangten 0.4: "the playlist" of the menu and the main window, like in
     # Klango - the list that plays or played last (also a Spotify list),
     # otherwise the internal one.
+    # A list that has become empty (its entries removed) gives way to the
+    # internal playlist again, so that one never hides behind it.
     def shown_list
-      @list || internal
+      list = @list
+      return list if list != nil && (list.internal? || !list.empty?)
+      internal
     end
 
     # Index of the playing entry in its list, nil when it is not playing.
