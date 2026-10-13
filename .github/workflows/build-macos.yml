@@ -58,6 +58,10 @@ jobs:
           brew list ruby-install >/dev/null 2>&1 || brew install ruby-install
           # YJIT ist Pflicht (der Launcher startet Ruby mit --yjit) und braucht rustc.
           command -v rustc >/dev/null 2>&1 || brew install rust
+          # Die Laufzeit im Cache verweist mit fiddle.bundle auf Homebrews
+          # libffi; neuere Runner-Abbilder bringen es nicht mehr mit, dann
+          # findet der Paketbau die Bibliothek nicht (v0.4.1, erster Versuch).
+          brew list libffi >/dev/null 2>&1 || brew install libffi
           cmake --version
           rustc --version
 
