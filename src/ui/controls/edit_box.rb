@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; the touch on-screen keyboard can edit the text already in the field; quick translation stays silent when the translation failed; links can be opened in the Klangten browser or the system browser.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; the touch on-screen keyboard can edit the text already in the field; quick translation stays silent when the translation failed; links can be opened in the Klangten browser or the system browser; a finished recording plays again with Space.
 
 module EltenAPI
   module Controls
@@ -135,7 +135,7 @@ end
       if @audioplayer!=nil and key_pressed?(:key_escape)
           blur
       elsif @audioplayer!=nil && (key_first_pressed?(0x20) || touch_activate!)
-        if @audioplayer.paused?
+        if @audioplayer.paused? || @audioplayer.completed
           Programs.emit_event(:player_play)
           dialog_mute
           @audioplayer.play

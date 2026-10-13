@@ -941,6 +941,12 @@ KA_API int KA_ChannelPlay(KAHANDLE handle, int restart) {
     }
     dev = device_get(ch->device);
     if (!dev) return ka_set_error(KA_ERROR_START);
+    /* As BASS: a channel that has played to its end starts again from the
+     * beginning (players replay a finished voice post this way). */
+    if (!restart && ch->state == KA_ACTIVE_STOPPED) {
+        if (ch->kind == KA_KIND_SAMPLE) restart = ch->sample && ch->sample_pos >= ch->sample->frames;
+        else if (ch->kind != KA_KIND_PUSH && ch->ops->seek) restart = ch->ended && ka_rb_available(ch) == 0;
+    }
     if (restart) {
         if (ch->kind == KA_KIND_SAMPLE) ch->sample_pos = 0;
         else if (ch->kind == KA_KIND_PUSH) { ka_rb_clear(ch); ch->ended = 0; }   /* restart drops queued data */

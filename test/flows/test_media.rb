@@ -9,7 +9,8 @@
 # Media features of Klangten 0.4 in the real Klangten, offline: a player
 # hands its sound to the background (B), the player of what plays in the
 # background (F7) and the player quick actions, recording what plays (R),
-# podcast bookmarks, and recording from the microphone (Control+F11).
+# podcast bookmarks, recording from the microphone (Control+F11), and
+# playing a finished voice post again.
 # The audio is a generated WAV file; BASS plays on its silent device, and
 # archive.org is a local server. Needs the test harness (test/support,
 # branch k04-tests); the unit tests of the same features are in test/media.
@@ -22,10 +23,10 @@ class MediaFlowTest < KlangtenTest::FlowTest
   SERVICE_THREADS = %w[klangten-background-player klangten-playlist].freeze
 
   # A minute of a quiet 440 Hz tone, 16 bit stereo.
-  def tone_file
-    path = File.join(work_dir, "tone.wav")
+  def tone_file(seconds = 60)
+    path = File.join(work_dir, "tone#{seconds}.wav")
     rate = 22_050
-    samples = (0...rate * 60).map { |index| (Math.sin(2 * Math::PI * 440 * index / rate) * 3000).to_i }
+    samples = (0...rate * seconds).map { |index| (Math.sin(2 * Math::PI * 440 * index / rate) * 3000).to_i }
     data = samples.flat_map { |sample| [sample, sample] }.pack("s<*")
     header = ["RIFF", 36 + data.bytesize, "WAVE", "fmt ", 16, 1, 2, rate, rate * 4, 4, 16, "data", data.bytesize].pack("a4Va4a4VvvVVvva4V")
     File.binwrite(path, header + data)
@@ -206,5 +207,41 @@ class MediaFlowTest < KlangtenTest::FlowTest
     path = File.join(work_dir, "recordings", "Microphone", "recording 001.mp3")
     assert File.file?(path), "no recording in #{path}"
     assert File.size(path) > 1000, "the recording is empty"
+  end
+
+  # Regression (0.4): a voice post (a text field with a recording, as in the
+  # forum) that had played to its end could not be played again until the
+  # thread was left: Space took it for playing and paused it, and the sound
+  # engine kept the finished stream at its end. Space now plays it again
+  # from the beginning.
+  def test_a_finished_voice_post_plays_again_with_space
+    k = klangten
+    start(k)
+    file = tone_file(1)
+    field = nil
+    k.call do
+      field = EditBox.new("Voice post", type: EditBox::Flags::ReadOnly, text: "", quiet: true)
+      field.audio_url = file
+    end
+    k.call(settle: false) { Form.new([field]).wait }
+    k.settle
+    player = -> { field.instance_variable_get(:@audioplayer) }
+    refute_nil player.call, "the field has no player"
+    k.press("space") if player.call.paused?
+    wait_until(5) { player.call.completed }
+    assert player.call.completed, "the voice post did not play to its end"
+    k.press("space")
+    sleep(0.3)
+    sound = player.call.sound
+    assert sound.playing?, "the finished voice post does not play again"
+    assert_operator sound.position, :<, 0.9, "the voice post did not start from the beginning"
+    refute player.call.completed
+  end
+
+  def wait_until(seconds)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + seconds
+    until yield || Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+      sleep(0.1)
+    end
   end
 end

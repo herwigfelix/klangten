@@ -3,7 +3,7 @@
 # Elten is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 # Elten is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with Elten. If not, see <https://www.gnu.org/licenses/>.
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: touch gestures; recording what plays (R) and continuing in the background (B).
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: touch gestures; recording what plays (R) and continuing in the background (B); a finished sound plays again from the beginning.
 
 module EltenAPI
   module Controls
@@ -86,7 +86,7 @@ super
   return if @sound!=nil && @sound.closed?
   # Klangten: on touch devices a double tap plays and pauses, as Space does.
   if get_sound!=nil && touch_activate!
-    @pause==true ? play : pause
+    (@pause==true || completed) ? play : pause
   end
     boundary_action=keyboard_action_pressed?(:player_start, :player_end)
     # Klangten: a recording takes what is heard; jumping would cut holes into it.
@@ -306,6 +306,8 @@ def play
   return if @closed
   sound=get_sound
   return if sound==nil || sound.closed?
+  # Klangten: a sound that has played to its end starts again from the beginning.
+  sound.position=0 if completed
   @pause=false
   Programs.emit_event(:player_play)
   sound.play
@@ -335,7 +337,10 @@ def paused?
 
 def completed
   return true if get_sound==nil
-  get_sound.length>0 && get_sound.position>=get_sound.length-0.05
+  return true if get_sound.length>0 && get_sound.position>=get_sound.length-0.05
+  # Klangten: the length of a stream is often only an estimate, so the end is
+  # also when the sound stopped by itself while it was meant to play.
+  @pause!=true && get_sound.finished?
   end
 
 def fade
@@ -421,7 +426,7 @@ def context(menu, submenu=false)
   if get_sound!=nil && !get_sound.closed?
     menu.option(p_("EAPI_Form", "Play/pause"), nil, :space) {
     if get_sound!=nil
-                    if @pause!=true
+                    if @pause!=true && !completed
                   pause
       else
         play

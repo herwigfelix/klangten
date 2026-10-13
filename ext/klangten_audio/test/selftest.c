@@ -172,6 +172,12 @@ int main(int argc, char **argv) {
     sleep_ms(1200);
     CHECK(KA_ChannelIsActive(h) == KA_ACTIVE_STOPPED, "finished after 1 s (state %u)", KA_ChannelIsActive(h));
     CHECK(KA_ChannelBytes2Seconds(h, KA_ChannelGetPosition(h, KA_POS_BYTE)) > 0.95, "position at the end");
+    /* as BASS: playing a finished channel starts it from the beginning */
+    CHECK(KA_ChannelPlay(h, 0) && KA_ChannelIsActive(h) == KA_ACTIVE_PLAYING, "finished stream plays again");
+    sleep_ms(300);
+    CHECK(KA_ChannelBytes2Seconds(h, KA_ChannelGetPosition(h, KA_POS_BYTE)) < 0.6, "replay starts at the beginning");
+    KA_ChannelStop(h);
+    CHECK(KA_ChannelPlay(h, 0) && KA_ChannelBytes2Seconds(h, KA_ChannelGetPosition(h, KA_POS_BYTE)) > 0.2, "a stopped stream resumes where it was");
     KA_ChannelSlideAttribute(h, KA_ATTRIB_VOL, 0.0f, 100);
     CHECK(KA_ChannelIsSliding(h, KA_ATTRIB_VOL), "volume slides");
     KA_StreamFree(h);
@@ -194,6 +200,7 @@ int main(int argc, char **argv) {
     CHECK(sch != 0 && KA_ChannelPlay(sch, 0), "play sample");
     sleep_ms(1200);
     CHECK(KA_ChannelIsActive(sch) == KA_ACTIVE_STOPPED, "sample finished");
+    CHECK(KA_ChannelPlay(sch, 0) && KA_ChannelIsActive(sch) == KA_ACTIVE_PLAYING, "finished sample plays again");
     CHECK(KA_SampleFree(smp), "free sample");
 
     /* 10. recording on the null device gives silence */
