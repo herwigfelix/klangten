@@ -286,13 +286,18 @@ static int ensure_contexts(void) {
          * capture context switches to playAndRecord only while recording. */
         cc.coreaudio.sessionCategory = ma_ios_session_category_playback;
         cc.coreaudio.sessionCategoryOptions = 0;
+        cc.coreaudio.noAudioSessionDeactivate = MA_TRUE;
         if (ma_context_init(NULL, 0, &cc, &g_ctx) == MA_SUCCESS) g_ctx_ready = 1;
     }
     return g_null_ctx_ready;
 }
 
 /* iOS: recording needs the playAndRecord category; it is set by a context
- * of its own and given back (playback) when the recording device is freed. */
+ * of its own and given back (playback) when the recording device is freed.
+ * The audio session is shared by the whole app: none of these contexts may
+ * deactivate it when it goes away (miniaudio's default), or the playback
+ * device, still running, is left without a session and Klangten goes silent
+ * after every recording. */
 #if defined(__APPLE__) && TARGET_OS_IPHONE
 static ma_context g_rec_ctx;
 static int g_rec_ctx_ready;
@@ -303,6 +308,7 @@ static ma_context *capture_context(void) {
         ma_context_config cc = ma_context_config_init();
         cc.coreaudio.sessionCategory = ma_ios_session_category_play_and_record;
         cc.coreaudio.sessionCategoryOptions = ma_ios_session_category_option_allow_bluetooth | ma_ios_session_category_option_default_to_speaker;
+        cc.coreaudio.noAudioSessionDeactivate = MA_TRUE;
         if (ma_context_init(NULL, 0, &cc, &g_rec_ctx) == MA_SUCCESS) g_rec_ctx_ready = 1;
     }
     return g_rec_ctx_ready ? &g_rec_ctx : &g_ctx;
@@ -310,6 +316,9 @@ static ma_context *capture_context(void) {
     return &g_ctx;
 #endif
 }
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+static void restart_playback_devices(void);
+#endif
 void ka_capture_release(void) {
 #if defined(__APPLE__) && TARGET_OS_IPHONE
     if (g_rec_ctx_ready) {
@@ -318,7 +327,11 @@ void ka_capture_release(void) {
         ma_context_uninit(&g_rec_ctx);
         g_rec_ctx_ready = 0;
         cc.coreaudio.sessionCategory = ma_ios_session_category_playback;
+        cc.coreaudio.noAudioSessionDeactivate = MA_TRUE;
         if (ma_context_init(NULL, 0, &cc, &restore) == MA_SUCCESS) ma_context_uninit(&restore);
+        /* The category change reroutes the output (a Bluetooth headset goes
+         * back from hands-free to A2DP); start the output unit afresh. */
+        restart_playback_devices();
     }
 #endif
 }
@@ -418,6 +431,19 @@ static void device_remove_channel(ka_device *dev, ka_channel *ch) {
     }
     ch->in_mixer = 0;
 }
+
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+static void restart_playback_devices(void) {
+    int i;
+    for (i = 0; i < KA_MAX_DEVICES; i++) {
+        ka_device *dev = &g_devices[i];
+        if (!dev->initialized || dev->is_null) continue;
+        if (ma_device_get_state(&dev->device) != ma_device_state_started) continue;
+        ma_device_stop(&dev->device);
+        ma_device_start(&dev->device);
+    }
+}
+#endif
 
 static ka_device *device_get(int index) {
     if (index < 0 || index >= KA_MAX_DEVICES) return NULL;
