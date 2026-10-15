@@ -753,8 +753,7 @@ class Scene_YouTube
         stream = KlangtenYouTube.original_audio(video)
         return no_stream if stream == nil
         target = with_extension(target, "." + stream.container) if stream.container.to_s != ""
-        return nil unless download_file(stream.url, target, override: true)
-        target
+        download_task(title) { |token, report| KlangtenYouTube.download_stream(stream.url, target, token: token, &report) }
       end
     when :audio
       source = if KlangtenYouTube.desktop?
@@ -763,7 +762,14 @@ class Scene_YouTube
         video = resolve(item, fresh: true)
         stream = video == nil ? nil : KlangtenYouTube.original_audio(video)
         no_stream if video != nil && stream == nil
-        stream == nil ? nil : stream.url
+        # Fetched first: the encoder reading the address itself gets the
+        # slowed single request (KlangtenYouTube.download_stream).
+        if stream != nil
+          temp = KlangtenYouTube.new_temp_dir
+          name = "download." + (stream.container.to_s == "" ? "m4a" : stream.container.to_s)
+          path = File.join(temp, name)
+          download_task(title) { |token, report| KlangtenYouTube.download_stream(stream.url, path, token: token, &report) }
+        end
       end
       return nil if source == nil
       encode(format.encoder, source, target, item)

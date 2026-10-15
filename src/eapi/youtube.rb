@@ -112,6 +112,9 @@ module KlangtenYouTube
 
   Result = Struct.new(:status, :output, :errors, keyword_init: true)
 
+  # Bytes per request of a stream download (KlangtenYouTube.download_stream).
+  STREAM_PIECE = 10 * 1024 * 1024
+
   class Error < StandardError; end
 
   # yt-dlp is not installed (desktop) or the platform has no YouTube support.
@@ -413,6 +416,53 @@ module KlangtenYouTube
                 .max_by { |path| File.size(path) }
       raise Error, failure_message(result) if file == nil
       file
+    end
+
+    # Downloads a stream address from the extractor (phones) into destination.
+    # YouTube slows a whole stream fetched in one request down to about
+    # playback speed; pieces of up to 10 MB arrive at full speed, which is
+    # what yt-dlp and NewPipe do. The block receives the percentage.
+    def download_stream(url, destination, token: nil, &progress)
+      pieces = stream_pieces(url)
+      total = stream_length(url).to_i
+      done = 0
+      File.open(destination, "wb") do |file|
+        pieces.each_with_index do |(address, size), index|
+          part = destination + ".part"
+          begin
+            got = http_download(address, part, token) do |percent|
+              next if progress == nil
+              progress.call(total > 0 ? ((done + size * percent / 100.0) * 100.0 / total).floor : percent)
+            end
+            raise Error, "Incomplete piece #{index + 1} of #{pieces.size}" if size > 0 && got != size
+            File.open(part, "rb") { |input| IO.copy_stream(input, file) }
+          ensure
+            File.delete(part) if File.file?(part)
+          end
+          done += got
+        end
+      end
+      progress.call(100) if progress != nil
+      destination
+    rescue Exception
+      File.delete(destination) if File.file?(destination) rescue nil
+      raise
+    end
+
+    # [[address, bytes], ...]; one piece of unknown size when the address
+    # does not carry its length (clen) or is not a YouTube stream.
+    def stream_pieces(url)
+      length = stream_length(url)
+      return [[url.to_s, 0]] if length == nil || !url.to_s.match?(%r{\Ahttps://[^/?#]*\.googlevideo\.com/})
+      (0...length).step(STREAM_PIECE).map do |start|
+        last = [start + STREAM_PIECE, length].min - 1
+        ["#{url}&range=#{start}-#{last}", last - start + 1]
+      end
+    end
+
+    def stream_length(url)
+      value = url.to_s[/[?&]clen=(\d+)/, 1]
+      value == nil || value.to_i <= 0 ? nil : value.to_i
     end
 
     # ffmpeg for merging video and audio, from the FFmpeg encoders when they
