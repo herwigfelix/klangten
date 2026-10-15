@@ -25,7 +25,7 @@ module EltenAPI
         err = 0
       rescue EltenLink::Error => e
         Log.warning("Bug report failed: #{e.message}")
-        err = e.code.to_i
+        err = e.legacy_code
       end
       if err != 0
         alert(_("Error"))

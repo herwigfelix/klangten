@@ -21,7 +21,7 @@ class Scene_Contacts
       rescue EltenLink::Error => e
         Log.warning("Contacts list failed: #{e.message}")
         @contact = []
-        err = e.code.to_i
+        err = e.legacy_code
       end
     case err
     when -1
@@ -133,7 +133,8 @@ loop_update
                 err = 0
               rescue EltenLink::Error => e
                 Log.warning("Contact add failed: #{e.message}")
-                err = e.code.to_i
+                err = e.legacy_code
+                errmsg = e.message
               end
           else
             err=-5
@@ -154,6 +155,9 @@ loop_update
                     when -5
                       alert(p_("Contacts", "This user does not exist."))
                       $scene = Scene_Contacts.new
+                    else
+                      alert(errmsg || _("Error"))
+                      $scene = @scene
                     end
                                       $scene = Scene_Contacts.new if $scene == nil
                                 end
@@ -174,7 +178,8 @@ loop_update
                           err = 0
                         rescue EltenLink::Error => e
                           Log.warning("Contact delete failed: #{e.message}")
-                          err = e.code.to_i
+                          err = e.legacy_code
+                          errmsg = e.message
                         end
             case err
             when 0
@@ -192,6 +197,9 @@ loop_update
                     when -5
                       alert(p_("Contacts", "This user does not exist."))
                       $scene = Scene_Contacts.new
+                    else
+                      alert(errmsg || _("Error"))
+                      $scene = @scene
                     end
                     $scene = Scene_Contacts.new if $scene == nil
             end

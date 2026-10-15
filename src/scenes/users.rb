@@ -19,7 +19,7 @@ class Scene_Users
     rescue EltenLink::Error => e
       Log.warning("Users list failed: #{e.message}")
       usr = []
-      err = e.code.to_i
+      err = e.legacy_code
     end
     case err
     when -1

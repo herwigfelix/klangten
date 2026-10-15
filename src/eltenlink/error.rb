@@ -54,6 +54,20 @@ module EltenLink
       error_payload["status"]
     end
 
+    # Klangten: Elten's old numeric result code for scenes that still branch on
+    # it (0 = success, -2 = token expired, -3 = no permission). Never 0: the
+    # server's codes are strings ("forbidden"), and "forbidden".to_i is 0, which
+    # made a refused ban announce "Banned.".
+    def legacy_code
+      n = code.to_s =~ /\A-?\d+\z/ ? code.to_i : 0
+      return n if n != 0
+      case status.to_i
+      when 401 then -2
+      when 403 then -3
+      else -1000
+      end
+    end
+
     def error_payload
       error = @response["error"] if @response.is_a?(Hash)
       error.is_a?(Hash) ? error : {}

@@ -68,12 +68,13 @@ def update
              err = 0
            rescue EltenLink::Error => e
              Log.warning("Ban failed: #{e.message}")
-             err = e.code.to_i
+             err = e.legacy_code
+             errmsg = e.message
            end
 if err == 0
   alert(p_("Ban", "Banned."))
 else
-  alert(_("Error"))
+  alert(errmsg || _("Error"))
 end
 speech_wait
 if @scene == nil
@@ -127,14 +128,15 @@ class Scene_Ban_Unban
         err = 0
       rescue EltenLink::Error => e
         Log.warning("Unban failed: #{e.message}")
-        err = e.code.to_i
+        err = e.legacy_code
+        errmsg = e.message
       end
 if err == 0
   alert(p_("Ban", "Unbanned."))
 speech_wait
 break
   else
-  alert(_("Error"))
+  alert(errmsg || _("Error"))
 end
 end
 end

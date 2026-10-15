@@ -14,7 +14,7 @@ module EltenAPI
       rescue EltenLink::Error => e
         Log.warning("Select contact list failed: #{e.message}")
         contact = []
-        err = e.code.to_i
+        err = e.legacy_code
       end
       case err
       when -1
