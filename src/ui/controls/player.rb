@@ -31,6 +31,9 @@ module EltenAPI
                                                                                                             if file.is_a?(Sound)
                                                          @sound=file
   @file=@sound.file
+  # Klangten: a supplied Sound needs its base frequency too, or Shift+Up/Down
+  # (the two-finger swipe on phones) fails on nil.
+  @basefrequency=@sound.basefrequency || @sound.frequency
 elsif !lazy
                                                        get_sound
   end
