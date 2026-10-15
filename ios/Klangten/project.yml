@@ -46,7 +46,7 @@ targets:
         # Nur iPhone: eine iPad-App muesste alle vier Ausrichtungen koennen und
         # braeuchte eigene Bildschirmfotos; auf dem iPad laeuft sie trotzdem.
         TARGETED_DEVICE_FAMILY: "1"
-        MARKETING_VERSION: "0.4.0"
+        MARKETING_VERSION: "0.4.2"
         CURRENT_PROJECT_VERSION: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Kein strip beim Archivieren: er entfernt aus der ausfuehrbaren Datei auch
