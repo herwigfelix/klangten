@@ -112,6 +112,15 @@ module KlangtenYouTube
 
   Result = Struct.new(:status, :output, :errors, keyword_init: true)
 
+  # Freshly issued stream addresses of some YouTube clients are refused for
+  # the first seconds: measured on 2026-11-02 with the TVHTML5 client, HTTP
+  # 403 at 0 and 2 s, 206 from about 4 s on, every time. Opening them at once
+  # made every format fail within the same second ("This video has no audio
+  # stream that can be played"). A fresh resolution therefore waits until
+  # the best stream answers, at most this long.
+  STREAM_READY_SECONDS = 15
+  STREAM_READY_STEP = 1.0
+
   # Bytes per request of a stream download (KlangtenYouTube.download_stream).
   STREAM_PIECE = 10 * 1024 * 1024
 
@@ -333,8 +342,48 @@ module KlangtenYouTube
       entry = @video_cache[id]
       return entry[1] if cached && entry != nil && Time.now.to_f - entry[0] < VIDEO_CACHE_SECONDS
       result = desktop? ? desktop_video(id, token) : host_video(id)
+      await_ready_stream(result, token) if !cached && desktop?
       @video_cache[id] = [Time.now.to_f, result]
       result
+    end
+
+    # Waits until the best audio stream of a freshly resolved video answers
+    # (see STREAM_READY_SECONDS). Returns true when it does; false when it
+    # still refuses after the limit - the player then tries anyway, and the
+    # other formats after it.
+    def await_ready_stream(video, token)
+      stream = best_audio(video)
+      return true if stream == nil
+      deadline = monotonic + STREAM_READY_SECONDS
+      loop do
+        return true if stream_ready?(stream.url, token)
+        break if monotonic >= deadline
+        pause(STREAM_READY_STEP, token)
+      end
+      Log.warning("YouTube: the stream of #{video.id} still refused after #{STREAM_READY_SECONDS} s")
+      false
+    end
+
+    # One byte with a range request: a refused address answers 403.
+    def stream_ready?(url, token)
+      outcome = Queue.new
+      worker = EltenAPI::HTTPClient.readurl(url.to_s, "get", nil, { "Range" => "bytes=0-0" }, nil, cancellation_token: token) do |body, _data, _headers|
+        outcome << body
+      end
+      body = wait_for(outcome, worker, token)
+      body != nil && body != :error
+    end
+
+    def pause(seconds, token)
+      deadline = monotonic + seconds
+      while monotonic < deadline
+        token.raise_if_cancelled! if token != nil
+        sleep(0.05)
+      end
+    end
+
+    def monotonic
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
 
     def video_id(id_or_url)
