@@ -19,6 +19,7 @@
 #define sleep_ms(ms) usleep((ms) * 1000)
 #endif
 #include "klangten_audio.h"
+#include "ka_capture_fix.h"
 
 static int failures, checks;
 #define CHECK(cond, ...) do { checks++; if (!(cond)) { failures++; printf("FAIL %s:%d: ", __FILE__, __LINE__); printf(__VA_ARGS__); printf(" (error %d)\n", KA_ErrorGetCode()); } } while (0)
@@ -49,6 +50,60 @@ static int64_t read_all(KAHANDLE h, int chans, float *peak) {
         frames += n / 4 / chans;
     }
     return frames;
+}
+
+/* Microphone on one side only (a phone with one microphone asked for
+ * stereo): it must end up in the middle; real stereo stays untouched. */
+static void test_capture_center(void) {
+    float in[8 * 2], out[8 * 2];
+    int state, i, same;
+
+    /* left only: decided at the first sound, right becomes left */
+    state = KA_CAPTURE_UNDECIDED;
+    for (i = 0; i < 8; i++) { in[2 * i] = 0.2f * (i % 2 ? 1 : -1); in[2 * i + 1] = 0; }
+    ka_capture_center(in, out, 8, 2, &state);
+    CHECK(state == KA_CAPTURE_LEFT_ONLY, "left-only microphone recognised (%d)", state);
+    for (same = 1, i = 0; i < 8; i++) if (out[2 * i] != in[2 * i] || out[2 * i + 1] != in[2 * i]) same = 0;
+    CHECK(same, "left-only microphone in the middle");
+    /* sticky: a later block with a little noise on the right stays mono */
+    for (i = 0; i < 8; i++) { in[2 * i] = 0.3f; in[2 * i + 1] = 0.002f; }
+    ka_capture_center(in, out, 8, 2, &state);
+    CHECK(state == KA_CAPTURE_LEFT_ONLY && out[1] == 0.3f, "mono decision kept");
+
+    /* right only: the mirror image */
+    state = KA_CAPTURE_UNDECIDED;
+    for (i = 0; i < 8; i++) { in[2 * i] = 0; in[2 * i + 1] = 0.25f; }
+    ka_capture_center(in, out, 8, 2, &state);
+    CHECK(state == KA_CAPTURE_RIGHT_ONLY && out[0] == 0.25f && out[1] == 0.25f, "right-only microphone in the middle");
+
+    /* real stereo: both sides alive and different, nothing changes */
+    state = KA_CAPTURE_UNDECIDED;
+    for (i = 0; i < 8; i++) { in[2 * i] = 0.4f; in[2 * i + 1] = -0.1f; }
+    ka_capture_center(in, out, 8, 2, &state);
+    CHECK(state == KA_CAPTURE_STEREO, "stereo microphone recognised (%d)", state);
+    for (same = 1, i = 0; i < 16; i++) if (out[i] != in[i]) same = 0;
+    CHECK(same, "stereo recording untouched");
+    /* ... also later, when one side goes quiet for a moment */
+    for (i = 0; i < 8; i++) { in[2 * i] = 0.4f; in[2 * i + 1] = 0; }
+    ka_capture_center(in, out, 8, 2, &state);
+    CHECK(out[1] == 0 && out[0] == 0.4f, "stereo decision kept");
+
+    /* silence: undecided, nothing on one side only */
+    state = KA_CAPTURE_UNDECIDED;
+    for (i = 0; i < 16; i++) in[i] = 0;
+    in[0] = 0.0005f;   /* faint noise on the left, dead right */
+    ka_capture_center(in, out, 8, 2, &state);
+    CHECK(state == KA_CAPTURE_UNDECIDED && out[1] == 0.0005f, "quiet start copied to both sides");
+
+    /* in place and mono pass through */
+    state = KA_CAPTURE_UNDECIDED;
+    for (i = 0; i < 8; i++) { in[2 * i] = 0.5f; in[2 * i + 1] = 0; }
+    ka_capture_center(in, in, 8, 2, &state);
+    CHECK(in[1] == 0.5f && in[15] == 0.5f, "in place");
+    for (i = 0; i < 8; i++) in[i] = 0.1f * i;
+    ka_capture_center(in, out, 8, 1, &state);
+    for (same = 1, i = 0; i < 8; i++) if (out[i] != in[i]) same = 0;
+    CHECK(same, "mono untouched");
 }
 
 int main(int argc, char **argv) {
@@ -234,6 +289,7 @@ int main(int argc, char **argv) {
     CHECK(KA_Free(), "free device");
     remove(mp3_path);
     free(wav);
+    test_capture_center();
     printf("%d checks, %d failed\n", checks, failures);
     return failures ? 1 : 0;
 }

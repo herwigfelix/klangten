@@ -23,6 +23,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
+#include "ka_capture_fix.h"
+
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+int ka_ios_prefer_stereo_input(void);   /* ka_miniaudio.c (Objective-C) */
+#endif
 
 ma_context *ka_capture_context(int device, ma_device_id **id_out, int *is_null);
 int ka_capture_device_info(int device, KA_DEVICEINFO *info);
@@ -76,10 +85,22 @@ static ma_device g_capture;
 static int g_capture_running;
 static ka_channel *g_capture_channel;
 
+static int g_capture_side;   /* ka_capture_fix.h: mono microphone on one side? */
+
 static void capture_callback(ma_device *d, void *output, const void *input, ma_uint32 frames) {
     ka_channel *ch = (ka_channel *)d->pUserData;
+    const float *in = (const float *)input;
+    float buf[1024 * 2];
     (void)output;
-    if (ch && ch->state == KA_ACTIVE_PLAYING && input) ka_rb_write(ch, (const float *)input, (int)frames);
+    if (!ch || ch->state != KA_ACTIVE_PLAYING || !in) return;
+    if (ch->chans != 2) { ka_rb_write(ch, in, (int)frames); return; }
+    while (frames > 0) {
+        ma_uint32 n = frames > 1024 ? 1024 : frames;
+        ka_capture_center(in, buf, (int)n, 2, &g_capture_side);
+        ka_rb_write(ch, buf, (int)n);
+        in += n * 2;
+        frames -= n;
+    }
 }
 
 static void capture_stop(void) {
@@ -164,6 +185,16 @@ KA_API KAHANDLE KA_RecordStart(uint32_t freq, uint32_t chans, uint32_t flags, vo
     cfg.sampleRate = (ma_uint32)ch->rate;
     cfg.dataCallback = capture_callback;
     cfg.pUserData = ch;
+    /* Android: the camcorder preset uses a stereo microphone where the phone
+     * has one (the default, voice recognition, is mono). iOS: the same through
+     * the built-in microphone's stereo polar pattern. Phones without one stay
+     * mono, and ka_capture_center puts that into the middle. */
+    cfg.aaudio.inputPreset = ma_aaudio_input_preset_camcorder;
+    cfg.opensl.recordingPreset = ma_opensl_recording_preset_camcorder;
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+    if (ch->chans == 2) ka_ios_prefer_stereo_input();
+#endif
+    g_capture_side = KA_CAPTURE_UNDECIDED;
     if (ma_device_init(ctx, &cfg, &g_capture) != MA_SUCCESS) { ka_free_channel(ch->handle); return ka_set_error(KA_ERROR_DEVICE); }
     g_capture_running = 1;
     g_capture_channel = ch;
