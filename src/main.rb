@@ -136,6 +136,14 @@ rescue Exception => error
   Log.error("Critical exception occurred, terminating!")
   fail
             ensure
+            # Klangten: shutting down - from here on Klangten ends within 20 s
+            # even if a thread hangs in a native call (src/eapi/exit_guard.rb).
+            KlangtenExitGuard.arm if defined?(KlangtenExitGuard)
+            # The thread of the global player and media keys waits in a
+            # native call; Ruby's exit would wait for it.
+            if defined?(KlangtenGlobalKeys) && defined?(KlangtenExitGuard) && KlangtenExitGuard.windows?
+              (KlangtenGlobalKeys.stop rescue nil)
+            end
             EltenAPI::Scheduler.shutdown(:client_shutdown) if defined?(EltenAPI::Scheduler)
             Programs::Extensions.shutdown(:client_shutdown) if defined?(Programs::Extensions)
             if $immediateexit!=true
@@ -160,6 +168,7 @@ terminate_process_handle(o)
   FileUtils.rm_rf(Dirs.temp)
   end
   Log.info("Exiting Elten")
+  KlangtenExitGuard.log_threads if defined?(KlangtenExitGuard)
     EltenTray.hide if defined?(EltenTray)
     if $exit_runproc!=nil
       Log.debug("Starting queued Processes")

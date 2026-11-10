@@ -258,6 +258,8 @@ src/eapi/dictionary.rb
 src/eapi/notifications.rb
 # Klangten: Android stays connected in the background (push without Google)
 src/eapi/background_connection.rb
+# Klangten: ends a shutdown that hangs in a native call (Windows)
+src/eapi/exit_guard.rb
 src/platforms/windows/invisibleinterface/nativedialogs.rb :windows
 src/platforms/windows/invisibleinterface/hotkeys.rb :windows
 src/platforms/windows/invisibleinterface/service.rb :windows

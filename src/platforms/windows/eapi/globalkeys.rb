@@ -10,13 +10,17 @@
 # on a thread of their own, the same way the Invisible Interface keys work
 # (src/platforms/windows/invisibleinterface/hotkeys.rb). A hot key belongs to
 # the thread that registered it and arrives in that thread's message queue,
-# so the thread registers the keys and then waits in GetMessage.
+# so the thread registers the keys and then waits for messages (in slices,
+# see run, so that it never keeps Klangten from ending).
 
 module KlangtenGlobalKeys
   module Backend
     MOD_NOREPEAT = 0x4000
     WM_HOTKEY = 0x0312
     WM_QUIT = 0x0012
+    PM_REMOVE = 0x0001
+    QS_ALLINPUT = 0x04FF
+    WAIT_SLICE_MS = 250
     # Apart from the Invisible Interface keys (0x8000 + virtual key).
     ID_BASE = 0xA000
     MSG_SIZE = Fiddle::SIZEOF_VOIDP == 8 ? 48 : 28
@@ -76,12 +80,24 @@ module KlangtenGlobalKeys
         end
         Log.info("Global player keys: #{actions.size} registered" + (failed.empty? ? "" : ", taken by others: #{failed.join(", ")}")) if defined?(Log)
         @registered_count = actions.size
-        loop do
-          result = @get_message.call(msg, 0, 0, 0)
-          break if result.to_i <= 0
-          next if EltenWin32.dword_value(msg, MESSAGE_OFFSET) != WM_HOTKEY
-          action = actions[EltenWin32.pointer_value(msg, WPARAM_OFFSET).to_i]
-          queue << action if action != nil
+        # Not GetMessage: it waits outside Ruby with nothing that can wake
+        # it, so Ruby's exit (which waits for every thread) hung for days
+        # whenever stop had not been called - the "klangten" process left
+        # over on Windows. Waiting in slices lets Ruby end the thread
+        # between two of them.
+        quit = false
+        until quit
+          @wait_messages.call(0, nil, 0, WAIT_SLICE_MS, QS_ALLINPUT)
+          while @peek_message.call(msg, 0, 0, 0, PM_REMOVE).to_i != 0
+            message = EltenWin32.dword_value(msg, MESSAGE_OFFSET)
+            if message == WM_QUIT
+              quit = true
+              break
+            end
+            next if message != WM_HOTKEY
+            action = actions[EltenWin32.pointer_value(msg, WPARAM_OFFSET).to_i]
+            queue << action if action != nil
+          end
         end
       rescue Exception => e
         @registered_count ||= 0
@@ -97,7 +113,7 @@ module KlangtenGlobalKeys
         @get_current_thread_id = Fiddle::Function.new(kernel32["GetCurrentThreadId"], [], Fiddle::TYPE_INT)
         @register_hotkey = Fiddle::Function.new(user32["RegisterHotKey"], [PTR, Fiddle::TYPE_INT, Fiddle::TYPE_INT, Fiddle::TYPE_INT], Fiddle::TYPE_INT)
         @unregister_hotkey = Fiddle::Function.new(user32["UnregisterHotKey"], [PTR, Fiddle::TYPE_INT], Fiddle::TYPE_INT)
-        @get_message = Fiddle::Function.new(user32["GetMessageW"], [Fiddle::TYPE_VOIDP, PTR, Fiddle::TYPE_INT, Fiddle::TYPE_INT], Fiddle::TYPE_INT)
+        @wait_messages = Fiddle::Function.new(user32["MsgWaitForMultipleObjects"], [Fiddle::TYPE_INT, Fiddle::TYPE_VOIDP, Fiddle::TYPE_INT, Fiddle::TYPE_INT, Fiddle::TYPE_INT], Fiddle::TYPE_INT)
         @peek_message = Fiddle::Function.new(user32["PeekMessageW"], [Fiddle::TYPE_VOIDP, PTR, Fiddle::TYPE_INT, Fiddle::TYPE_INT, Fiddle::TYPE_INT], Fiddle::TYPE_INT)
         @post_thread_message = Fiddle::Function.new(user32["PostThreadMessageW"], [Fiddle::TYPE_INT, Fiddle::TYPE_INT, PTR, PTR], Fiddle::TYPE_INT)
       end
