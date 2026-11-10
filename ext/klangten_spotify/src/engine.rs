@@ -969,6 +969,10 @@ async fn net<T>(
         Ok(Err(e)) => {
             if is_net_error(&e) {
                 note_trouble(&format!("{}: {}", what, e));
+            } else {
+                // Not a network problem (not found, refused, unreadable):
+                // still worth a line, or an empty list explains nothing.
+                crate::klog!("[spotify] {}: {}", what, e);
             }
             None
         }
@@ -1168,7 +1172,13 @@ async fn connect_session(interactive: bool) -> Result<Session, String> {
         None => return Err(NOT_LOGGED_IN.to_string()),
     };
 
-    let sess = Session::new(SessionConfig::default(), Some(cache));
+    // The client id must be the one the login was made with (OAuth with
+    // SPOTIFY_CLIENT_ID). librespot picks it by OS: on Android it would be
+    // the Android app's id, and Spotify then refused the stored login for
+    // every query ("Login request was denied: INVALID_CREDENTIALS").
+    let mut config = SessionConfig::default();
+    config.client_id = SPOTIFY_CLIENT_ID.to_string();
+    let sess = Session::new(config, Some(cache));
     // Reset before EVERY attempt: the flag is global and would otherwise
     // survive a change of account.
     librespot_core::session::reset_non_premium();
@@ -1332,10 +1342,32 @@ pub fn cancel_login() {
     }
 }
 
+/// Android: the authorization page that Klangten still has to open
+/// (`ks_take_login_url`). There is no xdg-open there, so librespot-oauth hands
+/// the address over instead (vendor/librespot-oauth/PATCHES.md).
+static LOGIN_URL: Mutex<Option<String>> = Mutex::new(None);
+
+#[cfg(target_os = "android")]
+fn remember_login_url(url: &str) {
+    if let Ok(mut slot) = LOGIN_URL.lock() {
+        *slot = Some(url.to_string());
+    }
+}
+
+/// The authorization page waiting to be opened by the host, once.
+pub fn take_login_url() -> Option<String> {
+    LOGIN_URL.lock().ok().and_then(|mut slot| slot.take())
+}
+
 /// OAuth PKCE login in the browser (blocking → spawn_blocking), with a time
 /// limit: if the user gives up, the engine thread should not wait forever.
 async fn oauth_login() -> Result<Credentials, String> {
     OAUTH_WAITING.store(true, Ordering::SeqCst);
+    if let Ok(mut slot) = LOGIN_URL.lock() {
+        *slot = None;
+    }
+    #[cfg(target_os = "android")]
+    librespot_oauth::set_url_opener(remember_login_url);
     let task = tokio::task::spawn_blocking(|| {
         use librespot_oauth::OAuthClientBuilder;
         let client = OAuthClientBuilder::new(SPOTIFY_CLIENT_ID, OAUTH_REDIRECT, OAUTH_SCOPES.to_vec())

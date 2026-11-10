@@ -100,6 +100,13 @@ jobs:
           ( cd "$RUNNER_TEMP/teamconference/lib" && bash build-mobile.sh android )
           echo "TEAMCONFERENCE_JNILIBS=$RUNNER_TEMP/teamconference/dist/mobile/android/jniLibs" >> "$GITHUB_ENV"
 
+      # Spotify (librespot, Rust) - Android only, iOS has no Spotify.
+      - name: Spotify-Bibliothek bauen
+        run: |
+          set -eu
+          rustup target add aarch64-linux-android
+          sh android/scripts/build-spotify.sh
+
       - name: Assets bereitstellen
         run: sh android/scripts/stage-assets.sh
 

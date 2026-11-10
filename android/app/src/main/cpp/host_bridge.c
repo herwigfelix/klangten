@@ -331,6 +331,70 @@ EXPORT void elten_host_media_now_playing(const char *title, int state) {
     clear_exception(env);
 }
 
+// --- background connection and system notifications (Klangten 0.4) -----------------
+// connection_service: on 1 start/update with `text`, 0 stop; 1 = done.
+// post_notification: 1 = shown. notifications_request: 1 = may post.
+// battery_exemption: request 0 asks the state, 1 shows the system's question;
+// 1 = exempt, 2 = question shown, 0 = not exempt.
+
+static jbyteArray utf8_bytes(JNIEnv *env, const char *text) {
+    jsize length = text != NULL ? (jsize)strlen(text) : 0;
+    jbyteArray bytes = (*env)->NewByteArray(env, length);
+    if (bytes == NULL) { clear_exception(env); return NULL; }
+    if (length > 0) (*env)->SetByteArrayRegion(env, bytes, 0, length, (const jbyte *)text);
+    return bytes;
+}
+
+EXPORT int elten_host_connection_service(const char *text, int on) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return 0;
+    jmethodID id = method(env, "connectionService", "([BI)I");
+    if (id == NULL) return 0;
+    jbyteArray bytes = utf8_bytes(env, text);
+    if (bytes == NULL) return 0;
+    jint result = (*env)->CallStaticIntMethod(env, g_host, id, bytes, (jint)on);
+    (*env)->DeleteLocalRef(env, bytes);
+    clear_exception(env);
+    return (int)result;
+}
+EXPORT int elten_host_connection_service_running(void) { return call_int("connectionServiceRunning"); }
+
+EXPORT int elten_host_post_notification(const char *title, const char *text) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return 0;
+    jmethodID id = method(env, "postNotification", "([B[B)I");
+    if (id == NULL) return 0;
+    jbyteArray a = utf8_bytes(env, title);
+    if (a == NULL) return 0;
+    jbyteArray b = utf8_bytes(env, text);
+    if (b == NULL) { (*env)->DeleteLocalRef(env, a); return 0; }
+    jint result = (*env)->CallStaticIntMethod(env, g_host, id, a, b);
+    (*env)->DeleteLocalRef(env, a);
+    (*env)->DeleteLocalRef(env, b);
+    clear_exception(env);
+    return (int)result;
+}
+
+EXPORT int elten_host_notifications_request(double timeout) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return 0;
+    jmethodID id = method(env, "notificationsRequest", "(D)I");
+    if (id == NULL) return 0;
+    jint result = (*env)->CallStaticIntMethod(env, g_host, id, (jdouble)timeout);
+    clear_exception(env);
+    return (int)result;
+}
+
+EXPORT int elten_host_battery_exemption(int request) {
+    JNIEnv *env = env_for_thread();
+    if (env == NULL) return 0;
+    jmethodID id = method(env, "batteryExemption", "(I)I");
+    if (id == NULL) return 0;
+    jint result = (*env)->CallStaticIntMethod(env, g_host, id, (jint)request);
+    clear_exception(env);
+    return (int)result;
+}
+
 // --- storage (file manager, file dialogs; Android only) --------------------------------
 // {"shared": <shared storage root>, "app": <Klangten's own folder>, "access": true|false}
 

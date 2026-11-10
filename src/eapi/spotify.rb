@@ -187,10 +187,13 @@ module KlangtenSpotify
 
     # File name of the library on a platform, nil where none is built.
     # Windows: x64 and x86 (tools\build-spotify.bat); macOS: Apple silicon;
-    # Linux: x64 and arm64 (tools/build-spotify.sh). Not on iOS and Android:
-    # neither the App Store nor Spotify's terms allow a second player there.
+    # Linux: x64 and arm64 (tools/build-spotify.sh); Android: arm64
+    # (android/scripts/build-spotify.sh), inside the APK. Not on iOS: the App
+    # Store does not allow a second player there.
     def self.file_name(platform, runtime_dir = nil)
       case platform.to_s
+      when "android"
+        "libklangten_spotify.so"
       when "windows"
         %w[windows-x64 windows-x86].include?(runtime_dir.to_s) ? "klangten_spotify.dll" : nil
       when "osx"
@@ -203,12 +206,16 @@ module KlangtenSpotify
     end
 
     # Candidate paths: $KLANGTEN_SPOTIFY_LIB, bin/<runtime>/, bin/.
+    # Android: the bare name - libraries stay inside the APK and are opened by
+    # name (docs/android.md); there is no file to look for.
     def self.candidates(root:, platform:, runtime_dir:)
       list = []
       env = ENV[ENV_PATH].to_s
       list << env if env != ""
       name = file_name(platform, runtime_dir)
-      if name != nil
+      if name != nil && platform.to_s == "android"
+        list << name
+      elsif name != nil
         list << File.join(root, "bin", runtime_dir.to_s, name)
         list << File.join(root, "bin", name)
       end
@@ -217,7 +224,7 @@ module KlangtenSpotify
 
     # Returns [library, nil] or [nil, "reason"].
     def self.open(candidates)
-      path = candidates.find { |candidate| File.file?(candidate) }
+      path = candidates.find { |candidate| File.file?(candidate) || by_name?(candidate) }
       return [nil, "Spotify library not available for this platform"] if path == nil
       library = new(path)
       version = library.abi_version
@@ -225,6 +232,12 @@ module KlangtenSpotify
       [library, nil]
     rescue Fiddle::DLError, StandardError => e
       [nil, "#{e.class}: #{e.message}"]
+    end
+
+    # A bare library name (Android): the system's loader finds it.
+    def self.by_name?(candidate)
+      candidate = candidate.to_s
+      candidate != "" && !candidate.include?("/") && !candidate.include?("\\")
     end
 
     attr_reader :path
@@ -283,6 +296,16 @@ module KlangtenSpotify
 
     def cancel_login
       fn("ks_cancel_login").call
+    end
+
+    # Android: the sign-in page the library could not open itself (no
+    # xdg-open there), once; nil otherwise. Optional - a library from before
+    # it does not have the function.
+    def take_login_url
+      @take_login_url = (Fiddle::Function.new(@handle["ks_take_login_url"], [], Fiddle::TYPE_VOIDP) rescue false) if @take_login_url == nil
+      return nil if @take_login_url == false
+      url = take_string(@take_login_url.call)
+      url == "" ? nil : url
     end
 
     def search(query, limit = 0)
@@ -507,6 +530,7 @@ module KlangtenSpotify
     def wait_for_login(timeout: LOGIN_TIMEOUT)
       deadline = KlangtenSpotify.monotonic + timeout
       loop do
+        open_login_page
         state = status
         if FINAL_STATES.include?(state) && state != STATE_LOGGED_OUT
           sync_credentials
@@ -519,6 +543,17 @@ module KlangtenSpotify
         return STATE_FAILED if KlangtenSpotify.monotonic >= deadline
         sleep(0.1)
       end
+    end
+
+    # Android: opens the sign-in page that the library handed over.
+    def open_login_page
+      return unless @library.respond_to?(:take_login_url)
+      url = @library.take_login_url
+      return if url == nil
+      opened = defined?(EltenSystemHelpers) && EltenSystemHelpers.respond_to?(:open_url) && EltenSystemHelpers.open_url(url)
+      log(opened ? :info : :warning, opened ? "Spotify: sign-in page opened" : "Spotify: could not open the sign-in page")
+    rescue Exception => e
+      log(:warning, "Spotify: sign-in page: #{e.class}: #{e.message}")
     end
 
     def logout

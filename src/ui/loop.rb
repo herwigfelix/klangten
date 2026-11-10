@@ -43,6 +43,9 @@ rescue Exception
 end
 
 def dispatch_notification(event, batch_sounds=nil)
+  # Klangten: on Android in the background the notification goes to the
+  # system instead (src/eapi/background_connection.rb).
+  return if defined?(KlangtenBackgroundConnection) && KlangtenBackgroundConnection.deliver(event)
   sound = event["sound"]
   if batch_sounds && sound != nil
     event = event.merge("sound" => nil) if batch_sounds[sound]
@@ -114,6 +117,7 @@ end
          Log.info("Restored from tray: #{source}")
          tr=true
        end
+       KlangtenBackgroundConnection.tick if defined?(KlangtenBackgroundConnection) && Thread.current == $mainthread
        begin
          NotificationService.start
          NotificationService.drain_events.each do |d|

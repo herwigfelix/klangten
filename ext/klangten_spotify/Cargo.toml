@@ -47,6 +47,13 @@ percent-encoding = "2"
 # from crates.io.
 [patch.crates-io]
 librespot-core = { path = "vendor/librespot-core" }
+# Android: the login page is opened by Klangten (vendor/librespot-oauth/PATCHES.md).
+librespot-oauth = { path = "vendor/librespot-oauth" }
+
+# Android: librespot-core uses the compiled-in Mozilla roots there
+# (vendor/librespot-core/PATCHES.md, change 3); this switches them on.
+[target.'cfg(target_os = "android")'.dependencies]
+hyper-rustls = { version = "0.27", default-features = false, features = ["webpki-tokio"] }
 
 [build-dependencies]
 # Not used directly - pins vergen for librespot-core's build script

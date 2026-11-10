@@ -106,6 +106,8 @@ public final class MainActivity extends Activity {
     public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
         if (code == Host.MICROPHONE_REQUEST) {
             Host.microphoneResult(results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED);
+        } else if (code == Host.NOTIFICATIONS_REQUEST) {
+            Host.notificationsResult(results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED);
         }
     }
 

@@ -42,6 +42,7 @@ final class Host {
     private static final String TAG = "Klangten";
     static final int MICROPHONE_REQUEST = 4201;
     static final int STORAGE_REQUEST = 4202;
+    static final int NOTIFICATIONS_REQUEST = 4203;
 
     private static final Handler main = new Handler(Looper.getMainLooper());
     private static volatile MainActivity activity;
@@ -345,6 +346,109 @@ final class Host {
         microphoneGranted = granted;
         CountDownLatch latch = microphoneLatch;
         if (latch != null) latch.countDown();
+    }
+
+    // --- background connection and system notifications (push without Google) -----------
+    // ConnectionService keeps the process and its network alive in the
+    // background; postNotification shows what the notification service of
+    // the Ruby core received while Klangten is not in front.
+
+    private static final String NOTIFY_CHANNEL = "notifications";
+    private static final AtomicInteger notificationIds = new AtomicInteger(5000);
+    private static volatile CountDownLatch notificationsLatch;
+    private static volatile boolean notificationsGranted;
+
+    // on: 1 start/update, 0 stop. 1 = done (or already running), 0 = refused.
+    static int connectionService(byte[] text, int on) {
+        String value = new String(text, StandardCharsets.UTF_8);
+        if (on == 0) return ConnectionService.update(app, value, false) ? 1 : 0;
+        return ConnectionService.update(app, value, true) ? 1 : 0;
+    }
+
+    static int connectionServiceRunning() {
+        return ConnectionService.running() ? 1 : 0;
+    }
+
+    static int postNotification(byte[] title, byte[] text) {
+        try {
+            android.app.NotificationManager manager =
+                    (android.app.NotificationManager) app.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager == null) return 0;
+            if (Build.VERSION.SDK_INT >= 33 && app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) return 0;
+            android.app.Notification.Builder builder;
+            if (Build.VERSION.SDK_INT >= 26) {
+                if (manager.getNotificationChannel(NOTIFY_CHANNEL) == null) {
+                    boolean german = "de".equals(Locale.getDefault().getLanguage());
+                    android.app.NotificationChannel channel = new android.app.NotificationChannel(NOTIFY_CHANNEL,
+                            german ? "Benachrichtigungen" : "Notifications",
+                            android.app.NotificationManager.IMPORTANCE_HIGH);
+                    manager.createNotificationChannel(channel);
+                }
+                builder = new android.app.Notification.Builder(app, NOTIFY_CHANNEL);
+            } else {
+                builder = new android.app.Notification.Builder(app);
+            }
+            Intent open = new Intent(app, MainActivity.class);
+            open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            android.app.PendingIntent content = android.app.PendingIntent.getActivity(app, 2, open,
+                    android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT);
+            String body = new String(text, StandardCharsets.UTF_8);
+            manager.notify(notificationIds.incrementAndGet(), builder
+                    .setSmallIcon(android.R.drawable.stat_notify_chat)
+                    .setContentTitle(new String(title, StandardCharsets.UTF_8))
+                    .setContentText(body)
+                    .setStyle(new android.app.Notification.BigTextStyle().bigText(body))
+                    .setContentIntent(content)
+                    .setAutoCancel(true)
+                    .build());
+            return 1;
+        } catch (RuntimeException e) {
+            Log.w(TAG, "postNotification: " + e);
+            return 0;
+        }
+    }
+
+    // Android 13 and newer ask the user once. 1 = may post.
+    static int notificationsRequest(double timeoutSeconds) {
+        if (Build.VERSION.SDK_INT < 33) return 1;
+        if (app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return 1;
+        MainActivity current = activity;
+        if (current == null) return 0;
+        CountDownLatch latch = new CountDownLatch(1);
+        notificationsLatch = latch;
+        notificationsGranted = false;
+        main.post(() -> current.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATIONS_REQUEST));
+        try {
+            latch.await((long) (timeoutSeconds * 1000), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException ignored) {
+        }
+        return notificationsGranted ? 1 : 0;
+    }
+
+    static void notificationsResult(boolean granted) {
+        notificationsGranted = granted;
+        CountDownLatch latch = notificationsLatch;
+        if (latch != null) latch.countDown();
+    }
+
+    // Battery optimisation lets the network sleep in Doze even with the
+    // service. request 0: only ask the state; 1: show the system's question.
+    // 1 = exempt, 2 = the question is shown, 0 = not exempt / failed.
+    static int batteryExemption(int request) {
+        try {
+            android.os.PowerManager power = (android.os.PowerManager) app.getSystemService(Context.POWER_SERVICE);
+            if (power != null && power.isIgnoringBatteryOptimizations(app.getPackageName())) return 1;
+            if (request == 0) return 0;
+            Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:" + app.getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            app.startActivity(intent);
+            return 2;
+        } catch (RuntimeException e) {
+            Log.w(TAG, "batteryExemption: " + e);
+            return 0;
+        }
     }
 
     // --- audio focus (background player) --------------------------------------------------

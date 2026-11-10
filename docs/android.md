@@ -95,6 +95,34 @@ only `arm64-v8a`. TeamConference comes from the public TeamConference repository
   goes through AAudio/OpenSL ES (miniaudio picks them at run time). Until 0.3
   this was BASS, which needed `libbass_ssl.so` for HTTPS and loaded its add-ons
   by name; both problems are gone with it.
+- **Spotify: `libklangten_spotify.so`** (`ext/klangten_spotify`, librespot,
+  built by `android/scripts/build-spotify.sh`, Android only - iOS has none).
+  Two Android details: rustls finds no system roots, so
+  `KlangtenSpotify.android_ca_bundle` points `SSL_CERT_FILE` to Klangten's CA
+  bundle; and the `open` crate has no browser there, so the patched
+  librespot-oauth (`vendor/librespot-oauth/PATCHES.md`) hands the sign-in page
+  to `ks_take_login_url` and `Client#wait_for_login` opens it through the
+  system. The redirect comes back to `http://127.0.0.1:5588/login` inside the
+  app process.
+- **Background connection (push without Google)**: Android 15 and newer cut
+  the network of an app in the background and freeze its process.
+  `ConnectionService` (foreground service of type `remoteMessaging`, a silent
+  permanent notification, channel "connection") keeps both alive while someone
+  is signed in and Settings → General → "Stay connected in the background" is
+  on (`System/BackgroundConnection`, default on); `src/eapi/background_connection.rb`
+  starts and stops it from `loop_update` (only possible while Klangten is in
+  front) and, while Klangten is in the background, hands each notification to
+  `Host.postNotification` (channel "notifications") instead of speaking it.
+  Once per installation it asks for `POST_NOTIFICATIONS` (Android 13+) and for
+  the exemption from battery optimisation (otherwise Doze still cuts the
+  network). Not sticky: the service only exists while the Ruby core runs.
+  Check the network state with `adb shell dumpsys netpolicy | grep <uid>`
+  (`blocked=APP_BACKGROUND` = no service running).
+- **Microphone**: recordings are stereo. Requested with the camcorder preset,
+  which uses the stereo microphone where a phone has one; a phone with a single
+  microphone fills only the left channel, and `ka_capture_center`
+  (`ext/klangten_audio/src/ka_capture_fix.h`) puts it into the middle (iOS:
+  same, with the built-in microphone's stereo polar pattern where available).
 - The STL is `c++_shared`: the TeamConference library needs `libc++_shared.so`.
 
 ## Findings (spike and phase 1, September 2026)

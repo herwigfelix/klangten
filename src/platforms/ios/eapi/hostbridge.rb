@@ -158,6 +158,39 @@ module IOSHostBridge
       nil
     end
 
+    # Android only (src/eapi/background_connection.rb): the foreground
+    # service that keeps Klangten connected in the background.
+    def connection_service(text, on)
+      fn = func(:connection_service, [Fiddle::TYPE_VOIDP, Fiddle::TYPE_INT], Fiddle::TYPE_INT)
+      return false if fn == nil
+      fn.call(cstr(text.to_s), on ? 1 : 0).to_i == 1
+    rescue Exception
+      false
+    end
+
+    # Android only: a system notification (Klangten in the background).
+    def post_notification(title, text)
+      call_two_strings_int(:post_notification, title.to_s, text.to_s) == 1
+    end
+
+    # Android 13 and newer ask once; true when notifications may be posted.
+    def request_notification_permission(timeout = 60.0)
+      fn = func(:notifications_request, [Fiddle::TYPE_DOUBLE], Fiddle::TYPE_INT)
+      return false if fn == nil
+      fn.call(timeout.to_f).to_i == 1
+    rescue Exception
+      false
+    end
+
+    def battery_exempt?
+      battery_call(0) == 1
+    end
+
+    # Shows the system's question; true when it was shown (or not needed).
+    def battery_exemption(_request = true)
+      battery_call(1) != 0
+    end
+
     def request_microphone_access(timeout = 15.0)
       fn = func(:microphone_request, [Fiddle::TYPE_DOUBLE], Fiddle::TYPE_INT)
       return true if fn == nil
@@ -304,6 +337,13 @@ module IOSHostBridge
       end
     rescue Exception
       nil
+    end
+
+    def battery_call(request)
+      fn = func(:battery_exemption, [Fiddle::TYPE_INT], Fiddle::TYPE_INT)
+      fn == nil ? 0 : fn.call(request.to_i).to_i
+    rescue Exception
+      0
     end
 
     def call_int(suffix)

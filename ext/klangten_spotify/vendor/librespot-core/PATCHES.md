@@ -5,7 +5,7 @@ This directory is librespot-core 0.8.0 as published on crates.io
 https://github.com/librespot-org/librespot). Klangten's `Cargo.toml` uses it
 through `[patch.crates-io]`, so every librespot crate picks up this copy.
 
-There are two changes, both in `src/session.rs` and marked `KLANGTEN PATCH`:
+There are four changes, marked `KLANGTEN PATCH` (1 and 2 in `src/session.rs`, 3 in `src/http_client.rs`, 4 in `src/config.rs`):
 
 1. `Session::check_catalogue` no longer calls `process::exit(1)` for an
    account without Premium. Upstream this terminates the whole host process
@@ -20,6 +20,18 @@ There are two changes, both in `src/session.rs` and marked `KLANGTEN PATCH`:
    still while a Mac sleeps, so a dead session could still count as healthy
    for minutes after waking up; klangten_spotify reconnects when no packet
    has arrived for too long.
+3. On Android the HTTP client uses the compiled-in Mozilla roots
+   (`with_webpki_roots`) instead of `with_native_roots`: Android keeps its
+   roots where rustls-native-certs does not look, and the playlists, the
+   liked songs and the search (all over HTTPS to spclient) came back empty.
+   klangten_spotify's `Cargo.toml` switches on `hyper-rustls/webpki-tokio`
+   for Android only.
+4. `config::OS` is `"linux"` on Android. librespot otherwise behaves as
+   Spotify's Android app there (Android client id, Android user agent and
+   platform), which does not fit Klangten's desktop-style login (keymaster
+   client id, OAuth in the browser): login5 refused every token for the
+   spclient queries with INVALID_CREDENTIALS, and with the client id fixed
+   still with BAD_REQUEST.
 
 Every other file is unchanged from the crates.io package (`LICENSE` was added
 from the upstream repository because the package does not contain it, and

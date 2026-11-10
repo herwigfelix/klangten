@@ -256,6 +256,8 @@ src/eapi/live_sessions.rb
 src/eapi/dictionary_plural_rule.rb
 src/eapi/dictionary.rb
 src/eapi/notifications.rb
+# Klangten: Android stays connected in the background (push without Google)
+src/eapi/background_connection.rb
 src/platforms/windows/invisibleinterface/nativedialogs.rb :windows
 src/platforms/windows/invisibleinterface/hotkeys.rb :windows
 src/platforms/windows/invisibleinterface/service.rb :windows
@@ -303,11 +305,13 @@ src/eapi/mediabuttons.rb
 src/platforms/osx/eapi/mediabuttons.rb :osx
 src/scenes/nowplaying.rb
 src/scenes/internetarchive.rb
-# Klangten: Spotify (native library built from ext/klangten_spotify; not on iOS and Android)
-src/eapi/spotify.rb :!ios
-src/eapi/spotify_host.rb :!ios
-src/eapi/spotify_playlist.rb :!ios
-src/scenes/spotify.rb :!ios
+# Klangten: Spotify (native library built from ext/klangten_spotify; not on iOS).
+# Loaded on every platform: Android carries the :ios tag, so ":!ios" would drop
+# it there too. On iOS KlangtenSpotify.available? stays false (no library).
+src/eapi/spotify.rb
+src/eapi/spotify_host.rb
+src/eapi/spotify_playlist.rb
+src/scenes/spotify.rb
 # Klangten: the Klangten browser (full browser over Chrome for Testing, text browser)
 src/eapi/web/web.rb
 src/eapi/web/websocket.rb

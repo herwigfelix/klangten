@@ -245,8 +245,8 @@ module KlangtenSpotify
     # before the first use.
     attr_writer :library_override
 
-    # False on iOS and Android, where Spotify is left out, and wherever the
-    # library is missing. Loads the library on the first call.
+    # False on iOS, where Spotify is left out, and wherever the library is
+    # missing. Loads the library on the first call.
     def available?
       client != nil
     end
@@ -256,10 +256,33 @@ module KlangtenSpotify
       @library_error
     end
 
+    # iOS only: Android carries the :ios tag as well (it runs the iOS platform
+    # layer) but has Spotify.
     def mobile?
-      defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios)
+      defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:ios) && !android?
     rescue Exception
       false
+    end
+
+    def android?
+      defined?(EltenBoot) && EltenBoot.respond_to?(:platform?) && EltenBoot.platform?(:android)
+    rescue Exception
+      false
+    end
+
+    # Android: rustls (librespot) looks for the root certificates of a Linux
+    # system and finds none there. Point it to Klangten's own bundle
+    # (resources/ssl/cert.pem, rebuilt from the system roots at every start).
+    def android_ca_bundle
+      return unless android?
+      return if ENV["SSL_CERT_FILE"].to_s != "" && File.file?(ENV["SSL_CERT_FILE"].to_s)
+      pem = EltenAPI::Resources.read("ssl/cert.pem").to_s.b
+      return if pem == ""
+      path = File.join(data_dir, "ca.pem")
+      File.binwrite(path, pem) if !File.file?(path) || File.binread(path) != pem
+      ENV["SSL_CERT_FILE"] = path
+    rescue Exception => e
+      Log.warning("Spotify CA bundle: #{e.class}: #{e.message}") if defined?(Log)
     end
 
     def data_dir
@@ -298,6 +321,7 @@ module KlangtenSpotify
       rescue StandardError
         nil
       end
+      android_ca_bundle
       library.init(File.join(dir, "cache"), log_path)
       library.login_page = login_page
       @client = Client.new(library: library, store: credential_store, logger: method(:log_message))

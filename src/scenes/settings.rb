@@ -248,6 +248,8 @@ def make_window
           ["disabled", "hidden", "visible"]
         ) if tray_supported?
         make_setting(p_("Settings", "Send Elten usage reports"), :bool, "Privacy", "RegisterActivity")
+        # Klangten: Android only - the connection service (push without Google).
+        make_setting(p_("Settings", "Stay connected in the background (new messages as notifications)"), :bool, "System", "BackgroundConnection") if platform_os == "android"
       end
       # Klangten: the updater has its own page, because the fork can take updates
       # from two different places - the Klango server or the public releases of

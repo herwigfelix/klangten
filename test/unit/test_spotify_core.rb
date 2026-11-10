@@ -225,6 +225,36 @@ class SpotifyClientTest < Minitest::Test
     assert_equal KlangtenSpotify::STATE_FAILED, client.wait_for_login(timeout: 5)
   end
 
+  # Android: no xdg-open there, the library hands the sign-in page over and
+  # the client opens it through the system while it waits.
+  def test_android_sign_in_page_is_opened_while_waiting
+    library = FakeSpotify::Library.new
+    library.login_delay = 0.3
+    pages = ["https://accounts.spotify.com/authorize?x=1"]
+    library.define_singleton_method(:take_login_url) { pages.shift }
+    skip("EltenSystemHelpers is loaded") if defined?(::EltenSystemHelpers)
+    opened = []
+    helpers = Module.new
+    helpers.define_singleton_method(:open_url) { |url| opened << url; true }
+    Object.const_set(:EltenSystemHelpers, helpers)
+    begin
+      client = KlangtenSpotify::Client.new(library: library)
+      client.start_login
+      assert_equal KlangtenSpotify::STATE_OK, client.wait_for_login(timeout: 5)
+      assert_equal ["https://accounts.spotify.com/authorize?x=1"], opened
+    ensure
+      Object.send(:remove_const, :EltenSystemHelpers)
+    end
+  end
+
+  def test_library_is_opened_by_name_on_android_and_not_offered_on_ios
+    list = KlangtenSpotify::Library.candidates(root: "/x", platform: "android", runtime_dir: "android-arm64")
+    assert_includes list, "libklangten_spotify.so"
+    assert KlangtenSpotify::Library.by_name?("libklangten_spotify.so")
+    refute KlangtenSpotify::Library.by_name?("/x/bin/libklangten_spotify.so")
+    assert_nil KlangtenSpotify::Library.file_name("ios", "ios-arm64")
+  end
+
   def test_waiting_can_be_cancelled
     library = FakeSpotify::Library.new
     library.login_delay = 10

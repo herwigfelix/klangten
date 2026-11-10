@@ -25879,6 +25879,18 @@ msgctxt "Settings"
 msgid "Check for updates now"
 msgstr "Jetzt nach Updates suchen"
 
+msgctxt "Klangten"
+msgid "Connected. New messages and notifications arrive in the background."
+msgstr "Verbunden. Neue Nachrichten und Benachrichtigungen kommen auch im Hintergrund an."
+
+msgctxt "Klangten"
+msgid "So that Klangten can tell you about new messages while it is in the background, Android now asks whether Klangten may show notifications and may run without battery optimisation. Please allow both."
+msgstr "Damit Klangten dich auch im Hintergrund über neue Nachrichten informieren kann, fragt Android jetzt, ob Klangten Benachrichtigungen anzeigen und ohne Akku-Optimierung laufen darf. Bitte erlaube beides."
+
+msgctxt "Settings"
+msgid "Stay connected in the background (new messages as notifications)"
+msgstr "Im Hintergrund verbunden bleiben (neue Nachrichten als Benachrichtigung)"
+
 msgctxt "Loading"
 msgid "You are using the newest version of Klangten."
 msgstr "Du verwendest die neueste Version von Klangten."

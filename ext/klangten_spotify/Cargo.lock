@@ -1003,6 +1003,7 @@ dependencies = [
 name = "klangten_spotify"
 version = "0.1.0"
 dependencies = [
+ "hyper-rustls 0.27.9",
  "librespot-core",
  "librespot-metadata",
  "librespot-oauth",
@@ -1133,8 +1134,6 @@ dependencies = [
 [[package]]
 name = "librespot-oauth"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d686417d49c9d2c363392ffe28d6e469daca20a82dc414740930e078f5829661"
 dependencies = [
  "log",
  "oauth2",

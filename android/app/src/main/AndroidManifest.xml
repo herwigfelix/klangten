@@ -7,6 +7,11 @@
     <!-- Klangten 0.4: playback goes on with the screen locked (PlaybackService). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Klangten 0.4: stays connected in the background (ConnectionService),
+         push without Google; new notifications as system notifications. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Self-update from the GitHub releases (Host.installPackage): the system
          package installer asks the user before anything is installed. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -46,6 +51,10 @@
             android:name=".PlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+        <service
+            android:name=".ConnectionService"
+            android:exported="false"
+            android:foregroundServiceType="remoteMessaging" />
         <!-- Serves only the verified update APK to the package installer. -->
         <provider
             android:name=".UpdateProvider"

@@ -9,6 +9,7 @@
 //   ks_login()                -> status (string)
 //   ks_has_login()            -> 0/1
 //   ks_status()               -> status (string)
+//   ks_take_login_url()       -> Android: login page to open, or NULL
 //   ks_logout()
 //   ks_search(q,limit)        -> JSON [track]
 //   ks_search_typed(q,limit)  -> JSON [row]
@@ -231,6 +232,16 @@ pub extern "C" fn ks_free_string(p: *mut c_char) {
 #[no_mangle]
 pub extern "C" fn ks_login() -> *mut c_char {
     guard(std::ptr::null_mut(), || s_out(engine::login()))
+}
+
+#[no_mangle]
+pub extern "C" fn ks_take_login_url() -> *mut c_char {
+    // Android only fills it; elsewhere the library opens the browser itself.
+    // Optional for the binding (added after ABI 1), so no ABI change.
+    guard(std::ptr::null_mut(), || match engine::take_login_url() {
+        Some(url) => s_out(url),
+        None => std::ptr::null_mut(),
+    })
 }
 
 #[no_mangle]
