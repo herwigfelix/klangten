@@ -8,7 +8,7 @@
 
 # The text browser (src/scenes/webbrowser.rb) against pages on a local web
 # server: reading, Tab between links, following a link, Backspace back and
-# Shift+Backspace forward, a link to a file. The full browser needs Chrome
+# Shift+Backspace forward, a link to a file, links to other programs. The full browser needs Chrome
 # for Testing and is not part of the automatic tests (tools/web-probe.rb).
 
 require_relative "../test_helper"
@@ -64,6 +64,52 @@ class WebBrowserTest < KlangtenTest::FlowTest
     assert_equal ["/index.html", "/zwei.html"], web.requests.map(&:path).uniq.first(2)
     k.press("esc")
     k.settle
+  end
+
+  # A page must not open files or start programs on the computer unasked:
+  # the system would open such links with whatever program it has for them.
+  def test_links_to_other_programs_are_not_opened_unasked
+    web = fake_web
+    web.text("/links.html", <<~HTML, mime: "text/html")
+      <html><head><title>Links</title></head><body>
+      <h1>Fremde Links</h1>
+      <p><a href="file:///etc/passwd">Lokale Datei</a> <a href="ms-settings:privacy">Fremdes Programm</a> <a href="mailto:jemand@example.org">Post</a></p>
+      </body></html>
+    HTML
+    opened = []
+    original = nil
+    k = klangten
+    k.boot
+    k.expect("Log in", since: 0)
+    original = ::EltenSystemHelpers.method(:open_url)
+    ::EltenSystemHelpers.define_singleton_method(:open_url) { |url| opened << url.to_s; true }
+    open_text_browser(k, web.url("/links.html"))
+    k.press("ctrl+home")
+    k.press("tab")
+    k.expect("Lokale Datei")
+    k.press("enter")
+    k.expect("This link cannot be opened from a web page: file:///etc/passwd")
+    assert_empty opened
+    k.press("tab")
+    k.expect("Fremdes Programm")
+    k.press("enter")
+    k.expect("This link opens another program on your computer: ms-settings:privacy. Do you want to open it?")
+    k.press("enter") # No is the default
+    assert_empty opened
+    k.press("enter")
+    k.expect("Do you want to open it?")
+    k.press("down")
+    k.expect("Yes")
+    k.press("enter")
+    k.settle
+    assert_equal ["ms-settings:privacy"], opened
+    k.press("tab")
+    k.expect("Post")
+    k.press("enter")
+    k.settle
+    assert_equal ["ms-settings:privacy", "mailto:jemand@example.org"], opened
+  ensure
+    ::EltenSystemHelpers.define_singleton_method(:open_url, original) if original != nil
   end
 
   def test_link_to_a_file_is_downloaded

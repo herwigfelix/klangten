@@ -159,6 +159,22 @@ module KlangtenWeb
       url.to_s =~ /\Ahttps?:\/\//i ? true : false
     end
 
+    # Links of a web page that are no web address. The system opens them with
+    # whatever program is registered for the scheme (on Windows through
+    # ShellExecute), so a page could start programs or open files on the
+    # computer with one Enter. Mail, phone and SMS links only open the matching
+    # app; files, scripts and drive letters never come from a page; every other
+    # scheme is opened only after a question.
+    SAFE_EXTERNAL_SCHEMES = %w[mailto tel sms].freeze
+    BLOCKED_EXTERNAL_SCHEMES = %w[file javascript vbscript data about blob].freeze
+
+    # :open, :ask or :refuse for such a link.
+    def external_link_action(url)
+      scheme = url.to_s.strip[/\A([a-z][a-z0-9+.\-]*):/i, 1].to_s.downcase
+      return :refuse if scheme.length < 2 || BLOCKED_EXTERNAL_SCHEMES.include?(scheme)
+      SAFE_EXTERNAL_SCHEMES.include?(scheme) ? :open : :ask
+    end
+
     # Media the browser offers to play instead of saving.
     MEDIA_EXTENSIONS = %w[.mp3 .ogg .oga .opus .m4a .aac .wav .flac .wma .mp4 .m4v .webm .mkv .mov .m3u .m3u8 .pls].freeze
     STREAM_TYPES = %w[audio/mpeg audio/mp3 audio/aac audio/aacp audio/ogg application/ogg audio/opus audio/x-mpegurl

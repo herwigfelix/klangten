@@ -557,7 +557,7 @@ class Scene_WebBrowser
     absolute = (URI.join(current_page.url, link.to_s).to_s rescue link.to_s)
     @pages[@page_index][:position] = @text_view.index
     unless KlangtenWeb.web_url?(absolute)
-      platform_open_url(absolute)
+      open_external_link(absolute)
       return
     end
     if KlangtenWeb.media?(absolute)
@@ -565,6 +565,19 @@ class Scene_WebBrowser
       return
     end
     text_show if text_open(absolute)
+  end
+
+  # A link to another program (KlangtenWeb.external_link_action): the page
+  # must not start programs or open files on the computer unasked.
+  def open_external_link(url)
+    case KlangtenWeb.external_link_action(url)
+    when :open
+      platform_open_url(url)
+    when :ask
+      platform_open_url(url) if confirm(p_("WebBrowser", "This link opens another program on your computer: %{address}. Do you want to open it?") % { address: url })
+    else
+      alert(p_("WebBrowser", "This link cannot be opened from a web page: %{address}") % { address: url })
+    end
   end
 
   def text_step(step)

@@ -27693,6 +27693,14 @@ msgid "Open in the Klangten browser"
 msgstr "Im Klangten-Browser öffnen"
 
 msgctxt "WebBrowser"
+msgid "This link opens another program on your computer: %{address}. Do you want to open it?"
+msgstr "Dieser Link öffnet ein anderes Programm auf Ihrem Computer: %{address}. Möchten Sie ihn öffnen?"
+
+msgctxt "WebBrowser"
+msgid "This link cannot be opened from a web page: %{address}"
+msgstr "Dieser Link kann von einer Webseite aus nicht geöffnet werden: %{address}"
+
+msgctxt "WebBrowser"
 msgid "Open in the system browser"
 msgstr "Im Systembrowser öffnen"
 
