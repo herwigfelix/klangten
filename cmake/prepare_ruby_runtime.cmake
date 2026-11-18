@@ -500,12 +500,43 @@ if(PLATFORM STREQUAL "windows")
       string(REGEX REPLACE "(^|\n)LocalFileSigLevel[^\n]*" "\\1LocalFileSigLevel = Never" pacman_conf_text "${pacman_conf_text}")
       file(WRITE "${pacman_conf}" "${pacman_conf_text}")
     endif()
-    message(STATUS "Installing MSYS2 packages: ${MSYS2_PACKAGES}")
+    # Klangten: in November 2026 MSYS2 removed most packages from its 32-bit
+    # mingw32 repository, among them make, libxml2 and libxslt, which the x86
+    # build needs. The package files stay in the repository's archive and
+    # everything they depend on is still in the repository, so these few are
+    # installed from there by URL (pacman -U). Old CMake caches still name the
+    # packages, which is why the swap happens here and not in the package list.
+    set(mingw32_archive "https://repo.msys2.org/mingw/mingw32")
+    separate_arguments(msys2_requested NATIVE_COMMAND "${MSYS2_PACKAGES}")
+    set(msys2_sync_packages)
+    set(msys2_archived_packages)
+    foreach(package IN LISTS msys2_requested)
+      if(package STREQUAL "mingw-w64-i686-make")
+        list(APPEND msys2_archived_packages "${mingw32_archive}/mingw-w64-i686-make-4.4.1-5-any.pkg.tar.zst")
+      elseif(package STREQUAL "mingw-w64-i686-libxslt")
+        list(APPEND msys2_archived_packages
+          "${mingw32_archive}/mingw-w64-i686-libxml2-2.15.4-3-any.pkg.tar.zst"
+          "${mingw32_archive}/mingw-w64-i686-libxslt-1.1.45-1-any.pkg.tar.zst")
+      else()
+        list(APPEND msys2_sync_packages "${package}")
+      endif()
+    endforeach()
+    list(JOIN msys2_sync_packages " " msys2_sync_packages)
+    message(STATUS "Installing MSYS2 packages: ${msys2_sync_packages}")
     run_checked_with_c_locale(
       "${msys_bash}"
       -lc
-      "pacman --color never --noconfirm --needed -Sy ${MSYS2_PACKAGES}"
+      "pacman --color never --noconfirm --needed -Sy ${msys2_sync_packages}"
     )
+    if(msys2_archived_packages)
+      list(JOIN msys2_archived_packages " " msys2_archived_packages)
+      message(STATUS "Installing archived MSYS2 packages: ${msys2_archived_packages}")
+      run_checked_with_c_locale(
+        "${msys_bash}"
+        -lc
+        "pacman --color never --noconfirm --needed -U ${msys2_archived_packages}"
+      )
+    endif()
   endif()
   # Also repair runtimes installed before these checks were added.
   repair_msys2_toolchain_links()
