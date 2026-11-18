@@ -7,8 +7,8 @@
 # You should have received a copy of the GNU General Public License along with Klangten. If not, see <https://www.gnu.org/licenses/>.
 
 # Logging in against the real Klango server (src/scenes/login.rb): name and
-# password, a wrong password, the auto-login question, and the shortcut
-# feature tests use (boot_logged_in).
+# password, a wrong password, the auto-login question, the shortcut
+# feature tests use (boot_logged_in), and who counts as a global moderator.
 
 require_relative "../test_helper"
 
@@ -71,5 +71,37 @@ class LoginTest < KlangtenTest::FlowTest
     k.boot_logged_in("grete")
     k.expect("Logged in as: grete", since: 0)
     assert_kind_of Scene_Main, k.scene
+  end
+
+  # Only global administrators get moderator tools such as "Ban globally" in
+  # the user menu. The server once sent the flag as 0/1, and 0 is true in Ruby,
+  # so every account showed them.
+  def test_only_administrators_are_global_moderators
+    server.create_user("hans")
+    server.create_user("anna", "boss", admin: true)
+    k = klangten(server: server)
+    k.boot_logged_in("hans")
+    assert_equal 0, k.call { Session.moderator }
+    assert_equal 0, EltenLink::LoginResult.new("moderator" => 0).moderator
+    assert_equal 0, EltenLink::LoginResult.new("moderator" => false).moderator
+    assert_equal 1, EltenLink::LoginResult.new("moderator" => 1).moderator
+    assert_equal 1, EltenLink::LoginResult.new("moderator" => true).moderator
+    k.menu("Community", "Users", "Special users")
+    k.move_to("anna: Administrator", key: "down")
+    k.press("enter")
+    k.move_to("Status history", key: "down")
+    20.times { k.press("down") }
+    k.expect_not("Ban globally", since: 0)
+  end
+
+  def test_administrators_can_ban_globally
+    server.create_user("anna", "boss", admin: true)
+    a = klangten(server: server)
+    a.boot_logged_in("anna")
+    assert_equal 1, a.call { Session.moderator }
+    a.menu("Community", "Users", "Special users")
+    a.move_to("boss: Administrator", key: "down")
+    a.press("enter")
+    a.move_to("Ban globally", key: "down")
   end
 end

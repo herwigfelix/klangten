@@ -1,6 +1,6 @@
 # A part of Elten - EltenLink / Elten Network desktop client.
 # Copyright (C) 2014-2026 Dawid Pieper
-# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; two-factor authentication via Telegram or text message.
+# Modified 2026 by Felix Valentin Herwig (sixdotsIT) for Klangten: premium packages and sponsors removed, former premium features available to everyone; two-factor authentication via Telegram or text message; the moderator flag is read as a real boolean (0 is true in Ruby).
 
 module EltenLink
   class LoginResult
@@ -9,7 +9,7 @@ module EltenLink
     def initialize(data)
       @name = data["name"].to_s
       @token = data["token"].to_s
-      @moderator = data["moderator"] ? 1 : 0
+      @moderator = Client.truthy?(data["moderator"]) ? 1 : 0
       @fullname = data["fullname"].to_s
       @gender = data["gender"].to_i
       @languages = data["languages"].to_s
