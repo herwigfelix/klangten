@@ -679,6 +679,11 @@ class ArchiveTest < Minitest::Test
     assert_equal "https://archive.org/download/oldtimeradio_test/show%201.mp3", first.url
   end
 
+  def test_description_entities_are_decoded_once
+    data = { "metadata" => { "identifier" => "x", "description" => "Use &amp;lt;b&amp;gt; &amp; &lt;i&gt;" } }
+    assert_equal "Use &lt;b&gt; & <i>", KlangtenArchive.parse_entry("x", JSON.generate(data)).description
+  end
+
   def test_unknown_entry
     assert_raises(KlangtenArchive::Error) { KlangtenArchive.parse_entry("nothing", "{}") }
   end

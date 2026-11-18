@@ -185,7 +185,8 @@ module KlangtenArchive
 
     def clean(html)
       html.to_s.gsub(/<br\s*\/?>/i, "\n").gsub(/<\/p>/i, "\n\n").gsub(/<[^>]+>/, "")
-        .gsub("&amp;", "&").gsub("&lt;", "<").gsub("&gt;", ">").gsub("&quot;", "\"").gsub("&#39;", "'").gsub("&nbsp;", " ")
+        # &amp; last: "&amp;lt;" is the text "&lt;", not "<".
+        .gsub("&lt;", "<").gsub("&gt;", ">").gsub("&quot;", "\"").gsub("&#39;", "'").gsub("&nbsp;", " ").gsub("&amp;", "&")
         .gsub(/\n{3,}/, "\n\n").strip
     end
   end
